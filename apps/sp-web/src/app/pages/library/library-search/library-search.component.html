@@ -1,0 +1,124 @@
+@if (loading()) {
+  <div class="app-blocking-loader" role="status" aria-live="polite">
+    <p-progressspinner
+      styleClass="app-blocking-spinner"
+      strokeWidth="4"
+      [style]="{ width: '2.25rem', height: '2.25rem' }"
+    />
+    <p>Searching your library...</p>
+  </div>
+} @else if (error()) {
+  <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+  <button type="button" class="retry-button" (click)="retry()">Retry</button>
+} @else if (activeQuery() && !hasResults()) {
+  <p class="state" data-testid="library-search-empty">
+    No library matches for "{{ activeQuery() }}".
+  </p>
+} @else if (activeQuery()) {
+  @if (performers().length > 0) {
+    <section class="result-section" aria-labelledby="library-search-performers">
+      <h2 id="library-search-performers">Performers</h2>
+      <div class="tile-grid">
+        @for (performer of performersShown.slice(performers()); track performer.id) {
+          <a
+            class="tile-card"
+            [routerLink]="['/library']"
+            [queryParams]="{ performers: performer.id, performerNames: performer.name }"
+            [attr.aria-label]="'Library scenes with ' + performer.name"
+          >
+            <img class="tile-image round" [src]="performer.imageUrl" alt="" loading="lazy" />
+            <span class="tile-name">{{ performer.name }}</span>
+            <span class="tile-meta">{{ sceneCountLabel(performer.sceneCount) }}</span>
+          </a>
+        }
+      </div>
+      @if (performersShown.hasMore(performers().length)) {
+        <button type="button" class="show-more-button" (click)="performersShown.more()">Show more</button>
+      }
+    </section>
+  }
+
+  @if (studios().length > 0) {
+    <section class="result-section" aria-labelledby="library-search-sites">
+      <h2 id="library-search-sites">Sites</h2>
+      <div class="tile-grid">
+        @for (studio of studiosShown.slice(studios()); track studio.id) {
+          <a
+            class="tile-card"
+            [routerLink]="['/library']"
+            [queryParams]="{ studios: studio.id, studioNames: studio.name }"
+            [attr.aria-label]="'Library scenes from ' + studio.name"
+          >
+            @if (studio.imageUrl) {
+              <span class="tile-logo">
+                <img [src]="studio.imageUrl" alt="" loading="lazy" />
+              </span>
+            } @else {
+              <span class="tile-logo placeholder" aria-hidden="true">{{ initial(studio.name) }}</span>
+            }
+            <span class="tile-name">{{ studio.name }}</span>
+            <span class="tile-meta">{{ sceneCountLabel(studio.sceneCount) }}</span>
+          </a>
+        }
+      </div>
+      @if (studiosShown.hasMore(studios().length)) {
+        <button type="button" class="show-more-button" (click)="studiosShown.more()">Show more</button>
+      }
+    </section>
+  }
+
+  @if (scenes().length > 0) {
+    <section class="result-section" aria-labelledby="library-search-scenes">
+      <h2 id="library-search-scenes">
+        Scenes <span class="count">{{ scenesTotal().toLocaleString() }}</span>
+      </h2>
+      <div class="grid">
+        @for (item of scenes(); track item.id) {
+          <app-scene-card
+            [item]="item"
+            [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'local'"
+            [sceneRouteId]="item.activeCatalogSceneId"
+            [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+            [footerBadgeLabel]="item.activeCatalogSceneId ? null : 'Local only'"
+            [playable]="true"
+            previewKind="local"
+            (play)="playScene($event)"
+          />
+        }
+      </div>
+
+      @if (loadMoreError()) {
+        <p-message severity="error" styleClass="app-inline-message">{{ loadMoreError() }}</p-message>
+      }
+      @if (scenesHasMore()) {
+        <button
+          type="button"
+          class="show-more-button"
+          data-testid="library-search-show-more"
+          [disabled]="loadingMore()"
+          (click)="showMoreScenes()"
+        >
+          {{ loadingMore() ? 'Loading...' : 'Show more' }}
+        </button>
+      }
+    </section>
+  }
+
+  @if (tags().length > 0) {
+    <section class="result-section" aria-labelledby="library-search-tags">
+      <h2 id="library-search-tags">Tags</h2>
+      <div class="chips app-chip-list">
+        @for (tag of tags(); track tag.id) {
+          <a
+            class="chip app-chip tag-chip"
+            [routerLink]="['/library']"
+            [queryParams]="{ tags: tag.id, tagNames: tag.name }"
+            [attr.aria-label]="'Library scenes tagged ' + tag.name"
+          >
+            {{ tag.name }} <span class="count">{{ tag.sceneCount.toLocaleString() }}</span>
+          </a>
+        }
+      </div>
+    </section>
+  }
+}

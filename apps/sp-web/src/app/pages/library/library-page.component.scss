@@ -1,0 +1,314 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+  --library-chip-border: color-mix(in srgb, var(--border-strong) 62%, transparent);
+  --library-accent-border: color-mix(in srgb, var(--focus-ring) 48%, transparent);
+  --library-accent-bg: color-mix(in srgb, var(--focus-ring) 16%, var(--surface-elevated));
+  --library-accent-text: color-mix(in srgb, var(--focus-ring) 82%, var(--text-primary));
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.state {
+  margin-top: 1rem;
+  color: var(--text-muted);
+}
+
+.page-alert {
+  margin-top: 0.9rem;
+  --app-alert-padding: 0.75rem 0.85rem;
+  --app-alert-radius: 10px;
+}
+
+.page-alert-copy p:last-child {
+  color: var(--text-muted);
+  line-height: 1.52;
+  max-width: 72ch;
+}
+
+.controls-shell {
+  margin-top: 0.9rem;
+  --app-section-padding: 0.75rem;
+  --app-section-radius: 10px;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.expanded-filters {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.control-field--favorites {
+  grid-column: 1 / -1;
+}
+
+.tag-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 8.5rem);
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.tag-input-row > * {
+  min-width: 0;
+}
+
+.sort-direction-toggle,
+.reset-filters-button,
+.filter-toggle,
+.filter-chip,
+.retry-button {
+  font: inherit;
+}
+
+.local-favorites-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.filter-toggle {
+  min-height: 2.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  padding: 0.38rem 0.68rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.filter-toggle.is-active {
+  border-color: var(--library-accent-border);
+  background: var(--library-accent-bg);
+  color: var(--library-accent-text);
+}
+
+.reset-filters-button {
+  padding: 0.38rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.reset-filters-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.controls-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.5rem;
+}
+
+.active-filters-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.active-filters-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.filter-chip {
+  border: 1px solid var(--library-chip-border);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.filter-chip i {
+  font-size: 0.72rem;
+}
+
+.state-shell {
+  margin-top: 0.9rem;
+  --app-state-padding: 1rem;
+  --app-state-radius: 10px;
+  --app-state-gap: 0.65rem;
+}
+
+.primary-link,
+.secondary-link {
+  font: inherit;
+  min-height: 2.25rem;
+  padding: 0.42rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.primary-link {
+  border-color: var(--library-accent-border);
+  background: var(--library-accent-bg);
+  color: var(--library-accent-text);
+}
+
+.small {
+  min-height: 2.1rem;
+  padding: 0.36rem 0.64rem;
+}
+
+.grid {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.72rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.load-sentinel {
+  height: 1px;
+}
+
+.retry-button {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  cursor: pointer;
+}
+
+.load-more-error {
+  margin-top: 0.5rem;
+}
+
+.reset-filters-button:focus-visible,
+.filter-toggle:focus-visible,
+.filter-chip:focus-visible,
+.primary-link:focus-visible,
+.secondary-link:focus-visible,
+.retry-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .page-alert {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tag-input-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+}
+
+// Library search box: while it has text the page shows grouped search
+// results (app-library-search) in place of the filter controls and grid.
+.library-search-form {
+  position: relative;
+  max-width: 640px;
+  margin: 0.2rem 0 1rem;
+}
+
+.library-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.85rem;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.library-search-input {
+  width: 100%;
+  padding: 0.62rem 2.4rem 0.62rem 2.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+// The clear button below replaces the browser's own.
+.library-search-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.library-search-input:focus-visible,
+.library-search-clear:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.library-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.library-search-clear:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}

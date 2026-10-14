@@ -1,0 +1,196 @@
+# Deploying Stasharr (this fork)
+
+This fork adds features the upstream `ghcr.io/enymawse/stasharr-portal`
+image doesn't have, so it's built from source. The helper scripts here do
+that for you on any machine.
+
+| Script | Run on | Does |
+| --- | --- | --- |
+| [`scripts/install.sh`](../scripts/install.sh) | any Debian/Ubuntu host (or any Linux with Docker) | installs / updates Stasharr |
+| [`infrastructure/proxmox/community-scripts/ct/stasharr.sh`](../infrastructure/proxmox/community-scripts/ct/stasharr.sh) | the Proxmox shell | Proxmox VE Helper-Scripts-style LXC install / update (native, no Docker) |
+| [`scripts/deploy-container.sh`](../scripts/deploy-container.sh) (`stasharr-update`) | the Stasharr host | rebuilds + restarts from the latest commits |
+| [`scripts/configure-eros.sh`](../scripts/configure-eros.sh) | Eros host, Proxmox host or anywhere with SSH | points Whisparr-Eros at the right metadata source |
+| [`infrastructure/proxmox/install-whisparr-eros-lxc.sh`](../infrastructure/proxmox/install-whisparr-eros-lxc.sh) | a Proxmox host | installs Eros (community-scripts) and applies the metadata choice |
+
+## Fresh install
+
+### Any Linux machine
+
+As root on a Debian/Ubuntu machine (Docker is installed if missing):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/scripts/install.sh | bash
+```
+
+Options (flags or environment variables): `--port 3000`, `--branch
+add-remove-request`, `--install-dir /opt/stasharr`, `--src-dir
+/opt/stasharr-src`. It:
+
+- clones the source to `/opt/stasharr-src` and builds `stasharr-portal:custom`
+- writes `/opt/stasharr/compose.yaml` (from
+  [`infrastructure/compose/compose.selfbuild.yaml`](../infrastructure/compose/compose.selfbuild.yaml))
+  and, the first time only, `/opt/stasharr/.env` with a random database
+  password (mode 600)
+- starts Postgres + Stasharr and waits until the app is healthy
+- installs `stasharr-update` and `stasharr-reset-password` into `/usr/local/bin`
+
+Re-running it is safe: your `.env`, database and settings are kept.
+
+### Proxmox (Helper-Scripts style)
+
+Written like the [Proxmox VE Helper-Scripts](https://community-scripts.github.io/ProxmoxVE/)
+(`ct/` + `install/` + `json/`, using the community-scripts `build.func`
+engine), in [`infrastructure/proxmox/community-scripts`](../infrastructure/proxmox/community-scripts).
+In the Proxmox shell:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
+```
+
+You get the familiar Default / Advanced settings dialog (CT ID, hostname,
+disk, CPU, RAM, network, storage). Defaults: Debian 13, 2 cores, 3 GB RAM,
+8 GB disk, unprivileged. Building the app needs the RAM; you can lower it
+afterwards. Inside the container the app runs natively -- no Docker:
+
+| | |
+| --- | --- |
+| App | `/opt/stasharr` (git checkout of `add-remove-request`) |
+| Settings | `/opt/stasharr/.env` (database URL, session secret, port) |
+| Database | PostgreSQL 17 in the container; credentials in `~/stasharr.creds` |
+| Service | `systemctl status stasharr`, logs: `journalctl -u stasharr -f` |
+| Data | `/var/lib/stasharr` ("Forgot password?" temporary password) |
+
+**Update:** run the same command again *inside the container's console*.
+It checks the branch for new commits, rebuilds and restarts; `.env` is kept.
+The usual Helper-Scripts `update` shortcut in the container should do the
+same (it isn't listed on the community-scripts website, so the shortcut
+falls back to this repository's script).
+
+**Backup:** use Proxmox backups of the LXC, or
+`sudo -u postgres pg_dump stasharr > stasharr-backup.sql` inside it.
+
+### After installing
+
+1. Open `http://<host>:3000` and create the admin account.
+2. Connect the catalog (StashDB, FansDB or TPDB), Stash and Whisparr.
+3. If Whisparr-Eros should use TPDB, set it up as in
+   [Whisparr-Eros and the catalog choice](#whisparr-eros-and-the-catalog-choice).
+
+## Updating
+
+Docker installs (`install.sh`):
+
+```bash
+stasharr-update                     # latest commits of the deployed branch
+stasharr-update -b some-branch      # switch branch
+```
+
+Proxmox Helper-Scripts installs: run the `ct/stasharr.sh` command (or
+`update`) in the container's console.
+
+(On older installs without the helper:
+`cd /opt/stasharr-src && ./scripts/deploy-container.sh [-b branch]`.)
+Database migrations run automatically when the app starts.
+
+## Forgotten password
+
+Click **Forgot password?** on the sign-in page. That creates a single-use
+temporary password (valid 15 minutes) without changing the current one. On
+the Stasharr host run:
+
+```bash
+stasharr-reset-password
+# Docker, without the helper: docker exec <app-container> stasharr-reset-password
+```
+
+Signing in with it makes it the account password and opens Settings ›
+Account to choose a new one.
+
+## Backups
+
+For Docker installs, keep `/opt/stasharr/.env`, `/opt/stasharr/compose.yaml` and the two Docker
+volumes (`stasharr_postgres_data`, `stasharr_app_data`). A logical database
+dump:
+
+```bash
+cd /opt/stasharr
+docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > stasharr-backup.sql
+```
+
+## Whisparr-Eros and the catalog choice
+
+### What we changed
+
+Stasharr looks scenes up in Whisparr by the **catalog's scene id**. Whisparr
+itself never talks to StashDB or TPDB: every scene / performer / studio
+search goes to its *metadata service*, the `WhisparrMetadata` URL in Eros'
+`config.xml` (default `https://api.whisparr.com/v4/{route}`), and that
+service speaks **StashDB ids**.
+
+The original install uses **TPDB** as Stasharr's catalog, so Eros was
+changed to use Stasharr's own TPDB-backed metadata proxy instead:
+
+```xml
+<WhisparrMetadata>http://10.50.50.201:3000/api/whisparr-metadata/{route}</WhisparrMetadata>
+```
+
+The proxy ([`apps/sp-api/src/whisparr-metadata`](../apps/sp-api/src/whisparr-metadata))
+answers Eros' scene / performer / site routes with TPDB data, putting TPDB ids
+where Eros expects its scene id, so the ids Stasharr sends and the ids Eros
+stores match. (JAV "movie" routes aren't implemented.)
+
+### What that means for each deployment
+
+| Stasharr catalog | Eros metadata | Do |
+| --- | --- | --- |
+| **TPDB** | Stasharr's proxy | `configure-eros.sh --catalog tpdb --stasharr-url http://<stasharr>:3000` |
+| **StashDB** | Eros built-in (default) | nothing on a fresh Eros, or `configure-eros.sh --catalog stashdb` to undo an override |
+| FansDB | — | not supported by Eros' metadata service; requests won't match in Eros |
+
+Things to know when Eros uses the proxy:
+
+- **Stasharr must be running and reachable from Eros**, at the URL you give.
+  If Stasharr is down or moves, Eros' searches and metadata refreshes fail.
+  If Stasharr's address changes, re-run `configure-eros.sh` with the new URL.
+- **Stasharr needs a working TPDB integration** (API key) even if its
+  catalog setting is something else. The proxy uses that key; Eros needs no
+  key of its own.
+- The proxy routes have no login (Eros can't sign in), so keep Stasharr on a
+  trusted network rather than exposed to the internet.
+- **Don't switch an existing Eros between the two.** Scenes already in Eros
+  are stored with the old kind of id; after switching they won't match
+  Stasharr's requests or refresh correctly. Pick one per Eros install (switch
+  only on an empty / fresh Eros).
+- The change is a plain config edit, so Eros updates keep it; a reinstall or
+  a reset `config.xml` loses it -- re-run `configure-eros.sh`.
+
+### configure-eros.sh
+
+```bash
+# On the Eros machine (community-scripts LXC or any systemd install)
+./configure-eros.sh --catalog tpdb --stasharr-url http://10.50.50.201:3000
+./configure-eros.sh --catalog stashdb
+./configure-eros.sh --status
+
+# From the Proxmox host, against an Eros container
+./configure-eros.sh --ctid 110 --catalog tpdb --stasharr-url http://10.50.50.201:3000
+
+# Over SSH, or for Eros in Docker (run on the Docker host)
+./configure-eros.sh --ssh root@eros-host --catalog tpdb --stasharr-url http://10.50.50.201:3000
+./configure-eros.sh --docker whisparr --catalog tpdb --stasharr-url http://10.50.50.201:3000
+```
+
+For `tpdb` it first checks, from the Eros side, that Stasharr's proxy answers
+and that TPDB is set up in Stasharr; it then backs up `config.xml`
+(`config.xml.bak.<timestamp>`), sets or removes `<WhisparrMetadata>`, and
+restarts Eros.
+
+A new Eros LXC can be installed and configured in one go on Proxmox:
+
+```bash
+CATALOG=tpdb STASHARR_URL=http://10.50.50.201:3000 ./infrastructure/proxmox/install-whisparr-eros-lxc.sh
+CATALOG=stashdb ./infrastructure/proxmox/install-whisparr-eros-lxc.sh
+```
+
+Then, in Eros, add root folders and indexers, and copy its API key
+(Settings › General) into Stasharr's Whisparr integration.

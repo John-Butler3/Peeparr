@@ -1,0 +1,108 @@
+<main class="app-page-shell app-page-shell--wide">
+  <header class="series-header">
+    <div class="app-page-header__copy">
+      <h1>Series</h1>
+      <p class="app-page-lede">
+        Scenes grouped in order, like multi-part scenes. Stored as Groups in Stash.
+      </p>
+    </div>
+
+    @if (!creating()) {
+      <button type="button" class="primary-button" (click)="startCreate()">
+        <i class="pi pi-plus" aria-hidden="true"></i> New series
+      </button>
+    }
+  </header>
+
+  @if (creating()) {
+    <form class="create-form" (ngSubmit)="createSeries()">
+      <label class="field">
+        <span class="app-control-label">Series name</span>
+        <input
+          class="app-control-input"
+          name="seriesName"
+          maxlength="200"
+          autocomplete="off"
+          placeholder="e.g. Summer Trip"
+          [ngModel]="newSeriesName()"
+          (ngModelChange)="newSeriesName.set($event)"
+          (keydown.escape)="cancelCreate()"
+        />
+      </label>
+      <div class="create-actions">
+        <button
+          type="submit"
+          class="primary-button"
+          [disabled]="!newSeriesName().trim() || createInFlight()"
+        >
+          {{ createInFlight() ? 'Creating...' : 'Create' }}
+        </button>
+        <button type="button" class="text-button" (click)="cancelCreate()">Cancel</button>
+      </div>
+      <p class="create-hint">Add scenes from any scene's page with "Add to series".</p>
+    </form>
+  }
+
+  <div class="search-row">
+    <i class="pi pi-search search-icon" aria-hidden="true"></i>
+    <input
+      type="search"
+      inputmode="search"
+      class="search-input"
+      placeholder="Search series"
+      aria-label="Search series"
+      [ngModel]="query()"
+      (ngModelChange)="onQueryChanged($event)"
+    />
+  </div>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading series...</p>
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+    <button type="button" class="text-button" (click)="retry()">Retry</button>
+  } @else if (items().length === 0) {
+    <p class="state" data-testid="series-empty">
+      @if (query().trim()) {
+        No series match "{{ query().trim() }}".
+      } @else {
+        No series yet. Create one, then add scenes to it from their scene pages.
+      }
+    </p>
+  } @else {
+    <section class="series-grid" aria-label="Series">
+      @for (series of items(); track series.id) {
+        <a class="series-card" [routerLink]="['/series', series.id]">
+          <span class="series-cover">
+            <img [src]="series.coverImageUrl" alt="" loading="lazy" />
+            <span class="series-parts">{{ partsLabel(series.sceneCount) }}</span>
+          </span>
+          <span class="series-name">{{ series.name }}</span>
+          @if (series.studio || series.date) {
+            <span class="series-meta">
+              {{ series.studio }}{{ series.studio && series.date ? ' · ' : '' }}{{ series.date }}
+            </span>
+          }
+        </a>
+      }
+    </section>
+
+    @if (hasMore()) {
+      <button
+        type="button"
+        class="text-button load-more"
+        [disabled]="loadingMore()"
+        (click)="loadMore()"
+      >
+        {{ loadingMore() ? 'Loading...' : 'Load more' }}
+      </button>
+    }
+  }
+</main>

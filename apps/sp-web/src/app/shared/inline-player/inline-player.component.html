@@ -1,0 +1,56 @@
+<div
+  class="inline-player"
+  [class.is-playing]="status() === 'ready'"
+  [class.is-dragging]="dragOffset() > 0"
+  [style.--drag]="dragOffset()"
+  (touchstart)="onDragStart($event)"
+  (touchmove)="onDragMove($event)"
+  (touchend)="onDragEnd()"
+  (touchcancel)="onDragEnd()"
+>
+  @if (status() === 'ready' && source(); as source) {
+    <video
+      #videoEl
+      class="inline-video"
+      [src]="source.streamUrl"
+      [poster]="posterUrl ?? ''"
+      controls
+      autoplay
+      playsinline
+      x-webkit-airplay="allow"
+      (loadedmetadata)="onLoadedMetadata()"
+      (pause)="onPause()"
+      (ended)="onEnded()"
+    ></video>
+  } @else {
+    <button
+      type="button"
+      class="poster"
+      [disabled]="!playable || status() === 'loading'"
+      [attr.aria-label]="playable ? 'Play ' + title : title"
+      data-testid="inline-player-poster"
+      (click)="start()"
+    >
+      @if (posterUrl) {
+        <img class="poster-image" [src]="posterUrl" alt="" />
+      }
+      @if (playable) {
+        @if (status() === 'loading') {
+          <span class="poster-center" aria-hidden="true">
+            <p-progressSpinner strokeWidth="4" [style]="{ width: '3rem', height: '3rem' }" />
+          </span>
+        } @else {
+          <span class="poster-center play-badge" aria-hidden="true">
+            <i class="pi pi-play"></i>
+          </span>
+        }
+      }
+      @if (durationLabel(); as duration) {
+        <span class="poster-duration">{{ duration }}</span>
+      }
+    </button>
+    @if (status() === 'error') {
+      <p class="inline-error" role="alert">Couldn't load the stream from Stash. Tap to try again.</p>
+    }
+  }
+</div>

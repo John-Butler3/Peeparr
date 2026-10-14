@@ -1,0 +1,168 @@
+<!-- YouTube-style watch page for a local-only library scene. -->
+<main class="watch-page">
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading scene...</p>
+    </div>
+  } @else if (error()) {
+    <div class="watch-state">
+      <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+      <button type="button" class="pill" (click)="retry()">Retry</button>
+    </div>
+  } @else if (scene(); as scene) {
+    <div class="watch-layout">
+      <div class="watch-primary">
+        <div class="watch-media">
+          <app-inline-player
+            #player
+            [title]="scene.title"
+            [posterUrl]="scene.imageUrl"
+            [durationSeconds]="scene.duration"
+            [localSceneId]="scene.id"
+            [details]="playerDetails(scene)"
+            [autoplay]="autoplay()"
+            (ended)="playNextUp()"
+            (minimize)="leaveToMiniplayer()"
+          />
+        </div>
+
+        <div class="watch-info">
+          <a class="watch-back app-back-link" [href]="backLink()" (click)="goBack($event)">
+            <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ backLinkLabel() }}
+          </a>
+
+          <div class="watch-title-row">
+            <h1 class="watch-title">{{ scene.title }}</h1>
+          </div>
+
+          <div class="watch-meta">
+            <span class="local-badge">Local only</span>
+            @if (scene.releaseDate) {
+              <span>{{ scene.releaseDate }}</span>
+            }
+            @if (durationLabel(scene.duration); as duration) {
+              <span class="still-duration">{{ duration }}</span>
+            }
+          </div>
+
+          @if (scene.studio) {
+            <div class="channel-row">
+              @if (scene.libraryStudioId) {
+                <a
+                  class="channel studio-link"
+                  [routerLink]="['/library']"
+                  [queryParams]="{ studios: scene.libraryStudioId, studioNames: scene.studio }"
+                >
+                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
+                    @if (scene.studioImageUrl) {
+                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
+                    } @else {
+                      {{ scene.studio.charAt(0).toUpperCase() }}
+                    }
+                  </span>
+                  <span class="channel-name">{{ scene.studio }}</span>
+                </a>
+              } @else {
+                <span class="channel">
+                  <span class="channel-logo is-letter">{{ scene.studio.charAt(0).toUpperCase() }}</span>
+                  <span class="channel-name">{{ scene.studio }}</span>
+                </span>
+              }
+            </div>
+          }
+
+          <div class="action-pills">
+            <button type="button" class="pill" (click)="openSeriesDialog()">
+              <i class="pi pi-list" aria-hidden="true"></i> Save to series
+            </button>
+            <a
+              class="pill"
+              data-testid="local-scene-open-in-stash"
+              [href]="scene.viewUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <i class="pi pi-external-link" aria-hidden="true"></i> Open in Stash
+            </a>
+          </div>
+
+          @if (series().length > 0) {
+            <div class="scene-series" data-testid="local-scene-series">
+              @for (item of series(); track item.id) {
+                <a class="series-chip" [routerLink]="['/series', item.id]">
+                  <i class="pi pi-list" aria-hidden="true"></i>
+                  @if (item.sceneIndex !== null) {
+                    Part {{ item.sceneIndex }} of
+                  }
+                  <strong>{{ item.name }}</strong>
+                </a>
+              }
+            </div>
+          }
+
+          @if (scene.description || scene.tags.length > 0) {
+            <section class="description-box">
+              @if (scene.description) {
+                <p class="description-text">{{ displayedDescription(scene.description) }}</p>
+              }
+              @if (scene.tags.length > 0) {
+                <div class="tag-row">
+                  @for (tag of scene.tags; track tag.id) {
+                    <a
+                      class="tag-link"
+                      [routerLink]="['/library']"
+                      [queryParams]="{ tags: tag.id, tagNames: tag.name }"
+                    >#{{ tag.name }}</a>
+                  }
+                </div>
+              }
+              @if (scene.description && hasLongDescription(scene.description)) {
+                <button type="button" class="description-toggle" (click)="toggleDescription()">
+                  {{ descriptionExpanded() ? 'Show less' : '...more' }}
+                </button>
+              }
+            </section>
+          }
+
+          @if (scene.performers.length > 0) {
+            <section class="performers" aria-labelledby="local-performers-heading">
+              <h2 id="local-performers-heading">Performers</h2>
+              <div class="performer-row">
+                @for (performer of scene.performers; track performer.id) {
+                  <div class="performer">
+                    <a
+                      class="performer-link"
+                      [routerLink]="['/library']"
+                      [queryParams]="{ performers: performer.id, performerNames: performer.name }"
+                      [attr.aria-label]="'Library scenes with ' + performer.name"
+                    >
+                      <img class="performer-image" [src]="performer.imageUrl" alt="" loading="lazy" />
+                      <span class="performer-name">{{ performer.name }}</span>
+                    </a>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      </div>
+
+      <aside class="watch-secondary">
+        <app-up-next-list [items]="upNext()" [loading]="upNextLoading()" />
+      </aside>
+    </div>
+
+    <app-add-to-series-dialog
+      [open]="seriesDialogOpen()"
+      [sceneId]="scene.id"
+      [sceneTitle]="scene.title"
+      (closed)="closeSeriesDialog()"
+      (membershipsChanged)="onSeriesChanged($event)"
+    />
+  }
+</main>

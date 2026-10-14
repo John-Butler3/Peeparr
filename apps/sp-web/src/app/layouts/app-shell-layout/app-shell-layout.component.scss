@@ -1,0 +1,655 @@
+// YouTube-style shell: masthead, guide / mini guide on desktop,
+// bottom bar and "You" sheet on phones.
+:host {
+  display: block;
+  min-height: 100dvh;
+  --shell-mobile-nav-height: 56px;
+  --shell-mobile-nav-offset: calc(
+    var(--shell-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+  );
+  --shell-masthead-h: var(--yt-masthead-h, 56px);
+  --shell-guide-w: var(--yt-guide-w, 240px);
+}
+
+.layout {
+  min-height: 100dvh;
+  background: var(--app-bg);
+}
+
+.layout.collapsed {
+  --shell-guide-w: var(--yt-mini-guide-w, 72px);
+}
+
+.layout.mobile-shell {
+  --shell-masthead-h: 48px;
+  --shell-guide-w: 0px;
+}
+
+// ---- Masthead ---------------------------------------------------------------
+
+.masthead {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: var(--shell-masthead-h);
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--app-bg);
+  transition: transform 220ms var(--yt-ease);
+}
+
+.masthead.is-hidden {
+  transform: translateY(-100%);
+}
+
+.masthead-start,
+.masthead-end {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.masthead-end {
+  position: relative;
+}
+
+.masthead-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.masthead-icon i {
+  font-size: 1.15rem;
+}
+
+.masthead-icon:hover {
+  background: var(--yt-hover);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 0 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+
+
+.logo-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.masthead-search {
+  flex: 0 1 640px;
+  display: flex;
+  min-width: 0;
+  margin-left: 40px;
+}
+
+.masthead-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 16px;
+  border: 1px solid var(--yt-input-border);
+  border-right: 0;
+  border-radius: 40px 0 0 40px;
+  background: var(--yt-input-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.masthead-search-input:focus {
+  border-color: #1c62b9;
+  outline: none;
+}
+
+.masthead-search-button {
+  width: 64px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--yt-input-border);
+  border-radius: 0 40px 40px 0;
+  background: var(--yt-search-button-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.avatar-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7e57c2;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.avatar.large {
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+}
+
+.avatar.small {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 1;
+  width: 300px;
+  padding: 8px 0;
+  border-radius: var(--yt-radius);
+  background: var(--yt-menu-bg);
+  box-shadow: var(--surface-overlay-shadow);
+  animation: yt-menu-in 140ms var(--yt-ease-out);
+}
+
+@keyframes yt-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+.account-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 8px;
+}
+
+.account-name {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu-item i {
+  width: 24px;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.menu-item:hover {
+  background: var(--yt-hover);
+}
+
+// ---- Guide (desktop sidebar) -------------------------------------------------
+
+.sidebar {
+  position: fixed;
+  top: calc(var(--shell-masthead-h) + env(safe-area-inset-top, 0px));
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  width: var(--shell-guide-w);
+  padding: 12px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--app-bg);
+  transition: width 200ms var(--yt-ease);
+}
+
+.layout.immersive .sidebar {
+  top: env(safe-area-inset-top, 0px);
+}
+
+.nav {
+  display: grid;
+  gap: 0;
+  align-content: start;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: background-color 120ms var(--yt-ease);
+}
+
+.nav-item:hover {
+  background: var(--yt-hover);
+}
+
+.nav-item.active {
+  background: var(--yt-hover);
+  font-weight: 500;
+}
+
+.nav-item .icon i {
+  font-size: 1.2rem;
+}
+
+.nav-item .icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  flex: none;
+}
+
+.guide-divider {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.nav-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--yt-red);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.settings-nav-item.has-alert .icon::after,
+.mobile-more-item.has-alert .icon::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 32px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yt-red);
+}
+
+// Mini guide: icon over a tiny label, like YouTube's collapsed guide.
+.layout.collapsed .sidebar {
+  padding: 4px;
+}
+
+.layout.collapsed .nav-item {
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  height: 74px;
+  padding: 16px 0 14px;
+  font-size: 0.625rem;
+}
+
+.layout.collapsed .guide-divider {
+  display: none;
+}
+
+// The mini guide shows the settings alert as the red dot only.
+.layout.collapsed .nav-badge {
+  display: none;
+}
+
+// ---- Content -----------------------------------------------------------------
+
+.content {
+  min-width: 0;
+  padding-top: calc(var(--shell-masthead-h) + env(safe-area-inset-top, 0px));
+  margin-left: var(--shell-guide-w);
+  transition: margin-left 200ms var(--yt-ease);
+}
+
+// No masthead on immersive pages: nothing for their sticky parts to clear.
+.layout.immersive {
+  --shell-masthead-h: 0px;
+}
+
+.layout.immersive .content {
+  padding-top: 0;
+}
+
+.layout.mobile-shell .content {
+  padding-bottom: calc(var(--shell-mobile-nav-offset) + 16px);
+}
+
+.content-status-strip {
+  padding: 12px 24px 0;
+}
+
+.degraded-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: var(--yt-radius);
+  background: var(--surface-elevated);
+}
+
+.degraded-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.degraded-eyebrow,
+.degraded-message,
+.mobile-more-eyebrow,
+.mobile-more-session {
+  margin: 0;
+}
+
+.degraded-eyebrow {
+  color: var(--yt-red);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.degraded-message {
+  font-size: 0.875rem;
+}
+
+.degraded-action {
+  flex: none;
+  padding: 8px 16px;
+  border-radius: 18px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+// ---- Phone: bottom bar and "You" sheet -------------------------------------
+
+.mobile-bottom-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 55;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  // The bar's own height plus the home-indicator area, so the safe-area
+  // padding doesn't eat into the icons.
+  height: var(--shell-mobile-nav-offset);
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--app-bg);
+  transition: transform 220ms var(--yt-ease);
+}
+
+// Like the masthead: slides away while scrolling down, back on scrolling up.
+.mobile-bottom-nav.is-hidden {
+  transform: translateY(100%);
+}
+
+.mobile-nav-item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mobile-nav-item .icon {
+  display: grid;
+  place-items: center;
+  height: 24px;
+}
+
+.mobile-nav-item .icon i {
+  font-size: 1.35rem;
+}
+
+.mobile-nav-label {
+  font-size: 0.6875rem;
+  line-height: 1;
+}
+
+.mobile-nav-item.active .mobile-nav-label {
+  font-weight: 500;
+}
+
+.mobile-nav-item.active .icon i {
+  font-weight: 700;
+}
+
+.mobile-nav-indicator {
+  position: absolute;
+  top: 7px;
+  right: calc(50% - 17px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yt-red);
+}
+
+.mobile-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  border: 0;
+  border-radius: 0;
+  background: rgb(0 0 0 / 50%);
+  animation: yt-fade-in 160ms ease;
+}
+
+.mobile-more-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 71;
+  display: grid;
+  gap: 4px;
+  max-height: 80dvh;
+  overflow-y: auto;
+  padding: 8px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  border-radius: 12px 12px 0 0;
+  background: var(--yt-menu-bg);
+  animation: yt-sheet-up 240ms var(--yt-ease-out);
+}
+
+.sheet-handle {
+  justify-self: center;
+  width: 40px;
+  height: 4px;
+  margin: 4px 0 8px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.mobile-more-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mobile-more-session {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.mobile-more-eyebrow {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mobile-more-nav {
+  display: grid;
+  padding: 8px 0;
+}
+
+.mobile-more-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mobile-more-item .icon i {
+  font-size: 1.2rem;
+}
+
+.mobile-more-item.active {
+  font-weight: 500;
+  background: var(--yt-hover);
+}
+
+.mobile-more-footer {
+  padding: 0 16px;
+}
+
+.mobile-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  border: 0;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.mobile-logout-btn:disabled {
+  opacity: 0.6;
+}
+
+// ---- Focus -------------------------------------------------------------------
+
+.masthead-icon:focus-visible,
+.avatar-button:focus-visible,
+.masthead-search-button:focus-visible,
+.logo:focus-visible,
+.nav-item:focus-visible,
+.menu-item:focus-visible,
+.mobile-nav-item:focus-visible,
+.mobile-more-item:focus-visible,
+.degraded-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+@media (max-width: 720px) {
+  .masthead {
+    padding-inline: 4px 8px;
+  }
+
+  .logo {
+    padding-left: 8px;
+  }
+
+  .content-status-strip {
+    padding: 8px 12px 0;
+  }
+
+  .degraded-banner {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+
+// See the template: an invisible input that holds the keyboard focus for a
+// moment. 16px so iOS doesn't zoom in on focus.
+.search-focus-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
+}

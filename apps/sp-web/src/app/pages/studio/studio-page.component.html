@@ -1,0 +1,308 @@
+<main class="app-page-shell app-page-shell--wide">
+  <a
+    class="back-link app-back-link"
+    [routerLink]="backLinkPath()"
+    [queryParams]="backLinkQueryParams()"
+  >
+    {{ backLinkLabel() }}
+  </a>
+
+  @if (loadingStudio()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading studio details...</p>
+    </div>
+  } @else if (studioError()) {
+    <p-message severity="error" styleClass="app-page-message">{{ studioError() }}</p-message>
+    <button pButton type="button" (click)="retryStudioLoad()">Retry</button>
+  } @else if (studio(); as studio) {
+    <!-- Logo and name, docking into a slim bar under the masthead as you
+         scroll (styles/_channel-header.scss). -->
+    <div class="hero-sentinel" aria-hidden="true"></div>
+    <header
+      class="channel-dock"
+      data-testid="studio-channel-header"
+      [class.is-docked]="heroCollapseProgress() > 0.5"
+      [style.--hero-collapse]="heroCollapseProgress()"
+    >
+      <div class="hero-shrink-probe" aria-hidden="true"></div>
+      <div class="channel-dock-backdrop" aria-hidden="true"></div>
+      @if (activeStudioImageUrl(); as logoImage) {
+        <span class="channel-dock-avatar is-logo" (click)="scrollToTop()">
+          <img appLogoContrast [src]="logoImage" alt="" />
+        </span>
+      } @else {
+        <span class="channel-dock-avatar is-logo" aria-hidden="true" (click)="scrollToTop()">{{
+          childInitial(studio.name)
+        }}</span>
+      }
+      <div class="channel-dock-text">
+        <h1 class="channel-dock-title">{{ studio.name }}</h1>
+        @if (channelMeta(studio); as meta) {
+          <p class="channel-dock-meta">{{ meta }}</p>
+        }
+      </div>
+      <div class="channel-dock-actions">
+        <button
+          type="button"
+          class="channel-dock-button"
+          [class.is-active]="studio.isFavorite"
+          [disabled]="!canToggleFavoriteStudio(studio)"
+          [attr.aria-label]="studioFavoriteLabel(studio)"
+          [title]="studioFavoriteLabel(studio)"
+          (click)="toggleFavoriteStudio(studio)"
+        >
+          <i [class]="studio.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="channel-actions">
+      <button
+        type="button"
+        class="channel-pill channel-pill--subscribe"
+        [class.is-active]="studio.isFavorite"
+        [disabled]="!canToggleFavoriteStudio(studio)"
+        [attr.aria-busy]="favoritingStudio()"
+        [attr.aria-pressed]="studio.isFavorite"
+        [attr.aria-label]="studioFavoriteLabel(studio)"
+        [title]="studioFavoriteLabel(studio)"
+        (click)="toggleFavoriteStudio(studio)"
+      >
+        @if (studio.isFavorite) {
+          <i class="pi pi-star-fill" aria-hidden="true"></i> Favorited
+        } @else {
+          Favorite
+        }
+      </button>
+      @if (studio.parentStudio; as parentStudio) {
+        <a
+          class="channel-pill"
+          [routerLink]="['/studio', parentStudio.id]"
+          [queryParams]="{ returnTo: currentRouteUrl() }"
+          [attr.aria-label]="'View studio ' + parentStudio.name"
+        >
+          <span class="channel-pill-eyebrow">Part of</span> {{ parentStudio.name }}
+        </a>
+      }
+      @for (entry of studio.urls; track entry.url) {
+        <a
+          class="channel-pill"
+          [href]="entry.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          [attr.aria-label]="'Open ' + (entry.siteName ?? entry.type ?? 'website') + ' in a new tab'"
+        >
+          @if (entry.siteIcon) {
+            <img class="channel-pill-icon" [src]="entry.siteIcon" alt="" loading="lazy" />
+          } @else {
+            <i class="pi pi-external-link" aria-hidden="true"></i>
+          }
+          {{ entry.siteName ?? 'Website' }}
+        </a>
+      }
+    </div>
+
+    <div class="hero-content">
+      @if (studio.aliases.length > 0 || studio.deleted) {
+        <section class="channel-about" aria-label="About">
+          @if (studio.aliases.length > 0) {
+            <p class="channel-about-aliases">Also known as {{ studio.aliases.join(', ') }}</p>
+          }
+          @if (studio.deleted) {
+            <div class="meta-flags">
+              <span class="meta-chip warning">Marked Deleted</span>
+            </div>
+          }
+        </section>
+      }
+
+      <div class="content-shell app-section-stack">
+
+        @if (studio.childStudios.length > 0) {
+          <section class="child-section" aria-label="Studios">
+            <h2>Studios</h2>
+            <div class="child-grid">
+              @for (child of studio.childStudios; track child.id) {
+                <article class="child-card">
+                  <a
+                    class="hierarchy-link-stretch"
+                    [routerLink]="['/studio', child.id]"
+                    [queryParams]="{ returnTo: currentRouteUrl() }"
+                    [attr.aria-label]="'View studio ' + child.name"
+                  ></a>
+                  @if (child.imageUrl) {
+                    <img class="child-image" [src]="child.imageUrl" [alt]="child.name + ' logo'" loading="lazy" />
+                  } @else {
+                    <div class="child-image placeholder" aria-hidden="true">
+                      {{ childInitial(child.name) }}
+                    </div>
+                  }
+                  <div class="child-meta">
+                    <p class="child-name">{{ child.name }}</p>
+                    @if (child.aliases.length > 0) {
+                      <p class="child-aliases">{{ child.aliases.join(', ') }}</p>
+                    }
+                    @if (child.deleted) {
+                      <span class="meta-chip warning">Deleted</span>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+
+      </div>
+
+      <section
+        class="section controls-shell app-section-panel app-control-shell channel-section-head"
+        aria-label="Studio scene filters"
+      >
+        <div class="app-control-shell__header">
+          <h2>Scenes</h2>
+
+          <div class="app-sort-toggle-group" role="group" aria-label="Sort by release date">
+            <button
+              type="button"
+              class="app-sort-toggle-option"
+              [class.active]="sceneSortDirection() === 'DESC'"
+              (click)="onSceneSortDirectionChanged('DESC')"
+            >
+              Latest
+            </button>
+            <button
+              type="button"
+              class="app-sort-toggle-option"
+              [class.active]="sceneSortDirection() === 'ASC'"
+              (click)="onSceneSortDirectionChanged('ASC')"
+            >
+              Oldest
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="app-filters-toggle-button"
+            [class.active]="filtersExpanded()"
+            [attr.aria-expanded]="filtersExpanded()"
+            aria-controls="studio-expanded-filters"
+            (click)="toggleFiltersExpanded()"
+          >
+            Filters
+            <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        @if (filtersExpanded()) {
+          <div class="controls-row app-control-grid" id="studio-expanded-filters">
+            <label class="control-field app-control-field">
+              <span class="app-control-label">Favorites</span>
+              <p-select
+                inputId="studio-scenes-favorites"
+                [ngModel]="selectedFavorites()"
+                (ngModelChange)="onFavoritesChanged($event)"
+                [options]="favoritesOptions"
+                optionLabel="label"
+                optionValue="value"
+                [appendTo]="'body'"
+                panelStyleClass="app-overlay-panel"
+              />
+            </label>
+
+            <label class="control-field checkbox-field app-control-field">
+              <span class="app-control-label">Library Only</span>
+              <label class="toggle-label">
+                <p-toggleswitch
+                  inputId="studio-library-only"
+                  [ngModel]="libraryOnly()"
+                  (ngModelChange)="onLibraryOnlyChanged($event)"
+                />
+                <span>Enabled</span>
+              </label>
+            </label>
+          </div>
+        }
+      </section>
+
+      @if (loadingScenes()) {
+        <div class="app-blocking-loader" role="status" aria-live="polite">
+          <p-progressspinner
+            styleClass="app-blocking-spinner"
+            strokeWidth="4"
+            [style]="{ width: '2rem', height: '2rem' }"
+          />
+          <p>Loading studio scenes...</p>
+        </div>
+      } @else if (scenesError()) {
+        <p-message severity="error" styleClass="app-page-message">{{ scenesError() }}</p-message>
+        <button pButton type="button" (click)="retryInitialScenesLoad()">Retry</button>
+      } @else if (!hasDisplayedScenes()) {
+        @if (loadMoreScenesError()) {
+          <div class="load-more-error">
+            <p-message severity="error" styleClass="app-inline-message">
+              {{ loadMoreScenesError() }}
+            </p-message>
+            <button pButton type="button" (click)="retryLoadMoreScenes()">Retry</button>
+          </div>
+        } @else if (searchingForLibraryScenes()) {
+          <p class="state" role="status">
+            Searching for library scenes... ({{ scenes().length }} of {{ scenesTotal() }} checked)
+          </p>
+        } @else {
+          <p class="state">
+            {{
+              libraryOnly()
+                ? 'No library scenes found for this studio and filters.'
+                : 'No scenes found for this studio and filters.'
+            }}
+          </p>
+        }
+      } @else {
+        <section class="grid">
+          @for (item of displayedScenes(); track item.id) {
+            <app-scene-card
+              [item]="item"
+              previewKind="catalog"
+              [requestable]="isRequestable(item)"
+              [playable]="true"
+              playSize="large"
+              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+              [showStudioBadge]="false"
+              (request)="openRequestModal($event)"
+              (play)="playScene($event)"
+            />
+          }
+        </section>
+
+        <div #loadMoreSentinel class="load-sentinel"></div>
+
+        @if (loadingMoreScenes()) {
+          <p class="state">Loading more studio scenes...</p>
+        }
+
+        @if (loadMoreScenesError()) {
+          <div class="load-more-error">
+            <p-message severity="error" styleClass="app-inline-message">
+              {{ loadMoreScenesError() }}
+            </p-message>
+            <button pButton type="button" (click)="retryLoadMoreScenes()">Retry</button>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <app-scene-request-modal
+    [open]="requestModalOpen()"
+    [sceneId]="requestContext()?.id ?? null"
+    [sceneTitle]="requestContext()?.title ?? null"
+    [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+    (closed)="onRequestModalClosed()"
+    (submitted)="onRequestSubmitted($event)"
+  />
+</main>

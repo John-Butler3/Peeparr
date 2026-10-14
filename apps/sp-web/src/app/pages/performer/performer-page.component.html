@@ -1,0 +1,391 @@
+<main class="app-page-shell app-page-shell--xl">
+  <a
+    class="back-link app-back-link app-back-link--media"
+    [routerLink]="backLinkPath()"
+    [queryParams]="backLinkQueryParams()"
+  >
+    {{ backLinkLabel() }}
+  </a>
+
+  @if (loadingPerformer()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading performer details...</p>
+    </div>
+  } @else if (performerError()) {
+    <p-message severity="error" styleClass="app-page-message">{{ performerError() }}</p-message>
+    <button type="button" (click)="retryPerformerLoad()">Retry</button>
+  } @else if (performer(); as performer) {
+    @if (performer.imageUrl; as mainImage) {
+      <div class="channel-banner">
+        <div
+          class="channel-banner-backdrop"
+          aria-hidden="true"
+          [style.background-image]="'url(' + mainImage + ')'"
+        ></div>
+        <img class="channel-banner-photo" [src]="mainImage" [alt]="performer.name" />
+      </div>
+    }
+
+    <!-- Photo and name, docking into a slim bar under the masthead as you
+         scroll (styles/_channel-header.scss). -->
+    <div class="hero-sentinel" aria-hidden="true"></div>
+    <header
+      class="channel-dock"
+      data-testid="performer-channel-header"
+      [class.is-docked]="heroCollapseProgress() > 0.5"
+      [style.--hero-collapse]="heroCollapseProgress()"
+    >
+      <div class="hero-shrink-probe" aria-hidden="true"></div>
+      <div class="channel-dock-backdrop" aria-hidden="true"></div>
+      @if (performer.imageUrl; as mainImage) {
+        <img class="channel-dock-avatar" [src]="mainImage" alt="" (click)="scrollToTop()" />
+      } @else {
+        <span class="channel-dock-avatar" aria-hidden="true" (click)="scrollToTop()">{{
+          performerInitial(performer.name)
+        }}</span>
+      }
+      <div class="channel-dock-text">
+        <h1 class="channel-dock-title">{{ performer.name }}</h1>
+        <p class="channel-dock-meta">{{ channelMeta(performer) }}</p>
+      </div>
+      <div class="channel-dock-actions">
+        <button
+          type="button"
+          class="channel-dock-button"
+          [class.is-active]="monitoring().monitored"
+          [disabled]="monitoringBusy()"
+          [title]="monitoringTitle()"
+          [attr.aria-label]="monitoring().monitored ? 'Stop monitoring new scenes' : 'Monitor new scenes'"
+          (click)="toggleMonitoring(performer)"
+        >
+          <i [class]="monitoring().monitored ? 'pi pi-bell' : 'pi pi-bell-slash'" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          class="channel-dock-button"
+          [class.is-active]="performer.isFavorite"
+          [disabled]="!canToggleFavoritePerformer(performer)"
+          [attr.aria-label]="performer.isFavorite ? 'Unfavorite performer' : 'Favorite performer'"
+          (click)="toggleFavoritePerformer(performer)"
+        >
+          <i [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="channel-actions">
+      <button
+        type="button"
+        class="channel-pill channel-pill--subscribe"
+        [class.is-active]="performer.isFavorite"
+        [disabled]="!canToggleFavoritePerformer(performer)"
+        [attr.aria-busy]="favoritingPerformer()"
+        [attr.aria-pressed]="performer.isFavorite"
+        [attr.aria-label]="performer.isFavorite ? 'Unfavorite performer' : 'Favorite performer'"
+        (click)="toggleFavoritePerformer(performer)"
+      >
+        @if (performer.isFavorite) {
+          <i class="pi pi-star-fill" aria-hidden="true"></i> Favorited
+        } @else {
+          Favorite
+        }
+      </button>
+      <button
+        type="button"
+        class="channel-pill"
+        [class.is-active]="monitoring().monitored"
+        [disabled]="monitoringBusy()"
+        [attr.aria-pressed]="monitoring().monitored"
+        [attr.aria-busy]="monitoringBusy()"
+        [attr.aria-label]="monitoring().monitored ? 'Stop monitoring new scenes' : 'Monitor new scenes'"
+        [title]="monitoringTitle()"
+        (click)="toggleMonitoring(performer)"
+      >
+        <i [class]="monitoring().monitored ? 'pi pi-bell' : 'pi pi-bell-slash'" aria-hidden="true"></i>
+        {{ monitoring().monitored ? 'Monitoring' : 'Monitor' }}
+      </button>
+      @if (hasCarouselImages()) {
+        <button type="button" class="channel-pill set-main-image" (click)="openMainImagePicker()">
+          <i class="pi pi-image" aria-hidden="true"></i> {{ imagePickerButtonLabel() }}
+        </button>
+      }
+    </div>
+
+    <div class="hero-content">
+      @if (
+        performer.aliases.length > 0 ||
+        metadataRows(performer).length > 0 ||
+        performer.deleted ||
+        performer.mergedIntoId ||
+        performer.mergedIds.length > 0
+      ) {
+        <section class="channel-about" aria-label="About">
+          @if (performer.aliases.length > 0) {
+            <p class="channel-about-aliases">Also known as {{ performer.aliases.join(', ') }}</p>
+          }
+
+          @if (performer.deleted || performer.mergedIntoId || performer.mergedIds.length > 0) {
+            <div class="meta-flags">
+              @if (performer.deleted) {
+                <span class="meta-chip warning">Marked Deleted</span>
+              }
+              @if (performer.mergedIntoId) {
+                <span class="meta-chip">Merged Into: {{ performer.mergedIntoId }}</span>
+              }
+              @if (performer.mergedIds.length > 0) {
+                <span class="meta-chip">Merged IDs: {{ performer.mergedIds.join(', ') }}</span>
+              }
+            </div>
+          }
+
+          @if (metadataRows(performer); as rows) {
+            @if (rows.length > 0) {
+              <dl class="channel-facts">
+                @for (row of aboutExpanded() ? rows : rows.slice(0, aboutPreviewCount); track row.label) {
+                  <div class="channel-fact">
+                    <dt>{{ row.label }}</dt>
+                    <dd>{{ row.value }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (rows.length > aboutPreviewCount) {
+                <button
+                  type="button"
+                  class="channel-about-toggle"
+                  [attr.aria-expanded]="aboutExpanded()"
+                  (click)="aboutExpanded.set(!aboutExpanded())"
+                >
+                  {{ aboutExpanded() ? 'Show less' : '...more' }}
+                </button>
+              }
+            }
+          }
+        </section>
+      }
+
+      <p-dialog
+        [visible]="mainImagePickerOpen()"
+        (visibleChange)="onImagePickerVisibleChange($event)"
+        [modal]="true"
+        [dismissableMask]="!settingMainImage()"
+        [closeOnEscape]="!settingMainImage()"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="false"
+        [blockScroll]="true"
+        [appendTo]="'self'"
+        [style]="{ width: 'min(920px, 96vw)', maxHeight: 'min(88dvh, 840px)' }"
+        styleClass="image-picker-dialog"
+      >
+        <div class="image-picker-shell">
+          <header class="image-picker-header">
+            <h2>Select Main Photo</h2>
+            <button
+              type="button"
+              class="close-modal"
+              [disabled]="settingMainImage()"
+              pButton
+              (click)="closeMainImagePicker()"
+            >
+              Close
+            </button>
+          </header>
+
+          <div class="image-picker-grid">
+            @for (image of performer.images; track image.id) {
+              <button
+                type="button"
+                class="image-picker-option"
+                [class.active]="isMainImage(image.url)"
+                [disabled]="settingMainImage()"
+                (click)="selectMainImage(image.url)"
+              >
+                <img [src]="image.url" [alt]="performer.name + ' photo'" />
+                @if (isMainImage(image.url)) {
+                  <span class="current-badge">Current</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </p-dialog>
+
+      <section
+        class="section controls-shell app-section-panel app-control-shell channel-section-head"
+        aria-label="Performer scene filters"
+      >
+        <div class="app-control-shell__header">
+          <h2>Scenes</h2>
+
+          <div class="app-sort-toggle-group" role="group" aria-label="Sort by release date">
+            <button
+              type="button"
+              class="app-sort-toggle-option"
+              [class.active]="sceneSortDirection() === 'DESC'"
+              (click)="onSceneSortDirectionChanged('DESC')"
+            >
+              Latest
+            </button>
+            <button
+              type="button"
+              class="app-sort-toggle-option"
+              [class.active]="sceneSortDirection() === 'ASC'"
+              (click)="onSceneSortDirectionChanged('ASC')"
+            >
+              Oldest
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="app-filters-toggle-button"
+            [class.active]="filtersExpanded()"
+            [attr.aria-expanded]="filtersExpanded()"
+            aria-controls="performer-expanded-filters"
+            (click)="toggleFiltersExpanded()"
+          >
+            Filters
+            <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        @if (filtersExpanded()) {
+          <div class="controls-row" id="performer-expanded-filters">
+            <label class="control-field checkbox-field app-control-field">
+              <span class="app-control-label">Only Favorite Studios</span>
+              <label class="toggle-label">
+                <p-toggleswitch
+                  inputId="performer-favorite-studios"
+                  [ngModel]="onlyFavoriteStudios()"
+                  (ngModelChange)="onOnlyFavoriteStudiosChanged($event)"
+                />
+                <span>Enabled</span>
+              </label>
+            </label>
+
+            <label class="control-field checkbox-field app-control-field">
+              <span class="app-control-label">Library Only</span>
+              <label class="toggle-label">
+                <p-toggleswitch
+                  inputId="performer-library-only"
+                  [ngModel]="libraryOnly()"
+                  (ngModelChange)="onLibraryOnlyChanged($event)"
+                />
+                <span>Enabled</span>
+              </label>
+            </label>
+
+            <label class="control-field app-control-field">
+              <span class="app-control-label">Studios</span>
+              <p-multiselect
+                inputId="performer-studios"
+                [ngModel]="studioSelectedIds()"
+                (ngModelChange)="onStudioSelectionChanged($event)"
+                (onFilter)="onStudioFilterChanged($event.filter)"
+                (onPanelHide)="onStudioFilterPanelHide()"
+                [filter]="true"
+                [filterValue]="studioSearchTerm()"
+                filterPlaceHolder="Search studio networks"
+                [loading]="studioSearchLoading()"
+                [options]="studioSelectOptions()"
+                [group]="true"
+                optionGroupLabel="label"
+                optionGroupChildren="items"
+                optionLabel="label"
+                optionValue="value"
+                display="chip"
+                placeholder="Choose studio networks or child studios"
+                [showToggleAll]="false"
+                [emptyMessage]="studioSelectEmptyMessage()"
+                [emptyFilterMessage]="studioSelectEmptyMessage()"
+                [resetFilterOnHide]="true"
+                [appendTo]="'body'"
+                panelStyleClass="app-overlay-panel"
+                scrollHeight="18rem"
+              />
+            </label>
+          </div>
+        }
+      </section>
+
+      @if (loadingScenes()) {
+        <div class="app-blocking-loader" role="status" aria-live="polite">
+          <p-progressspinner
+            styleClass="app-blocking-spinner"
+            strokeWidth="4"
+            [style]="{ width: '2rem', height: '2rem' }"
+          />
+          <p>Loading performer scenes...</p>
+        </div>
+      } @else if (scenesError()) {
+        <p-message severity="error" styleClass="app-page-message">{{ scenesError() }}</p-message>
+        <button type="button" (click)="retryInitialScenesLoad()">Retry</button>
+      } @else if (!hasDisplayedScenes()) {
+        @if (loadMoreScenesError()) {
+          <div class="load-more-error">
+            <p-message severity="error" styleClass="app-inline-message">
+              {{ loadMoreScenesError() }}
+            </p-message>
+            <button type="button" (click)="retryLoadMoreScenes()">Retry</button>
+          </div>
+        } @else if (searchingForLibraryScenes()) {
+          <p class="state" role="status">
+            Searching for library scenes... ({{ scenes().length }} of {{ scenesTotal() }} checked)
+          </p>
+        } @else {
+          <p class="state">
+            {{
+              libraryOnly()
+                ? 'No library scenes found for this performer and filters.'
+                : 'No scenes found for this performer and filters.'
+            }}
+          </p>
+        }
+      } @else {
+        <section class="grid">
+          @for (item of displayedScenes(); track item.id) {
+            <app-scene-card
+              [item]="item"
+              previewKind="catalog"
+              [requestable]="isRequestable(item)"
+              [playable]="true"
+              playSize="large"
+              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+              (request)="openRequestModal($event)"
+              (play)="playScene($event)"
+            />
+          }
+        </section>
+
+        <div #loadMoreSentinel class="load-sentinel"></div>
+
+        @if (loadingMoreScenes()) {
+          <p class="state">Loading more scenes...</p>
+        }
+
+        @if (loadMoreScenesError()) {
+          <div class="load-more-error">
+            <p-message severity="error" styleClass="app-inline-message">
+              {{ loadMoreScenesError() }}
+            </p-message>
+            <button type="button" (click)="retryLoadMoreScenes()">Retry</button>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <app-scene-request-modal
+    [open]="requestModalOpen()"
+    [sceneId]="requestContext()?.id ?? null"
+    [sceneTitle]="requestContext()?.title ?? null"
+    [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+    (closed)="onRequestModalClosed()"
+    (submitted)="onRequestSubmitted($event)"
+  />
+</main>

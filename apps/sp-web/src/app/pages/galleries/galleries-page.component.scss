@@ -1,0 +1,224 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+}
+
+main {
+  max-width: min(1540px, 96vw);
+  margin: 0 auto;
+  padding: 1.2rem 1rem 1.5rem;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+header p {
+  margin-top: 0.5rem;
+}
+
+.state {
+  margin-top: 1rem;
+}
+
+.controls-shell {
+  margin-top: 0.9rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  max-width: 26rem;
+}
+
+.control-field {
+  display: grid;
+  gap: 0.26rem;
+}
+
+.control-field span {
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+:host ::ng-deep .controls-shell .p-inputtext {
+  width: 100%;
+  height: 2.5rem;
+  box-sizing: border-box;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  padding: 0 0.55rem;
+}
+
+:host ::ng-deep .controls-shell .p-inputtext:focus {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus-ring) 44%, transparent);
+}
+
+.gallery-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.gallery-card {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+  display: grid;
+}
+
+.gallery-link-stretch {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 10px;
+}
+
+.gallery-link-stretch:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.gallery-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.gallery-image.placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  color: #324455;
+}
+
+.gallery-image-count {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.55rem;
+  z-index: 1;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgb(13 27 41 / 70%);
+  color: rgb(255 255 255 / 90%);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.gallery-meta {
+  padding: 0.55rem 0.6rem 0.65rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.gallery-title {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.gallery-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.gallery-studio-badge {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gallery-performers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  position: relative;
+  z-index: 1;
+}
+
+.performer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.45rem 0.15rem 0.15rem;
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.76rem;
+  max-width: 100%;
+}
+
+.performer-chip img,
+.performer-chip-initial {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.performer-chip-initial {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
+.performer-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.tag-chip {
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.load-sentinel {
+  height: 1px;
+}
+
+:host ::ng-deep .retry-button.p-button {
+  margin-top: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  padding: 0.45rem 0.75rem;
+}
+
+.load-more-error {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}

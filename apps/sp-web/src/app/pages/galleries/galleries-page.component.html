@@ -1,0 +1,109 @@
+<main>
+  <header>
+    <h1>Galleries</h1>
+    <p>Image galleries from your Stash library, with performer and studio metadata.</p>
+    @if (!loading() && !error()) {
+      <p class="state">Total galleries: {{ total() }}</p>
+    }
+  </header>
+
+  <section class="controls-shell" aria-label="Galleries controls">
+    <label class="control-field">
+      <span>Search Title</span>
+      <input
+        pInputText
+        type="text"
+        [ngModel]="searchQuery()"
+        placeholder="Search gallery title"
+        (ngModelChange)="onSearchQueryChanged($event)"
+      />
+    </label>
+  </section>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading galleries...</p>
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+    <button pButton type="button" class="retry-button" (click)="retryInitialLoad()">Retry</button>
+  } @else if (!hasItems()) {
+    <p class="state">No galleries are available for the current filters.</p>
+  } @else {
+    <section class="gallery-grid">
+      @for (item of items(); track item.id) {
+        <article class="gallery-card">
+          <a
+            class="gallery-link-stretch"
+            [routerLink]="['/galleries', item.id]"
+            [attr.aria-label]="'View gallery ' + item.title"
+          ></a>
+
+          @if (item.coverImageUrl) {
+            <img class="gallery-image" [src]="item.coverImageUrl" [alt]="item.title" loading="lazy" />
+          } @else {
+            <div class="gallery-image placeholder" aria-hidden="true">
+              <i class="pi pi-images"></i>
+            </div>
+          }
+
+          <span class="gallery-image-count">{{ item.imageCount }} photos</span>
+
+          <div class="gallery-meta">
+            <p class="gallery-title">{{ item.title }}</p>
+
+            <div class="gallery-badges">
+              @if (item.studio) {
+                <span class="gallery-studio-badge">{{ item.studio }}</span>
+              }
+              @if (item.releaseDate) {
+                <span class="gallery-date">{{ item.releaseDate }}</span>
+              }
+            </div>
+
+            @if (item.performers.length > 0) {
+              <div class="gallery-performers">
+                @for (performer of item.performers; track performer.id) {
+                  <span class="performer-chip" [title]="performer.name">
+                    @if (performer.imageUrl) {
+                      <img [src]="performer.imageUrl" [alt]="performer.name" loading="lazy" />
+                    } @else {
+                      <span class="performer-chip-initial">{{ performerInitial(performer.name) }}</span>
+                    }
+                    <span class="performer-chip-name">{{ performer.name }}</span>
+                  </span>
+                }
+              </div>
+            }
+
+            @if (item.tagNames.length > 0) {
+              <div class="gallery-tags">
+                @for (tag of item.tagNames; track tag) {
+                  <span class="tag-chip">{{ tag }}</span>
+                }
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </section>
+
+    <div #loadMoreSentinel class="load-sentinel"></div>
+
+    @if (loadingMore()) {
+      <p class="state">Loading more galleries...</p>
+    }
+
+    @if (loadMoreError()) {
+      <div class="load-more-error">
+        <p-message severity="error" styleClass="app-inline-message">{{ loadMoreError() }}</p-message>
+        <button pButton type="button" class="retry-button" (click)="retryLoadMore()">Retry</button>
+      </div>
+    }
+  }
+</main>

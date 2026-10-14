@@ -1,0 +1,277 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+.series-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.series-cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.series-info {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+h1 {
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  line-height: 1.1;
+}
+
+.series-meta,
+.state {
+  color: var(--text-muted);
+}
+
+.state {
+  margin-top: 1.4rem;
+}
+
+.series-synopsis {
+  line-height: 1.5;
+  max-width: 48rem;
+  white-space: pre-line;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.primary-button,
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary-button {
+  border: 1px solid color-mix(in srgb, var(--focus-ring) 45%, var(--border-strong));
+  background: color-mix(in srgb, var(--surface-raised) 78%, var(--focus-ring) 22%);
+  color: var(--text-primary);
+}
+
+.text-button {
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.text-button.danger {
+  color: var(--danger, #e5484d);
+}
+
+.primary-button:disabled,
+.text-button:disabled,
+.icon-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.primary-button:focus-visible,
+.text-button:focus-visible,
+.icon-button:focus-visible,
+.part-thumb:focus-visible,
+.part-title:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.edit-form {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 34rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+textarea.app-control-input {
+  resize: vertical;
+  font: inherit;
+}
+
+.parts {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.part {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.part-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.part-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+// Red "watched" line along the bottom of the thumbnail.
+.part-watched {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: rgb(255 255 255 / 30%);
+}
+
+.part-watched span {
+  display: block;
+  height: 100%;
+  background: var(--yt-red, #f00);
+}
+
+.part-thumb-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgb(0 0 0 / 28%);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.part-thumb:hover .part-thumb-play,
+.part-thumb:focus-visible .part-thumb-play {
+  opacity: 1;
+}
+
+.part-info {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.part-number {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.part-title {
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.part-title:hover {
+  text-decoration: underline;
+}
+
+.part-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.part-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.icon-button:not(:disabled):hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .series-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .part {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.6rem;
+  }
+
+  // Actions drop under the info on narrow screens.
+  .part-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-top: -0.3rem;
+  }
+
+  .part-title {
+    white-space: normal;
+  }
+}

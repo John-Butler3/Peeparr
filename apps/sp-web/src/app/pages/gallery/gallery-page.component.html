@@ -1,0 +1,150 @@
+<main class="app-page-shell">
+  <a class="back-link app-back-link" routerLink="/galleries">Back to Galleries</a>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading gallery...</p>
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+    <button pButton type="button" (click)="retry()">Retry</button>
+  } @else if (gallery(); as gallery) {
+    <section class="gallery-header">
+      @if (gallery.coverImageUrl) {
+        <div
+          class="gallery-backdrop"
+          [style.background-image]="'url(' + gallery.coverImageUrl + ')'"
+          aria-hidden="true"
+        ></div>
+      }
+      <div class="gallery-shade" aria-hidden="true"></div>
+
+      <div class="gallery-header-content">
+        <h1>{{ gallery.title }}</h1>
+
+        <div class="gallery-meta-row">
+          @if (gallery.studio) {
+            <span class="gallery-studio">{{ gallery.studio }}</span>
+          }
+          @if (gallery.releaseDate) {
+            <span class="gallery-date">{{ gallery.releaseDate }}</span>
+          }
+          <span class="gallery-count">{{ imagesTotal() || gallery.imageCount }} photos</span>
+        </div>
+
+        @if (gallery.description) {
+          <p class="gallery-description">{{ gallery.description }}</p>
+        }
+
+        @if (gallery.performers.length > 0) {
+          <div class="gallery-performers">
+            @for (performer of gallery.performers; track performer.id) {
+              <span class="performer-chip">
+                @if (performer.imageUrl) {
+                  <img [src]="performer.imageUrl" [alt]="performer.name" loading="lazy" />
+                }
+                <span>{{ performer.name }}</span>
+              </span>
+            }
+          </div>
+        }
+
+        @if (gallery.tagNames.length > 0) {
+          <div class="gallery-tags">
+            @for (tag of gallery.tagNames; track tag) {
+              <span class="tag-chip">{{ tag }}</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (loadingImages()) {
+      <div class="app-blocking-loader" role="status" aria-live="polite">
+        <p-progressspinner
+          styleClass="app-blocking-spinner"
+          strokeWidth="4"
+          [style]="{ width: '2.25rem', height: '2.25rem' }"
+        />
+        <p>Loading images...</p>
+      </div>
+    } @else if (imagesError() && images().length === 0) {
+      <div class="load-more-error">
+        <p-message severity="error" styleClass="app-inline-message">{{ imagesError() }}</p-message>
+        <button pButton type="button" (click)="retryLoadMoreImages()">Retry</button>
+      </div>
+    } @else if (images().length === 0) {
+      <p class="state">This gallery has no images.</p>
+    } @else {
+      <section class="image-grid">
+        @for (image of images(); track image.id; let i = $index) {
+          <button type="button" class="image-tile" (click)="openViewer(i)">
+            <img [src]="image.thumbnailUrl ?? image.imageUrl" [alt]="image.title ?? gallery.title" loading="lazy" />
+          </button>
+        }
+      </section>
+
+      @if (imagesHasMore()) {
+        <button
+          pButton
+          type="button"
+          class="load-more-images"
+          [disabled]="loadingMoreImages()"
+          (click)="loadMoreImages()"
+        >
+          {{ loadingMoreImages() ? 'Loading...' : 'Load more images' }}
+        </button>
+      }
+
+      @if (imagesError()) {
+        <div class="load-more-error">
+          <p-message severity="error" styleClass="app-inline-message">{{ imagesError() }}</p-message>
+          <button pButton type="button" (click)="retryLoadMoreImages()">Retry</button>
+        </div>
+      }
+    }
+
+    @if (currentViewerImage(); as viewerImage) {
+      <div class="image-viewer-overlay" role="dialog" aria-modal="true" (click)="closeViewer()">
+        <button
+          type="button"
+          class="viewer-close"
+          aria-label="Close image viewer"
+          (click)="closeViewer()"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+
+        <button
+          type="button"
+          class="viewer-nav viewer-prev"
+          aria-label="Previous image"
+          (click)="showPreviousImage(); $event.stopPropagation()"
+        >
+          <i class="pi pi-chevron-left" aria-hidden="true"></i>
+        </button>
+
+        <img
+          class="viewer-image"
+          [src]="viewerImage.imageUrl ?? viewerImage.thumbnailUrl"
+          [alt]="viewerImage.title ?? gallery.title"
+          (click)="$event.stopPropagation()"
+        />
+
+        <button
+          type="button"
+          class="viewer-nav viewer-next"
+          aria-label="Next image"
+          (click)="showNextImage(); $event.stopPropagation()"
+        >
+          <i class="pi pi-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    }
+  }
+</main>

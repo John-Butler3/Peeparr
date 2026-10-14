@@ -1,0 +1,172 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+}
+
+main {
+  max-width: min(1540px, 96vw);
+  margin: 0 auto;
+  padding: 1.2rem 1rem 1.5rem;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.search-form {
+  position: relative;
+  max-width: 640px;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.85rem;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.62rem 0.85rem 0.62rem 2.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.search-input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.favorite-performers-toggle {
+  margin-top: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+}
+
+.state {
+  margin-top: 1.2rem;
+  color: var(--text-muted);
+}
+
+.result-section {
+  margin-top: 1.4rem;
+}
+
+.result-section h2 {
+  margin-bottom: 0.7rem;
+  font-size: 1.02rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.72rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.tile-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.tile-card {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  text-align: center;
+  text-decoration: none;
+  color: var(--text-primary);
+  padding: 0.5rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.tile-card:hover,
+.tile-card:focus-visible {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.tile-card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.tile-image {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.tile-image.round {
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+}
+
+.tile-image.placeholder {
+  display: block;
+}
+
+.tile-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .tile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+// "Show more" under each kind of result.
+.show-more-button {
+  display: block;
+  margin: 16px auto 0;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.show-more-button:hover {
+  background: var(--yt-chip-hover);
+}
+
+.show-more-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

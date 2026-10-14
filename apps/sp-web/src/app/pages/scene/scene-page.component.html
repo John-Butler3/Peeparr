@@ -1,0 +1,437 @@
+<!-- YouTube-style watch page. The thumbnail at the top is the
+     player; on phones it stays pinned while the details scroll under it. -->
+<main class="watch-page">
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading scene details...</p>
+    </div>
+  } @else if (error()) {
+    <div class="watch-state">
+      <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+      <button pButton type="button" (click)="retry()">Retry</button>
+    </div>
+  } @else if (scene(); as scene) {
+    <div
+      class="watch-layout"
+      [class.is-catalog-only]="!hasStashCopy(scene)"
+      [appWatchDock]="!hasStashCopy(scene)"
+    >
+      <div class="watch-primary">
+        @if (!hasStashCopy(scene)) {
+          <!-- The docked header: the title beside the shrunken picture
+               (watch-dock.directive). -->
+          <div class="watch-dock">
+            <p class="watch-dock-title" aria-hidden="true">{{ scene.title }}</p>
+            @if (canRequestScene(scene)) {
+              <button
+                type="button"
+                class="watch-title-action"
+                tabindex="-1"
+                aria-label="Request in Whisparr"
+                title="Request"
+                (click)="openRequestPanel(scene)"
+              >
+                <i class="pi pi-download" aria-hidden="true"></i>
+              </button>
+            } @else if (titleStatus(scene); as status) {
+              <span
+                class="watch-title-action is-status"
+                [attr.data-tone]="status.tone"
+                aria-hidden="true"
+                [title]="status.label"
+              >
+                <i [class]="status.icon" aria-hidden="true"></i>
+              </span>
+            }
+          </div>
+          <div class="watch-dock-marker" aria-hidden="true"><span class="watch-dock-probe"></span></div>
+        }
+
+        <div class="watch-media">
+          @if (!hasStashCopy(scene)) {
+            <button
+              type="button"
+              class="watch-dock-hit"
+              tabindex="-1"
+              aria-label="Back to top"
+              (click)="scrollToTop()"
+            ></button>
+          }
+          <app-inline-player
+            #player
+            [title]="scene.title"
+            [posterUrl]="scene.imageUrl"
+            [durationSeconds]="scene.duration"
+            [localSceneId]="selectedStashCopyId(scene)"
+            [details]="playerDetails(scene)"
+            [playable]="hasStashCopy(scene)"
+            [autoplay]="autoplay()"
+            (ended)="playNextUp()"
+            (minimize)="leaveToMiniplayer()"
+          />
+        </div>
+
+        <div class="watch-info">
+          <a
+            class="watch-back"
+            [routerLink]="backLinkPath()"
+            [queryParams]="backLinkQueryParams()"
+          >
+            <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ backLinkLabel() }}
+          </a>
+
+          <!-- Title (wrapping) with the Request / status button on its right. -->
+          <div class="watch-title-row">
+            <h1 class="watch-title">{{ scene.title }}</h1>
+            @if (canRequestScene(scene)) {
+              <button
+                type="button"
+                class="watch-title-action"
+                aria-label="Request in Whisparr"
+                title="Request"
+                (click)="openRequestPanel(scene)"
+              >
+                <i class="pi pi-download" aria-hidden="true"></i>
+              </button>
+            } @else if (titleStatus(scene); as status) {
+              <span
+                class="watch-title-action is-status"
+                [attr.data-tone]="status.tone"
+                role="img"
+                [attr.aria-label]="status.label"
+                [title]="status.label"
+              >
+                <i [class]="status.icon" aria-hidden="true"></i>
+              </span>
+            }
+          </div>
+
+          <div class="watch-meta">
+            <app-scene-status-badge [status]="scene.status" />
+            @if (scene.releaseDate) {
+              <span>{{ scene.releaseDate }}</span>
+            }
+            @if (formattedDuration(scene.duration); as duration) {
+              <span>{{ duration }}</span>
+            }
+          </div>
+
+          <!-- Channel row: the studio's logo (whole, on a tile that suits it) and
+               name, with a Favorite star. -->
+          @if (scene.studio || scene.studioImageUrl) {
+            <div class="channel-row">
+              @if (scene.studioId) {
+                <a
+                  class="channel"
+                  [routerLink]="['/studio', scene.studioId]"
+                  [queryParams]="{ returnTo: currentRouteUrl() }"
+                  [attr.aria-label]="studioLogoAriaLabel(scene)"
+                >
+                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
+                    @if (scene.studioImageUrl) {
+                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
+                    } @else {
+                      {{ performerInitial(scene.studio ?? '?') }}
+                    }
+                  </span>
+                  <span class="channel-name">{{ scene.studio }}</span>
+                </a>
+              } @else if (scene.studioUrl) {
+                <a
+                  class="channel"
+                  [href]="scene.studioUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="studioLogoAriaLabel(scene)"
+                >
+                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
+                    @if (scene.studioImageUrl) {
+                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
+                    } @else {
+                      {{ performerInitial(scene.studio ?? '?') }}
+                    }
+                  </span>
+                  <span class="channel-name">{{ scene.studio }}</span>
+                </a>
+              } @else {
+                <span class="channel">
+                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
+                    @if (scene.studioImageUrl) {
+                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
+                    } @else {
+                      {{ performerInitial(scene.studio ?? '?') }}
+                    }
+                  </span>
+                  <span class="channel-name">{{ scene.studio }}</span>
+                </span>
+              }
+
+              @if (scene.studioId) {
+                <button
+                  type="button"
+                  class="favorite-star"
+                  [class.is-active]="scene.studioIsFavorite"
+                  [disabled]="!canToggleFavoriteStudio(scene)"
+                  [attr.aria-pressed]="scene.studioIsFavorite"
+                  [attr.aria-label]="studioFavoriteAriaLabel(scene)"
+                  [title]="studioFavoriteTitle(scene)"
+                  (click)="toggleFavoriteStudio(scene)"
+                >
+                  <i [class]="scene.studioIsFavorite ? 'pi pi-star-fill' : 'pi pi-star'" aria-hidden="true"></i>
+                </button>
+              }
+            </div>
+          }
+
+          <!-- YouTube's scrolling row of action pills. -->
+          <div class="action-pills">
+            <!-- (Request is beside the title.) -->
+            @if (canRemoveRequest(scene)) {
+              <button
+                type="button"
+                class="pill"
+                aria-label="Remove request"
+                [disabled]="removingRequest()"
+                [attr.aria-busy]="removingRequest()"
+                (click)="removeSceneRequestFromHero(scene)"
+              >
+                <i class="pi pi-trash" aria-hidden="true"></i> Remove request
+              </button>
+            }
+
+            @if (hasStashCopy(scene)) {
+              <button
+                type="button"
+                class="pill"
+                data-testid="scene-add-to-series"
+                (click)="openSeriesDialog()"
+              >
+                <i class="pi pi-list" aria-hidden="true"></i> Save to series
+              </button>
+
+              @if (selectedStashViewUrl(scene); as viewUrl) {
+                <a
+                  class="pill"
+                  [href]="viewUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="'View in Stash (' + selectedStashLabel(scene) + ') in a new tab'"
+                >
+                  <i class="pi pi-external-link" aria-hidden="true"></i> Stash
+                </a>
+              }
+            }
+
+            @if (hasWhisparrLink(scene)) {
+              <a
+                class="pill"
+                [href]="scene.whisparr!.viewUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="View in Whisparr in a new tab"
+              >
+                <i class="pi pi-external-link" aria-hidden="true"></i> Whisparr
+              </a>
+            }
+
+            @if (hasMultipleStashCopies(scene)) {
+              <label class="copy-select">
+                <span class="sr-only">Stash copy</span>
+                <p-select
+                  inputId="scene-stash-copy"
+                  [ngModel]="selectedStashViewUrl(scene)"
+                  (ngModelChange)="onStashCopySelected($event)"
+                  [options]="scene.stash!.copies"
+                  optionLabel="label"
+                  optionValue="viewUrl"
+                  [appendTo]="'body'"
+                  panelStyleClass="app-overlay-panel"
+                />
+              </label>
+            }
+          </div>
+
+          @if (sceneSeries().length > 0) {
+            <div class="scene-series" data-testid="scene-series">
+              @for (series of sceneSeries(); track series.id) {
+                <a class="series-chip" [routerLink]="['/series', series.id]">
+                  <i class="pi pi-list" aria-hidden="true"></i>
+                  @if (series.sceneIndex !== null) {
+                    Part {{ series.sceneIndex }} of
+                  }
+                  <strong>{{ series.name }}</strong>
+                </a>
+              }
+            </div>
+          }
+
+          @if (failedRemediationVisible(scene)) {
+            <p class="helper">Resolve or retry this download in Whisparr.</p>
+          }
+
+          <!-- Description box: collapsed to a few lines, tags as hashtags. -->
+          @if (scene.description || scene.tags.length > 0) {
+            <section class="description-box" [class.is-expanded]="descriptionExpanded()">
+              @if (displayedDescription(scene.description); as description) {
+                <p class="description-text">{{ description }}</p>
+              }
+              @if (scene.tags.length > 0) {
+                <div class="tag-row">
+                  @for (tag of scene.tags; track tag.id) {
+                    <a
+                      class="tag-link"
+                      [routerLink]="['/scenes']"
+                      [queryParams]="{ tags: tag.id, tagNames: tag.name }"
+                      [attr.aria-label]="'Open scenes tagged ' + tag.name"
+                    >#{{ tag.name }}</a>
+                  }
+                </div>
+              }
+              @if (hasLongDescription(scene.description)) {
+                <button type="button" class="description-toggle" (click)="toggleDescription()">
+                  {{ descriptionExpanded() ? 'Show less' : '...more' }}
+                </button>
+              }
+            </section>
+          }
+
+          @if (scene.status.state !== 'AVAILABLE') {
+            <section class="info-card">
+              <h2>Lifecycle</h2>
+              <p class="muted">{{ lifecycleSummary(scene) }}</p>
+              <div class="lifecycle-steps">
+                @for (step of lifecycleSteps(scene); track step.system) {
+                  <div class="lifecycle-step" [attr.data-tone]="step.tone">
+                    <span class="step-system">{{ step.system }}</span>
+                    <strong>{{ step.title }}</strong>
+                    <span class="muted">{{ step.detail }}</span>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          @if (scene.performers.length > 0) {
+            <section class="performers" aria-labelledby="scene-performers-heading">
+              <h2 id="scene-performers-heading">Performers</h2>
+              <div class="performer-row">
+                @for (performer of scene.performers; track performer.id) {
+                  <div class="performer">
+                    <a
+                      class="performer-link"
+                      [routerLink]="['/performer', performer.id]"
+                      [queryParams]="{ returnTo: currentRouteUrl() }"
+                      [attr.aria-label]="'View performer ' + performer.name"
+                    >
+                      @if (performer.cardImageUrl || performer.imageUrl) {
+                        <img
+                          class="performer-image"
+                          [src]="performer.cardImageUrl ?? performer.imageUrl"
+                          alt=""
+                          loading="lazy"
+                        />
+                      } @else {
+                        <span class="performer-image placeholder">{{ performerInitial(performer.name) }}</span>
+                      }
+                      <span class="performer-name">{{ performer.name }}</span>
+                    </a>
+                    <button
+                      type="button"
+                      class="performer-favorite"
+                      [class.is-favorite]="performer.isFavorite"
+                      [disabled]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      [title]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      (click)="toggleScenePerformerFavorite($event, performer)"
+                    >
+                      <i
+                        [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- In the library, Up next is library picks; the catalog's similar
+               scenes (requestable) get their own shelf. -->
+          @if (hasStashCopy(scene) && similarScenes().length > 0) {
+            <section class="similar-section">
+              <div class="similar-head">
+                <h2>Similar scenes</h2>
+                <div class="similar-actions">
+                  <button
+                    type="button"
+                    class="scroll-button"
+                    (click)="scrollSimilarRail('prev')"
+                    aria-label="Scroll similar scenes left"
+                  >
+                    <i class="pi pi-angle-left" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="scroll-button"
+                    (click)="scrollSimilarRail('next')"
+                    aria-label="Scroll similar scenes right"
+                  >
+                    <i class="pi pi-angle-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="similar-viewport" #similarRailViewport>
+                <div class="similar-track">
+                  @for (item of similarScenes(); track item.id) {
+                    <app-scene-card
+                      class="similar-card"
+                      [item]="item"
+                      previewKind="catalog"
+                      variant="rail"
+                      [requestable]="isSimilarSceneRequestable(item)"
+                      [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+                      (request)="openSimilarSceneRequestModal($event)"
+                    />
+                  }
+                </div>
+              </div>
+            </section>
+          }
+        </div>
+      </div>
+
+      <aside class="watch-secondary">
+        <app-up-next-list
+          [items]="hasStashCopy(scene) ? upNext() : similarUpNext()"
+          [loading]="hasStashCopy(scene) && upNextLoading()"
+          [heading]="hasStashCopy(scene) ? 'Up next' : 'Similar scenes'"
+        />
+      </aside>
+    </div>
+
+    @if (hasStashCopy(scene)) {
+      <app-add-to-series-dialog
+        [open]="seriesDialogOpen()"
+        [sceneId]="selectedStashCopyId(scene)"
+        [sceneTitle]="scene.title"
+        (closed)="onSeriesDialogClosed()"
+        (membershipsChanged)="onSceneSeriesChanged($event)"
+      />
+    }
+
+    <app-scene-request-modal
+      [open]="requestModalOpen()"
+      [sceneId]="requestContext()?.id ?? null"
+      [sceneTitle]="requestContext()?.title ?? null"
+      [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+      (closed)="onRequestModalClosed()"
+      (submitted)="onRequestSubmitted($event)"
+    />
+  }
+</main>

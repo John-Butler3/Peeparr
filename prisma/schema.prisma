@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Request {
+  id        String        @id @default(cuid())
+  /// External scene id from the instance's currently active catalog provider (StashDB/FansDB/TPDB — see IntegrationType).
+  stashId   String        @unique
+  status    RequestStatus @default(REQUESTED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model AdminUser {
+  id                 String         @id @default(cuid())
+  singletonKey       Int            @unique @default(1)
+  username           String
+  normalizedUsername String         @unique
+  passwordHash       String
+  sessionVersion     Int            @default(1)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  sessions           AdminSession[]
+}
+
+model AdminSession {
+  id             String    @id @default(cuid())
+  userId         String
+  sessionVersion Int
+  expiresAt      DateTime
+  lastSeenAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model SceneIndex {
+  /// External scene id from the instance's currently active catalog provider (StashDB/FansDB/TPDB — see IntegrationType).
+  stashId                String                 @id
+  requestStatus          RequestStatus?
+  requestUpdatedAt       DateTime?
+  title                  String?
+  description            String?
+  imageUrl               String?
+  studioId               String?
+  studioName             String?
+  studioImageUrl         String?
+  releaseDate            String?
+  duration               Int?
+  whisparrMovieId        Int?
+  whisparrHasFile        Boolean?
+  whisparrQueuePosition  Int?
+  whisparrQueueStatus    String?
+  whisparrQueueState     String?
+  whisparrErrorMessage   String?
+  stashAvailable         Boolean?
+  computedLifecycle      SceneLifecycle         @default(NOT_REQUESTED)
+  lifecycleSortOrder     Int                    @default(999)
+  metadataHydrationState MetadataHydrationState @default(PENDING)
+  metadataLastSyncedAt   DateTime?
+  metadataRetryAfterAt   DateTime?
+  whisparrLastSyncedAt   DateTime?
+  stashLastSyncedAt      DateTime?
+  lastSyncedAt           DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([computedLifecycle, lifecycleSortOrder, whisparrQueuePosition, requestUpdatedAt])
+  @@index([requestUpdatedAt])
+  @@index([whisparrMovieId])
+  @@index([metadataLastSyncedAt])
+  @@index([whisparrLastSyncedAt])
+  @@index([stashLastSyncedAt])
+  @@index([lastSyncedAt])
+}
+
+model SyncState {
+  jobName            String        @id
+  status             SyncJobStatus @default(IDLE)
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  leaseUntil         DateTime?
+  cursor             String?
+  lastError          String?
+  lastSuccessAt      DateTime?
+  lastDurationMs     Int?
+  lastProcessedCount Int?
+  lastUpdatedCount   Int?
+  lastRunReason      String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model SceneIndexSummary {
+  key                      String    @id
+  indexedScenes            Int       @default(0)
+  acquisitionTrackedScenes Int       @default(0)
+  requestedCount           Int       @default(0)
+  downloadingCount         Int       @default(0)
+  importPendingCount       Int       @default(0)
+  failedCount              Int       @default(0)
+  metadataPendingCount     Int       @default(0)
+  metadataRetryableCount   Int       @default(0)
+  lastIndexWriteAt         DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+model LibrarySceneIndex {
+  stashSceneId         String    @id
+  /// Active discovery-provider catalog id derived during projection sync.
+  linkedStashId        String?
+  /// Provider-qualified external refs preserved from local Stash stash_ids.
+  linkedCatalogRefs    String[]  @default([])
+  title                String
+  description          String?
+  imageUrl             String?
+  studioId             String?
+  studioName           String?
+  studioImageUrl       String?
+  performerIds         String[]  @default([])
+  performerNames       String[]  @default([])
+  tagIds               String[]  @default([])
+  tagNames             String[]  @default([])
+  releaseDate          String?
+  duration             Int?
+  viewUrl              String
+  localCreatedAt       DateTime?
+  localUpdatedAt       DateTime?
+  hasFavoritePerformer Boolean   @default(false)
+  favoriteStudio       Boolean   @default(false)
+  hasFavoriteTag       Boolean   @default(false)
+  lastSyncedAt         DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([linkedStashId])
+  @@index([studioId])
+  @@index([studioName])
+  @@index([title])
+  @@index([tagIds], type: Gin, map: "LibrarySceneIndex_tagIds_gin_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "LibrarySceneIndex_title_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "LibrarySceneIndex_description_trgm_idx")
+  @@index([studioName(ops: raw("gin_trgm_ops"))], type: Gin, map: "LibrarySceneIndex_studioName_trgm_idx")
+  @@index([releaseDate])
+  @@index([localCreatedAt])
+  @@index([localUpdatedAt])
+  @@index([lastSyncedAt])
+}
+
+model HomeRail {
+  id          String              @id @default(cuid())
+  key         HomeRailKey?        @unique
+  kind        HomeRailKind
+  source      HomeRailSource
+  contentType HomeRailContentType
+  title       String
+  subtitle    String?
+  enabled     Boolean             @default(true)
+  sortOrder   Int
+  config      Json?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([sortOrder])
+}
+
+enum RequestStatus {
+  REQUESTED
+  PROCESSING
+  AVAILABLE
+  FAILED
+}
+
+enum SceneLifecycle {
+  NOT_REQUESTED
+  REQUESTED
+  DOWNLOADING
+  IMPORT_PENDING
+  AVAILABLE
+  FAILED
+}
+
+enum SyncJobStatus {
+  IDLE
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum MetadataHydrationState {
+  PENDING
+  HYDRATED
+  FAILED_RETRYABLE
+}
+
+enum HomeRailKey {
+  FAVORITE_STUDIOS
+  FAVORITE_PERFORMERS
+  RECENTLY_ADDED_LIBRARY
+}
+
+enum HomeRailKind {
+  BUILTIN
+  CUSTOM
+}
+
+enum HomeRailSource {
+  STASHDB
+  STASH
+  HYBRID
+}
+
+enum HomeRailContentType {
+  SCENES
+}
+
+enum IntegrationType {
+  STASHDB
+  FANSDB
+  TPDB
+  STASH
+  WHISPARR
+}
+
+enum IntegrationStatus {
+  NOT_CONFIGURED
+  CONFIGURED
+  ERROR
+}
+
+enum RuntimeHealthServiceKey {
+  CATALOG
+  STASH
+  WHISPARR
+}
+
+enum RuntimeHealthStatus {
+  HEALTHY
+  DEGRADED
+}
+
+model IntegrationConfig {
+  id      String            @id @default(cuid())
+  type    IntegrationType   @unique
+  enabled Boolean           @default(true)
+  status  IntegrationStatus @default(NOT_CONFIGURED)
+
+  name    String?
+  baseUrl String?
+  apiKey  String?
+
+  config Json?
+
+  lastHealthyAt    DateTime?
+  lastErrorAt      DateTime?
+  lastErrorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RuntimeIntegrationHealth {
+  service             RuntimeHealthServiceKey @id
+  status              RuntimeHealthStatus     @default(HEALTHY)
+  consecutiveFailures Int                     @default(0)
+  lastHealthyAt       DateTime?
+  lastFailureAt       DateTime?
+  lastErrorMessage    String?
+  degradedAt          DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+}
+
+model AppSettings {
+  id                        String   @id @default(cuid())
+  singletonKey              Int      @unique @default(1)
+  hideAmateurNetworkResults Boolean  @default(false)
+  /// Saved Whisparr defaults used to submit a request immediately on click,
+  /// skipping the manual options modal. defaultRootFolderPath and
+  /// defaultQualityProfileId must both be set for quick-submit to engage.
+  defaultRootFolderPath     String?
+  defaultQualityProfileId   Int?
+  defaultMonitored          Boolean  @default(true)
+  defaultSearchForMovie     Boolean  @default(true)
+  defaultTagIds             Int[]    @default([])
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model FavoritePerformer {
+  id          String   @id @default(cuid())
+  /// External performer id from the instance's currently active catalog provider (StashDB/FansDB/TPDB).
+  performerId String   @unique
+  createdAt   DateTime @default(now())
+}
+
+model MonitoredPerformer {
+  id              String    @id @default(cuid())
+  /// External performer id from the instance's currently active catalog provider.
+  performerId     String    @unique
+  /// Only scenes released on/after this date are ever auto-requested -- past
+  /// scenes are deliberately never touched by monitoring.
+  monitoredSince  DateTime  @default(now())
+  lastCheckedAt   DateTime?
+  /// Scenes this monitor has already acted on, so a scene the user later
+  /// removes from Whisparr isn't silently re-requested on the next check.
+  handledSceneIds String[]  @default([])
+  createdAt       DateTime  @default(now())
+}
+
+model PerformerImagePreference {
+  id           String   @id @default(cuid())
+  /// External performer id from the instance's currently active catalog provider (StashDB/FansDB/TPDB).
+  performerId  String   @unique
+  mainImageUrl String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Optional ThePornDB website login, used only to read the site's popular
+/// scenes (members-only; not in the API). Singleton row (id 1). The session
+/// and the scraped list are cached here so the website is hit rarely.
+model TpdbWebAccount {
+  id                 Int       @id @default(1)
+  email              String
+  password           String
+  /// Cookie jar from the last sign-in (name -> value).
+  sessionCookies     Json?
+  /// Popular scene ids from the homepage, in order.
+  popularSceneIds    String[]  @default([])
+  /// Where in the page data the list was found (diagnostics).
+  popularSourcePath  String?
+  popularFetchedAt   DateTime?
+  lastAttemptAt      DateTime?
+  lastError          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}

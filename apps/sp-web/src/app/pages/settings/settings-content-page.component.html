@@ -1,0 +1,148 @@
+<section class="content-page">
+  <header class="page-head">
+    <div class="page-copy">
+      <p class="eyebrow">Content</p>
+      <h2>Browsing & Discovery</h2>
+      <p class="lede">Control what shows up while you browse Scenes, Performers, and Sites.</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading content preferences...</p>
+    </div>
+  } @else if (loadError()) {
+    <section class="state-shell">
+      <p-message severity="error" styleClass="state-message">{{ loadError() }}</p-message>
+      <button pButton type="button" (click)="retryLoad()">Retry</button>
+    </section>
+  } @else {
+    @if (saveError()) {
+      <p-message severity="error" styleClass="state-message">{{ saveError() }}</p-message>
+    }
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <p class="eyebrow">Amateur & Creator Platforms</p>
+        <h2>Hide non-library ManyVids and FansDB results</h2>
+        <p class="summary-copy">
+          When enabled, scenes sourced from amateur/creator platforms (ManyVids, FansDB) are
+          hidden from Scenes, Performer, and Site browsing unless you've already imported them
+          into your library.
+        </p>
+
+        <label class="toggle-row">
+          <p-toggleswitch
+            inputId="hide-amateur-network-results"
+            [ngModel]="hideAmateurNetworkResults()"
+            [disabled]="saving()"
+            (ngModelChange)="onHideAmateurNetworkResultsChanged($event)"
+          />
+          <span>{{ hideAmateurNetworkResults() ? 'Enabled' : 'Disabled' }}</span>
+        </label>
+      </article>
+
+      <article class="summary-card">
+        <p class="eyebrow">Requests</p>
+        <h2>Default download profile</h2>
+        <p class="summary-copy">
+          Set a default root folder and quality profile so clicking Request submits straight
+          to Whisparr instead of opening the options dialog. Leave either as "None" to keep
+          asking every time.
+        </p>
+
+        @if (downloadProfileOptionsError()) {
+          <p-message severity="warn" styleClass="app-inline-message">
+            {{ downloadProfileOptionsError() }}
+          </p-message>
+        }
+
+        <form
+          class="download-profile-form"
+          [formGroup]="downloadProfileForm"
+          (ngSubmit)="saveDownloadProfile()"
+        >
+          <label class="field" for="default-root-folder">
+            <span>Root Folder</span>
+            <p-select
+              inputId="default-root-folder"
+              formControlName="rootFolderPath"
+              [options]="rootFolderOptions()"
+              optionLabel="label"
+              optionValue="value"
+              optionDisabled="disabled"
+              [appendTo]="'body'"
+              panelStyleClass="app-overlay-panel app-overlay-panel--comfortable"
+              scrollHeight="16rem"
+            />
+          </label>
+
+          <label class="field" for="default-quality-profile">
+            <span>Quality Profile</span>
+            <p-select
+              inputId="default-quality-profile"
+              formControlName="qualityProfileId"
+              [options]="qualityProfileOptions()"
+              optionLabel="label"
+              optionValue="value"
+              [appendTo]="'body'"
+              panelStyleClass="app-overlay-panel app-overlay-panel--comfortable"
+              scrollHeight="16rem"
+            />
+          </label>
+
+          <div class="checks">
+            <label class="toggle-field" for="default-monitored">
+              <p-toggleswitch inputId="default-monitored" formControlName="monitored" />
+              <span>Monitored</span>
+            </label>
+            <label class="toggle-field" for="default-search-now">
+              <p-toggleswitch inputId="default-search-now" formControlName="searchForMovie" />
+              <span>Search Immediately</span>
+            </label>
+          </div>
+
+          @if (tagOptions().length > 0) {
+            <label class="field" for="default-tags">
+              <span>Tags</span>
+              <p-multiselect
+                inputId="default-tags"
+                formControlName="tagIds"
+                [options]="tagOptions()"
+                optionLabel="label"
+                optionValue="value"
+                [appendTo]="'body'"
+                panelStyleClass="app-overlay-panel app-overlay-panel--comfortable"
+                scrollHeight="16rem"
+                [showToggleAll]="false"
+                [showHeader]="false"
+                [maxSelectedLabels]="3"
+                display="chip"
+                placeholder="Select tags"
+              />
+            </label>
+          }
+
+          @if (downloadProfileSaveError()) {
+            <p-message severity="error" styleClass="app-inline-message">
+              {{ downloadProfileSaveError() }}
+            </p-message>
+          } @else if (downloadProfileSaved()) {
+            <p-message severity="success" styleClass="app-inline-message">Saved.</p-message>
+          }
+
+          <div class="request-actions">
+            <button type="submit" [disabled]="downloadProfileSaving()" pButton>
+              {{ downloadProfileSaving() ? 'Saving...' : 'Save Defaults' }}
+            </button>
+          </div>
+        </form>
+      </article>
+    </section>
+  }
+</section>

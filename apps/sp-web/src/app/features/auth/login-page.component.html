@@ -1,0 +1,55 @@
+<main class="auth-page">
+  <section class="auth-card" appAuthIntro aria-labelledby="login-heading">
+    <div class="auth-brand">
+      <app-brand-mark />
+      <span class="auth-brand-name"><span>Stasharr</span></span>
+    </div>
+
+    <div class="auth-heading">
+      <h1 id="login-heading">Sign in</h1>
+      <p>to continue to Stasharr</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        <span>Username</span>
+        <input type="text" formControlName="username" autocomplete="username" />
+      </label>
+
+      <label class="field">
+        <span>Password</span>
+        <input type="password" formControlName="password" autocomplete="current-password" />
+      </label>
+
+      @if (resetState() === 'sent') {
+        <div class="reset-notice" role="status">
+          <p>
+            A temporary password was created. On the server running Stasharr, show it with:
+          </p>
+          <code>docker compose exec app stasharr-reset-password</code>
+          <p class="reset-hint">
+            It works once and expires in 15 minutes. Your current password still works.
+          </p>
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <p-message severity="error" styleClass="state-message">{{ errorMessage() }}</p-message>
+      }
+
+      <div class="auth-actions">
+        <button
+          type="button"
+          class="auth-link"
+          [disabled]="resetState() === 'sending'"
+          (click)="requestPasswordReset()"
+        >
+          Forgot password?
+        </button>
+        <button type="submit" class="auth-submit" [disabled]="submitting()">
+          {{ submitting() ? 'Signing in...' : 'Sign in' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</main>

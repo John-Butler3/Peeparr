@@ -1,0 +1,222 @@
+:host {
+  display: block;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+.state {
+  margin-top: 1rem;
+}
+
+.gallery-header {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--media-detail-hero-border);
+  box-shadow: var(--media-detail-hero-shadow);
+  background: var(--media-detail-hero-background);
+  margin-top: 1rem;
+  padding: 1.5rem;
+}
+
+.gallery-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 20%;
+  transform: scale(1.06);
+  opacity: 0.5;
+  filter: blur(6px);
+}
+
+.gallery-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--media-detail-hero-shade);
+}
+
+.gallery-header-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.gallery-header-content h1 {
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+
+.gallery-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.gallery-studio {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gallery-description {
+  color: var(--text-muted);
+  max-width: 60rem;
+}
+
+.gallery-performers,
+.gallery-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.performer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.2rem;
+  border-radius: 999px;
+  background: var(--media-detail-glass-background);
+  border: 1px solid var(--media-detail-glass-border);
+  font-size: 0.8rem;
+}
+
+.performer-chip img {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.tag-chip {
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: var(--media-detail-glass-background);
+  border: 1px solid var(--media-detail-glass-border);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.image-grid {
+  margin-top: 1.1rem;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.image-tile {
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.image-tile img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.image-tile:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.load-more-images {
+  margin-top: 0.85rem;
+}
+
+:host ::ng-deep .load-more-images.p-button {
+  border-radius: 7px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  padding: 0.5rem 0.85rem;
+}
+
+.load-more-error {
+  margin-top: 0.6rem;
+}
+
+.image-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgb(6 12 20 / 92%);
+  display: grid;
+  place-items: center;
+}
+
+.viewer-image {
+  max-width: min(94vw, 1400px);
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.viewer-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 25%);
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 25%);
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.viewer-prev {
+  left: 1rem;
+}
+
+.viewer-next {
+  right: 1rem;
+}
+
+.viewer-close:focus-visible,
+.viewer-nav:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .gallery-header {
+    padding: 1rem;
+  }
+
+  .viewer-nav {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+}

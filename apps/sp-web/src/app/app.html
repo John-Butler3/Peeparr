@@ -1,0 +1,20 @@
+<div class="app-shell">
+  @if (isHomeRoute()) {
+    <div class="global-controls">
+      <app-theme-toggle class="global-theme-toggle" />
+    </div>
+  }
+  <router-outlet></router-outlet>
+  <app-video-player-overlay />
+  <p-toast
+    key="global"
+    position="bottom-right"
+    styleClass="app-toast"
+    [baseZIndex]="1200"
+  />
+  <p-confirmdialog
+    key="app-destructive"
+    styleClass="app-confirm-dialog"
+    [baseZIndex]="1250"
+  />
+</div>

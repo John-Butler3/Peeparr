@@ -1,0 +1,98 @@
+<p-dialog
+  [visible]="open"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [blockScroll]="true"
+  [appendTo]="'body'"
+  header="Add to series"
+  [style]="{ width: 'min(520px, 94vw)' }"
+  styleClass="add-to-series-dialog"
+>
+  @if (sceneTitle) {
+    <p class="scene-title">{{ sceneTitle }}</p>
+  }
+
+  @if (loading()) {
+    <div class="dialog-state" role="status">
+      <p-progressspinner strokeWidth="4" [style]="{ width: '1.8rem', height: '1.8rem' }" />
+    </div>
+  } @else if (loadError()) {
+    <p class="dialog-state error">{{ loadError() }}</p>
+  } @else {
+    <form class="create-row" (ngSubmit)="createSeries()">
+      <input
+        class="app-control-input"
+        name="newSeriesName"
+        maxlength="200"
+        autocomplete="off"
+        placeholder="New series name"
+        aria-label="New series name"
+        [ngModel]="newSeriesName()"
+        (ngModelChange)="newSeriesName.set($event)"
+      />
+      <button
+        type="submit"
+        class="create-button"
+        [disabled]="!newSeriesName().trim() || creating()"
+      >
+        {{ creating() ? 'Creating...' : 'Create & add' }}
+      </button>
+    </form>
+
+    @if (series().length > 6 || query()) {
+      <input
+        type="search"
+        class="app-control-input search"
+        placeholder="Search series"
+        aria-label="Search series"
+        [ngModel]="query()"
+        (ngModelChange)="onQueryChanged($event)"
+      />
+    }
+
+    @if (series().length === 0) {
+      <p class="dialog-state">
+        {{ query() ? 'No series match.' : 'No series yet. Name one above to create it.' }}
+      </p>
+    } @else {
+      <ul class="series-list" aria-label="Series">
+        @for (item of series(); track item.id) {
+          <li class="series-row">
+            <img class="series-thumb" [src]="item.coverImageUrl" alt="" loading="lazy" />
+            <span class="series-copy">
+              <a class="series-name" [routerLink]="['/series', item.id]" (click)="close()">
+                {{ item.name }}
+              </a>
+              <span class="series-meta">
+                {{ item.sceneCount }} part{{ item.sceneCount === 1 ? '' : 's' }}
+                @if (membershipFor(item.id); as membership) {
+                  &middot; this scene is part {{ membership.sceneIndex ?? '?' }}
+                }
+              </span>
+            </span>
+            <button
+              type="button"
+              class="toggle-button"
+              [class.is-member]="!!membershipFor(item.id)"
+              [attr.aria-pressed]="!!membershipFor(item.id)"
+              [attr.aria-label]="
+                (membershipFor(item.id) ? 'Remove from ' : 'Add to ') + item.name
+              "
+              [disabled]="busySeriesId() === item.id || creating()"
+              (click)="toggle(item)"
+            >
+              @if (membershipFor(item.id)) {
+                <i class="pi pi-check" aria-hidden="true"></i> Added
+              } @else {
+                <i class="pi pi-plus" aria-hidden="true"></i> Add
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</p-dialog>

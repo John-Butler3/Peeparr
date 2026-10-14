@@ -1,0 +1,122 @@
+<main class="app-page-shell app-page-shell--xl">
+  <header>
+    <p class="eyebrow">Search</p>
+    <form class="search-form" (ngSubmit)="onQuerySubmit()">
+      <i class="pi pi-search search-icon" aria-hidden="true"></i>
+      <input
+        #searchInput
+        type="search"
+        inputmode="search"
+        class="search-input"
+        placeholder="Search scenes, performers, or studios"
+        aria-label="Search scenes, performers, or studios"
+        [ngModel]="queryInput()"
+        name="query"
+        (ngModelChange)="onQueryInput($event)"
+      />
+    </form>
+
+    <label class="favorite-performers-toggle">
+      <p-toggleswitch
+        inputId="search-favorite-performers-only"
+        [ngModel]="favoritePerformersOnly()"
+        (ngModelChange)="onFavoritePerformersOnlyChanged($event)"
+      />
+      <span>Favorite performers only</span>
+    </label>
+  </header>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Searching...</p>
+    </div>
+  } @else if (!searched()) {
+    <p class="state">Start typing to search scenes, performers, and studios.</p>
+  } @else if (!hasResults()) {
+    <p class="state">No matches for "{{ queryInput() }}".</p>
+  } @else {
+    @if (performerResults().length > 0) {
+      <section class="result-section">
+        <h2>Performers</h2>
+        <div class="tile-grid">
+          @for (item of performersShown.slice(performerResults()); track item.id) {
+            <a class="tile-card" [routerLink]="['/performer', item.id]">
+              @if (item.cardImageUrl || item.imageUrl) {
+                <img
+                  class="tile-image round"
+                  [src]="item.cardImageUrl ?? item.imageUrl"
+                  [alt]="item.name"
+                  loading="lazy"
+                />
+              } @else {
+                <span class="tile-image round placeholder" aria-hidden="true"></span>
+              }
+              <span class="tile-name">{{ item.name }}</span>
+            </a>
+          }
+        </div>
+        @if (performersShown.hasMore(performerResults().length)) {
+          <button type="button" class="show-more-button" (click)="performersShown.more()">Show more</button>
+        }
+      </section>
+    }
+
+    @if (studioResults().length > 0) {
+      <section class="result-section">
+        <h2>Sites</h2>
+        <div class="tile-grid">
+          @for (item of studiosShown.slice(studioResults()); track item.id) {
+            <a class="tile-card" [routerLink]="['/studio', item.id]">
+              @if (item.imageUrl) {
+                <img class="tile-image" [src]="item.imageUrl" [alt]="item.name" loading="lazy" />
+              } @else {
+                <span class="tile-image placeholder" aria-hidden="true"></span>
+              }
+              <span class="tile-name">{{ item.name }}</span>
+            </a>
+          }
+        </div>
+        @if (studiosShown.hasMore(studioResults().length)) {
+          <button type="button" class="show-more-button" (click)="studiosShown.more()">Show more</button>
+        }
+      </section>
+    }
+    @if (sceneResults().length > 0) {
+      <section class="result-section">
+        <h2>Scenes</h2>
+        <div class="grid">
+          @for (item of scenesShown.slice(sceneResults()); track item.id) {
+            <app-scene-card
+              [item]="item"
+              [requestable]="isRequestable(item)"
+              [playable]="true"
+              previewKind="catalog"
+              playSize="large"
+              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+              (request)="openRequestModal($event)"
+              (play)="playScene($event)"
+            />
+          }
+        </div>
+        @if (scenesShown.hasMore(sceneResults().length)) {
+          <button type="button" class="show-more-button" (click)="scenesShown.more()">Show more</button>
+        }
+      </section>
+    }
+
+  }
+
+  <app-scene-request-modal
+    [open]="requestModalOpen()"
+    [sceneId]="requestContext()?.id ?? null"
+    [sceneTitle]="requestContext()?.title ?? null"
+    [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+    (closed)="onRequestModalClosed()"
+    (submitted)="onRequestSubmitted($event)"
+  />
+</main>

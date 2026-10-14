@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+
+.inline-player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+}
+
+.inline-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  cursor: pointer;
+}
+
+.poster:disabled {
+  cursor: default;
+}
+
+.poster-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 300ms var(--yt-ease, ease), filter 300ms var(--yt-ease, ease);
+}
+
+.poster:not(:disabled):hover .poster-image {
+  filter: brightness(0.85);
+}
+
+.poster-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// YouTube's red play button.
+.play-badge {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgb(33 33 33 / 80%);
+  color: #fff;
+  font-size: 1.3rem;
+  transition: background-color 150ms var(--yt-ease, ease);
+}
+
+.poster:not(:disabled):hover .play-badge,
+.poster:focus-visible .play-badge {
+  background: var(--yt-red, #f00);
+}
+
+.poster-duration {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 80%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.poster:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.inline-error {
+  position: absolute;
+  inset: auto 0 0;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgb(0 0 0 / 75%);
+  color: #fff;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+// Swiping down on the playing video: it follows the finger, shrinking a
+// little, on its way to the miniplayer.
+.inline-player.is-dragging {
+  transform: translateY(calc(var(--drag, 0) * 1px)) scale(calc(1 - min(var(--drag, 0), 300) / 1500));
+  transform-origin: top center;
+  opacity: calc(1 - min(var(--drag, 0), 300) / 600);
+}
+
+.inline-player:not(.is-dragging) {
+  transition:
+    transform 200ms var(--yt-ease, ease),
+    opacity 200ms var(--yt-ease, ease);
+}

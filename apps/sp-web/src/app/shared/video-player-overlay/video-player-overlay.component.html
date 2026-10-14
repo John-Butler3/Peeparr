@@ -1,0 +1,220 @@
+<!-- YouTube-style watch panel. 'full' slides up over the page with
+     the video pinned at the top and details scrolling underneath; 'mini'
+     docks it as a miniplayer. The <video> keeps its place in both modes so
+     playback carries on uninterrupted. -->
+@if (state(); as s) {
+  <div
+    class="watch"
+    [class.is-full]="!mini()"
+    [class.is-mini]="mini()"
+    [class.is-dragging]="dragOffset() > 0"
+    [style.--drag-offset.px]="dragOffset()"
+    data-testid="watch-panel"
+  >
+    <div
+      class="watch-player"
+      (touchstart)="onDragStart($event)"
+      (touchmove)="onDragMove($event)"
+      (touchend)="onDragEnd()"
+      (touchcancel)="onDragEnd()"
+    >
+      @switch (s.status) {
+        @case ('loading') {
+          <div class="player-status">
+            @if (s.imageUrl) {
+              <img class="player-poster" [src]="s.imageUrl" alt="" />
+            }
+            <p-progressSpinner strokeWidth="4" [style]="{ width: '3rem', height: '3rem' }" />
+            <p class="sr-only">Loading stream&hellip;</p>
+          </div>
+        }
+        @case ('error') {
+          <div class="player-status player-status-error">
+            <p>{{ s.message }}</p>
+          </div>
+        }
+        @case ('ready') {
+          <video
+            #videoEl
+            class="player-video"
+            [src]="s.source.streamUrl"
+            [controls]="!mini()"
+            autoplay
+            playsinline
+            x-webkit-airplay="allow"
+            (loadedmetadata)="onVideoLoadedMetadata()"
+            (play)="onVideoPlay()"
+            (pause)="onVideoPause()"
+            (timeupdate)="onVideoTimeUpdate()"
+            (ended)="onVideoEnded()"
+          ></video>
+        }
+      }
+
+      <!-- Minimise by swiping down on the video or pressing Escape (no
+           button: it sat over the native fullscreen control). -->
+      @if (mini()) {
+        <!-- The whole miniplayer video area expands it again. -->
+        <button
+          type="button"
+          class="mini-expand-hit"
+          aria-label="Expand player"
+          (click)="expand()"
+        ></button>
+      }
+    </div>
+
+    @if (mini()) {
+      <div
+        class="mini-progress"
+        role="progressbar"
+        aria-label="Playback progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="(progress() * 100).toFixed(0)"
+      >
+        <div class="mini-progress-fill" [style.transform]="'scaleX(' + progress() + ')'"></div>
+      </div>
+      <div class="mini-bar">
+        <button type="button" class="mini-text" (click)="expand()">
+          <span class="mini-title">{{ s.title }}</span>
+          <span class="mini-sub">
+            @if (queue(); as q) {
+              {{ q.name }} &middot; Part {{ q.index + 1 }} of {{ q.items.length }}
+            } @else {
+              {{ subtitle() }}
+            }
+          </span>
+        </button>
+        <button
+          type="button"
+          class="mini-icon"
+          [attr.aria-label]="paused() ? 'Play' : 'Pause'"
+          (click)="togglePlayback()"
+        >
+          <i [class]="paused() ? 'pi pi-play' : 'pi pi-pause'" aria-hidden="true"></i>
+        </button>
+        @if (hasNext()) {
+          <button type="button" class="mini-icon" aria-label="Next part" (click)="playNext()">
+            <i class="pi pi-step-forward" aria-hidden="true"></i>
+          </button>
+        }
+        <button type="button" class="mini-icon" aria-label="Close player" (click)="closePlayer()">
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+    } @else {
+      <div class="watch-body">
+        @if (queue(); as q) {
+          <p class="player-queue-label" data-testid="player-queue-label">
+            {{ q.name }} &middot; Part {{ q.index + 1 }} of {{ q.items.length }}
+          </p>
+        }
+
+        <h2 class="watch-title">{{ s.title }}</h2>
+        @if (subtitle(); as sub) {
+          <p class="watch-meta">{{ sub }}</p>
+        }
+
+        <div class="watch-actions">
+          @if (queue()) {
+            <button
+              type="button"
+              class="watch-chip"
+              aria-label="Previous part"
+              [disabled]="!hasPrevious()"
+              (click)="playPrevious()"
+            >
+              <i class="pi pi-step-backward" aria-hidden="true"></i> Previous
+            </button>
+            <button
+              type="button"
+              class="watch-chip"
+              aria-label="Next part"
+              [disabled]="!hasNext()"
+              (click)="playNext()"
+            >
+              <i class="pi pi-step-forward" aria-hidden="true"></i> Next
+            </button>
+          }
+          @if (details()?.detailsLink; as link) {
+            <button type="button" class="watch-chip" (click)="openDetails(link)">
+              <i class="pi pi-info-circle" aria-hidden="true"></i> Details
+            </button>
+          }
+          @if (details()?.stashUrl; as stashUrl) {
+            <a class="watch-chip" [href]="stashUrl" target="_blank" rel="noopener noreferrer">
+              <i class="pi pi-external-link" aria-hidden="true"></i> Stash
+            </a>
+          }
+          <button type="button" class="watch-chip" aria-label="Close player" (click)="closePlayer()">
+            <i class="pi pi-times" aria-hidden="true"></i> Close
+          </button>
+        </div>
+
+        @if (details()?.studio; as studio) {
+          <div class="channel-row">
+            <span class="channel-logo" [class.is-letter]="!details()?.studioImageUrl" aria-hidden="true">
+              @if (details()?.studioImageUrl; as logo) {
+                <img appLogoContrast [src]="logo" alt="" />
+              } @else {
+                {{ studio.charAt(0).toUpperCase() }}
+              }
+            </span>
+            <span class="channel-name">{{ studio }}</span>
+          </div>
+        }
+
+        @if (details()?.description || details()?.performers?.length) {
+          <button
+            type="button"
+            class="description-box"
+            [class.is-expanded]="descriptionExpanded()"
+            [attr.aria-expanded]="descriptionExpanded()"
+            (click)="toggleDescription()"
+          >
+            @if (details()?.performers?.length) {
+              <span class="description-performers">{{ details()?.performers?.join(' · ') }}</span>
+            }
+            @if (details()?.description; as description) {
+              <span class="description-text">{{ description }}</span>
+            }
+            <span class="description-more">{{ descriptionExpanded() ? 'Show less' : '...more' }}</span>
+          </button>
+        }
+
+        @if (queue(); as q) {
+          <section class="up-next" aria-label="Up next">
+            <h3>Up next</h3>
+            @for (item of q.items; track item.localSceneId; let i = $index) {
+              <button
+                type="button"
+                class="up-next-item"
+                [class.is-current]="i === q.index"
+                [attr.aria-current]="i === q.index ? 'true' : null"
+                (click)="playQueueIndex(i)"
+              >
+                <span class="up-next-thumb">
+                  @if (item.imageUrl) {
+                    <img [src]="item.imageUrl" alt="" loading="lazy" />
+                  }
+                  @if (i === q.index) {
+                    <span class="now-playing" aria-hidden="true"><i class="pi pi-volume-up"></i></span>
+                  }
+                </span>
+                <span class="up-next-text">
+                  <span class="up-next-title">{{ item.title }}</span>
+                  <span class="up-next-sub">Part {{ i + 1 }}</span>
+                </span>
+              </button>
+            }
+          </section>
+        } @else if (recommended().length > 0) {
+          <div class="recommended" (click)="onRecommendedClick($event)">
+            <app-up-next-list [items]="recommended()" />
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

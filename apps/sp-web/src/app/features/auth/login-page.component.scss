@@ -1,0 +1,41 @@
+@import '../../../styles/auth-card';
+
+button.auth-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.reset-notice {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.reset-notice p {
+  margin: 0;
+}
+
+.reset-notice code {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgb(127 127 127 / 18%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  user-select: all;
+}
+
+.reset-notice .reset-hint {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}

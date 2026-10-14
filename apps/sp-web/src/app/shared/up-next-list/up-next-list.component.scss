@@ -1,0 +1,183 @@
+:host {
+  display: block;
+}
+
+.up-next {
+  display: grid;
+  gap: 8px;
+}
+
+.up-next-heading {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 8px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.row:hover .title {
+  color: var(--text-primary);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+// Studio logo, top left, on a small frosted plaque (as on scene cards).
+.logo-plaque {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  height: 1.3rem;
+  max-width: 4.5rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 5px;
+  background: rgb(15 15 15 / 38%);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+}
+
+.thumb .logo-plaque img {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
+}
+
+.duration {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 80%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.text {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.43;
+}
+
+.meta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Loading placeholders.
+.skeleton .thumb,
+.skeleton .line {
+  background: var(--surface-2);
+  animation: up-next-pulse 1.2s ease-in-out infinite;
+}
+
+.skeleton .line {
+  display: block;
+  height: 12px;
+  margin: 6px 0;
+  border-radius: 4px;
+}
+
+.skeleton .line.short {
+  width: 60%;
+}
+
+@keyframes up-next-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Phones: full-width YouTube feed cards instead of compact rows.
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .thumb {
+    border-radius: 0;
+    margin-inline: -16px;
+  }
+
+  .text {
+    padding: 0 0 12px;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+}
+
+.meta.label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.meta.label .pi {
+  font-size: 0.7rem;
+}
+
+// Red "watched" line along the bottom of the thumbnail.
+.watched {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: rgb(255 255 255 / 30%);
+}
+
+.watched span {
+  display: block;
+  height: 100%;
+  background: var(--yt-red, #f00);
+}

@@ -1,0 +1,237 @@
+<main>
+  <header>
+    <h1>Scenes</h1>
+    <p>
+      Browse the catalog provider configured for this Stasharr instance and keep lightweight
+      acquisition status badges in view.
+    </p>
+    @if (!loading() && !error()) {
+      <p class="state">{{ scenesTotalLabel() }}</p>
+    }
+  </header>
+
+  @if (pageAlert(); as alert) {
+    <section class="page-alert app-page-alert" data-testid="scenes-readiness-alert" role="status">
+      <div class="app-page-alert__copy">
+        <p class="eyebrow">{{ alert.eyebrow }}</p>
+        <h2>{{ alert.title }}</h2>
+        <p>{{ alert.message }}</p>
+      </div>
+
+      <div class="page-alert-actions app-action-row">
+        <a class="state-link primary" [routerLink]="['/settings/integrations']">
+          Repair integrations
+        </a>
+        <a class="state-link" [routerLink]="['/settings/indexing']">Open indexing</a>
+      </div>
+    </section>
+  }
+
+  <section class="controls-shell" aria-label="Scenes controls">
+    <div class="controls-header">
+      <span class="controls-title">Catalog Discovery</span>
+
+      <div class="app-sort-toggle-group" role="group" aria-label="Show">
+        <button
+          type="button"
+          class="app-sort-toggle-option"
+          [class.active]="activeView() === 'POPULAR'"
+          (click)="selectView('POPULAR')"
+        >
+          Popular
+        </button>
+        <button
+          type="button"
+          class="app-sort-toggle-option"
+          [class.active]="activeView() === 'LATEST'"
+          (click)="selectView('LATEST')"
+        >
+          Latest
+        </button>
+        <button
+          type="button"
+          class="app-sort-toggle-option"
+          [class.active]="activeView() === 'OLDEST'"
+          [disabled]="!sortControlsSupported()"
+          [attr.title]="sortControlsSupported() ? '' : 'ThePornDB only supports newest-first ordering'"
+          (click)="selectView('OLDEST')"
+        >
+          Oldest
+        </button>
+      </div>
+
+      <div class="controls-actions">
+        <button
+          type="button"
+          class="app-filters-toggle-button"
+          [class.active]="filtersExpanded()"
+          [attr.aria-expanded]="filtersExpanded()"
+          aria-controls="scenes-expanded-filters"
+          (click)="toggleFiltersExpanded()"
+        >
+          Filters
+          <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          class="reset-filters-button"
+          [disabled]="!hasActiveFilters()"
+          title="Clear filters and return to the default discovery view"
+          (click)="resetFilters()"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <label class="control-field">
+        <span>Search</span>
+        <input
+          type="search"
+          inputmode="search"
+          [ngModel]="titleQuery()"
+          (ngModelChange)="onTitleQueryChanged($event)"
+          placeholder="Search scene titles"
+        />
+      </label>
+    </div>
+
+    @if (filtersExpanded()) {
+      <div class="controls-row expanded-filters" id="scenes-expanded-filters">
+        <label class="control-field">
+          <span>Studio Filter</span>
+          <div class="studio-picker-shell">
+            <p-multiselect
+              inputId="scenes-studios"
+              [ngModel]="studioSelectedIdsModel()"
+              (ngModelChange)="onStudioSelectionChanged($event)"
+              (onFilter)="onStudioFilterChanged($event.filter)"
+              (onPanelHide)="onStudioFilterPanelHide()"
+              [filter]="true"
+              [filterValue]="studioSearchTerm()"
+              filterPlaceHolder="Search studio networks"
+              [loading]="studioSearchLoading()"
+              [fluid]="true"
+              [options]="studioSelectOptions()"
+              [group]="true"
+              optionGroupLabel="label"
+              optionGroupChildren="items"
+              optionLabel="label"
+              optionValue="value"
+              [showToggleAll]="false"
+              display="chip"
+              [emptyMessage]="studioSelectEmptyMessage()"
+              [emptyFilterMessage]="studioSelectEmptyMessage()"
+              [resetFilterOnHide]="true"
+              [appendTo]="'body'"
+              panelStyleClass="app-overlay-panel"
+              placeholder="Choose studio networks or child studios"
+              scrollHeight="16rem"
+            />
+          </div>
+        </label>
+
+        <label class="control-field">
+          <span>Catalog Favorites</span>
+          <p-select
+            inputId="scenes-favorites"
+            [ngModel]="selectedFavorites()"
+            (ngModelChange)="onFavoritesChanged($event)"
+            [options]="favoritesOptions"
+            optionLabel="label"
+            optionValue="value"
+            [appendTo]="'body'"
+            panelStyleClass="app-overlay-panel"
+          />
+        </label>
+      </div>
+    }
+
+    <p class="controls-note">
+      {{ scenesResultsNote() }}
+    </p>
+  </section>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading scenes feed...</p>
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+    <button type="button" class="retry-button" (click)="retryInitialLoad()">Retry</button>
+  } @else if (!hasItems()) {
+    <section class="empty-shell app-state-block" data-testid="scenes-empty-state">
+      <h2>{{ emptyStateTitle() }}</h2>
+      <p class="app-state-copy">{{ emptyStateMessage() }}</p>
+      @if (!hasActiveFilters()) {
+        <p class="app-state-copy">{{ indexingGuidance() }}</p>
+      }
+
+      <div class="state-actions app-action-row">
+        @if (hasActiveFilters()) {
+          <button type="button" class="state-link primary" (click)="resetFilters()">
+            Clear filters
+          </button>
+        } @else {
+          <a class="state-link primary" [routerLink]="['/settings/indexing']">Open indexing</a>
+          <a class="state-link" [routerLink]="['/library']">Open Library</a>
+        }
+        @if (pageAlert()) {
+          <a class="state-link" [routerLink]="['/settings/integrations']">Repair integrations</a>
+        }
+      </div>
+    </section>
+  } @else {
+    @if (popularUnavailable() && activeView() === 'POPULAR') {
+      <p class="popular-notice" role="status">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        ThePornDB's popular list needs your TPDB website login --
+        <a [routerLink]="['/settings/integrations']">add it in Settings</a>. Showing the latest releases.
+      </p>
+    }
+    <section class="grid">
+      @for (item of items(); track item.id) {
+        <app-scene-card
+          [item]="item"
+          [requestable]="isRequestable(item)"
+          [playable]="true"
+          previewKind="catalog"
+          playSize="large"
+          [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+          (request)="openRequestModal($event)"
+          (play)="playScene($event)"
+        />
+      }
+    </section>
+
+    <div #loadMoreSentinel class="load-sentinel"></div>
+
+    @if (loadingMore()) {
+      <p class="state">Loading more scenes...</p>
+    }
+
+    @if (loadMoreError()) {
+      <div class="load-more-error">
+        <p-message severity="error" styleClass="app-inline-message">{{
+          loadMoreError()
+        }}</p-message>
+        <button type="button" class="retry-button" (click)="retryLoadMore()">Retry</button>
+      </div>
+    }
+  }
+
+  <app-scene-request-modal
+    [open]="requestModalOpen()"
+    [sceneId]="requestContext()?.id ?? null"
+    [sceneTitle]="requestContext()?.title ?? null"
+    [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+    (closed)="onRequestModalClosed()"
+    (submitted)="onRequestSubmitted($event)"
+  />
+</main>

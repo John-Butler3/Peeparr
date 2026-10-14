@@ -1,0 +1,104 @@
+@if (current(); as item) {
+  <section class="home-hero" aria-label="Recently added" data-testid="home-hero">
+    <div
+      class="hero-stage"
+      (touchstart)="onTouchStart($event)"
+      (touchmove)="onTouchMove($event)"
+      (touchend)="onTouchEnd()"
+      (touchcancel)="onTouchEnd()"
+    >
+      <div
+        class="hero-track"
+        [class.is-dragging]="dragging()"
+        [style.transform]="'translateX(calc(' + -index() * 100 + '% + ' + dragX() + 'px))'"
+      >
+        @for (slide of slides(); track slide.id; let i = $index) {
+          <a
+            class="hero-slide"
+            [routerLink]="link(slide)"
+            [attr.aria-hidden]="i !== index()"
+            [attr.tabindex]="i === index() ? null : -1"
+            [attr.aria-label]="slide.title"
+          >
+            @if (slide.cardImageUrl ?? slide.imageUrl; as image) {
+              <img [src]="image" alt="" />
+            }
+          </a>
+        }
+      </div>
+
+      <!-- The current scene's muted preview, faded in over its picture. -->
+      <video
+        #video
+        class="hover-preview hero-video"
+        [class.is-playing]="videoPlaying() && !dragging()"
+        muted
+        [muted]="true"
+        playsinline
+        preload="auto"
+        aria-hidden="true"
+        (loadedmetadata)="onVideoMetadata(video)"
+        (playing)="onVideoPlaying(video)"
+        (timeupdate)="onVideoTimeUpdate(video)"
+        (error)="onVideoError()"
+      ></video>
+
+      <div class="hero-shade" aria-hidden="true"></div>
+
+      <span class="hero-tag">New in your library</span>
+
+      <!-- Play on the left, the title (and where it's from) beside it. -->
+      <div class="hero-caption">
+        <button
+          type="button"
+          class="hero-play"
+          [attr.aria-label]="'Play ' + item.title"
+          (click)="play.emit(item.id)"
+        >
+          <i class="pi pi-play" aria-hidden="true"></i>
+        </button>
+        <div class="hero-text">
+          <h2 class="hero-title">{{ item.title }}</h2>
+          @if (item.studio || item.releaseDate) {
+            <p class="hero-meta">
+              @if (item.studio) {
+                <span>{{ item.studio }}</span>
+              }
+              @if (item.studio && item.releaseDate) {
+                <span aria-hidden="true"> · </span>
+              }
+              @if (item.releaseDate) {
+                <time [attr.datetime]="item.releaseDate">{{ item.releaseDate }}</time>
+              }
+            </p>
+          }
+        </div>
+      </div>
+
+      <!-- Fills across while the preview plays; full = next scene. -->
+      @if (slides().length > 1) {
+        <div class="hero-progress" aria-hidden="true">
+          @for (run of progress() ? [progress()!] : []; track run.run) {
+            <div class="hero-progress-fill" [style.animation-duration.ms]="run.ms"></div>
+          }
+        </div>
+      }
+
+      @if (slides().length > 1) {
+        <div class="hero-dots" role="tablist" aria-label="Recently added scenes">
+          @for (slide of slides(); track slide.id; let i = $index) {
+            <button
+              type="button"
+              class="hero-dot"
+              role="tab"
+              [class.is-active]="i === index()"
+              [attr.aria-selected]="i === index()"
+              [attr.aria-label]="slide.title"
+              (click)="goTo(i)"
+            ></button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+}

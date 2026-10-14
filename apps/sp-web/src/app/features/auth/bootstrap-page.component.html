@@ -1,0 +1,56 @@
+<main class="auth-page">
+  <section class="auth-card" appAuthIntro aria-labelledby="bootstrap-heading">
+    <div class="auth-brand">
+      <app-brand-mark />
+      <span class="auth-brand-name"><span>Stasharr</span></span>
+    </div>
+
+    <div class="auth-heading">
+      <h1 id="bootstrap-heading">Create admin account</h1>
+      <p>The single local account that protects this Stasharr instance.</p>
+    </div>
+
+    <div class="auth-note">
+      <p>It signs in to the app, unlocks setup, and can change its password later.</p>
+      <p>After this, Stasharr opens required integration setup for catalog, Stash, and Whisparr.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        <span>Username</span>
+        <input type="text" formControlName="username" autocomplete="username" />
+      </label>
+
+      <label class="field">
+        <span>Password</span>
+        <input type="password" formControlName="password" autocomplete="new-password" />
+      </label>
+
+      <label class="field">
+        <span>Confirm password</span>
+        <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
+      </label>
+
+      @if (passwordMismatch()) {
+        <p-message severity="error" styleClass="state-message">
+          New password and confirmation must match.
+        </p-message>
+      }
+
+      @if (errorMessage()) {
+        <p-message severity="error" styleClass="state-message">{{ errorMessage() }}</p-message>
+      }
+
+      @if (handoffMessage()) {
+        <p-message severity="success" styleClass="state-message">{{ handoffMessage() }}</p-message>
+      }
+
+      <div class="auth-actions">
+        <a class="auth-link" routerLink="/login">Sign in instead</a>
+        <button type="submit" class="auth-submit" [disabled]="submitting()">
+          {{ submitting() ? 'Creating account...' : 'Create account' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</main>

@@ -1,0 +1,16 @@
+:host {
+  display: inline-block;
+  width: 29px;
+  height: 20px;
+  flex: none;
+}
+
+.brand-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.brand-mark > rect {
+  fill: var(--yt-red, #ff0033);
+}

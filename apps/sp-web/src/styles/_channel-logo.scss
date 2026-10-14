@@ -1,0 +1,47 @@
+// Studio logo tile (scene pages, player).
+// The studio's logo, whole, on a tile picked to suit it (LogoContrastDirective):
+// light for dark logos, dark for light ones, none when it has its own
+// background. Until then (or for logos that can't be read) it's light.
+.channel-logo {
+  --logo-tile-h: 40px;
+  --logo-pad-y: 6px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  height: var(--logo-tile-h);
+  min-width: var(--logo-tile-h);
+  max-width: 132px;
+  padding: var(--logo-pad-y) 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f1f1f1;
+  transition: background-color 150ms var(--yt-ease, ease);
+}
+
+.channel-logo img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: calc(var(--logo-tile-h) - var(--logo-pad-y) * 2);
+  object-fit: contain;
+}
+
+.channel-logo[data-logo-tone='light'] {
+  background: #272727;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+.channel-logo[data-logo-tone='opaque'] {
+  --logo-pad-y: 0px;
+  padding: 0;
+  background: none;
+}
+
+.channel-logo.is-letter {
+  width: 40px;
+  padding: 0;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-weight: 500;
+}

@@ -1,0 +1,265 @@
+<main class="app-page-shell">
+  <header class="page-head app-page-header">
+    <div class="page-copy app-page-header__copy">
+      <h1>Acquisition</h1>
+      <p class="app-page-lede">
+        Track requested scenes through Whisparr and into your Stash library.
+      </p>
+    </div>
+  </header>
+
+  @if (pageAlert(); as alert) {
+    <section
+      class="page-alert app-page-alert"
+      data-testid="acquisition-degraded-state"
+      role="status"
+    >
+      <div class="page-alert-copy app-page-alert__copy">
+        <p class="eyebrow app-page-eyebrow">{{ alert.eyebrow }}</p>
+        <h2>{{ alert.title }}</h2>
+        <p>{{ alert.message }}</p>
+      </div>
+
+      <div class="page-alert-actions app-action-row">
+        <a class="primary-link small" [routerLink]="['/settings/integrations']">
+          Repair integrations
+        </a>
+        <a class="secondary-link small" [routerLink]="['/settings/indexing']">Open Indexing</a>
+        <a class="secondary-link small" [routerLink]="['/scenes']">Open Scenes</a>
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading acquisition feed...</p>
+    </div>
+  } @else if (error()) {
+    <section class="state-shell app-state-block">
+      <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+      <button type="button" class="secondary-action" (click)="retryInitialLoad()">Retry</button>
+    </section>
+  } @else {
+    <section class="summary-shell" aria-label="Acquisition summary">
+      @for (card of summaryCards(); track card.lifecycle) {
+        <button
+          type="button"
+          class="summary-card"
+          [class.is-active]="selectedLifecycle() === card.lifecycle"
+          [attr.data-tone]="card.tone"
+          [attr.data-testid]="'summary-card-' + card.lifecycle"
+          (click)="selectLifecycle(card.lifecycle)"
+        >
+          <span class="summary-card-label">{{ card.label }}</span>
+          <strong class="summary-card-count">{{ card.count }}</strong>
+          <p class="summary-card-copy">{{ card.description }}</p>
+        </button>
+      }
+    </section>
+
+    @if (!hasItems()) {
+      <section
+        class="state-shell empty-shell app-state-block"
+        data-testid="acquisition-empty-state"
+      >
+        <p class="eyebrow app-page-eyebrow">Pipeline Quiet</p>
+        <h2>{{ emptyStateTitle() }}</h2>
+        <p class="state-copy app-state-copy">{{ emptyStateMessage() }}</p>
+        @if (selectedLifecycle() === 'ANY') {
+          <p class="state-copy app-state-copy">{{ indexingGuidance() }}</p>
+        }
+
+        <div class="state-actions app-action-row">
+          @if (selectedLifecycle() !== 'ANY') {
+            <button type="button" class="secondary-action" (click)="selectLifecycle('ANY')">
+              Show all tracked
+            </button>
+          }
+          <a class="primary-link" [routerLink]="['/scenes']">Open Scenes</a>
+          <a class="secondary-link" [routerLink]="['/settings/indexing']">Open Indexing</a>
+          <a class="secondary-link" [routerLink]="['/library']">Open Library</a>
+          @if (pageAlert()) {
+            <a class="secondary-link" [routerLink]="['/settings/integrations']">
+              Repair integrations
+            </a>
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="section-shell app-section-panel">
+        <div class="section-shell-head app-section-head">
+          <div class="app-section-head__copy">
+            <p class="eyebrow app-page-eyebrow">Operational View</p>
+            <h2>{{ sectionIntroTitle() }}</h2>
+            <p class="section-shell-copy app-section-copy">{{ pageSummaryText() }}</p>
+            <p class="section-shell-copy secondary app-section-copy app-section-copy--muted">
+              {{ sectionIntroCopy() }}
+            </p>
+          </div>
+
+          @if (selectedLifecycle() !== 'ANY') {
+            <button type="button" class="secondary-action" (click)="selectLifecycle('ANY')">
+              Show all tracked
+            </button>
+          }
+        </div>
+
+        @for (section of visibleSections(); track section.lifecycle) {
+          <section
+            class="lifecycle-section app-section-panel"
+            [attr.data-tone]="section.tone"
+            [attr.data-testid]="'lifecycle-section-' + section.lifecycle"
+          >
+            <div class="lifecycle-section-head app-section-head">
+              <div class="app-section-head__copy">
+                <div class="section-title-row">
+                  <h3>{{ section.label }}</h3>
+                  <span class="section-count">{{ sectionVisibleCountLabel(section) }}</span>
+                  @if (section.lifecycle === 'FAILED') {
+                    <span class="section-priority">Needs attention</span>
+                  }
+                </div>
+                <p>{{ section.description }}</p>
+              </div>
+
+              @if (selectedLifecycle() === 'ANY' && section.totalCount > section.items.length) {
+                <button
+                  type="button"
+                  class="secondary-action compact"
+                  (click)="selectLifecycle(section.lifecycle)"
+                >
+                  View all {{ section.label.toLowerCase() }}
+                </button>
+              }
+            </div>
+
+            <div class="acquisition-list">
+              @for (item of section.items; track item.id) {
+                <article class="acquisition-card" [attr.data-state]="item.status.state">
+                  <a
+                    class="card-art-link"
+                    [routerLink]="['/scene', item.id]"
+                    [queryParams]="{ returnTo: currentRouteUrl() }"
+                    [attr.aria-label]="'Open scene details for ' + item.title"
+                  >
+                    @if (item.cardImageUrl || item.imageUrl) {
+                      <img
+                        class="card-art"
+                        [src]="item.cardImageUrl ?? item.imageUrl"
+                        [alt]="item.title"
+                        loading="lazy"
+                      />
+                    } @else {
+                      <div class="card-art placeholder" aria-hidden="true"></div>
+                    }
+                  </a>
+
+                  <div class="card-body">
+                    <div class="card-status-row">
+                      <app-scene-status-badge class="row-status-badge" [status]="item.status" />
+
+                      @if (item.releaseDate) {
+                        <p class="release-date">
+                          <time [attr.datetime]="item.releaseDate">{{ item.releaseDate }}</time>
+                        </p>
+                      }
+
+                      @if (item.studio) {
+                        <span class="studio-pill">{{ item.studio }}</span>
+                      }
+                    </div>
+
+                    <div class="card-copy">
+                      <h4 class="card-title">
+                        <a
+                          [routerLink]="['/scene', item.id]"
+                          [queryParams]="{ returnTo: currentRouteUrl() }"
+                        >
+                          {{ item.title }}
+                        </a>
+                      </h4>
+
+                      <p class="helper" [class.helper-failed]="item.status.state === 'FAILED'">
+                        {{ lifecycleHelperText(item) }}
+                      </p>
+
+                      @if (operationalDetail(item); as detail) {
+                        <p class="detail" [class.detail-failed]="item.status.state === 'FAILED'">
+                          {{ detail }}
+                        </p>
+                      }
+                    </div>
+
+                    <div class="card-actions app-action-row">
+                      <a
+                        class="primary-link small"
+                        [routerLink]="['/scene', item.id]"
+                        [queryParams]="{ returnTo: currentRouteUrl() }"
+                      >
+                        Scene details
+                      </a>
+
+                      @if (item.whisparrViewUrl) {
+                        <a
+                          class="secondary-link small"
+                          [href]="item.whisparrViewUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="View in Whisparr in a new tab"
+                          title="View in Whisparr in a new tab"
+                        >
+                          View in Whisparr
+                        </a>
+                      }
+
+                      <button
+                        type="button"
+                        class="secondary-action small danger"
+                        [disabled]="isRemoving(item.id)"
+                        (click)="removeSceneRequest(item)"
+                        aria-label="Remove this request and delete it from Whisparr"
+                        title="Remove this request and delete it from Whisparr"
+                      >
+                        {{ isRemoving(item.id) ? 'Removing…' : 'Remove' }}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+      </section>
+
+      @if (removeError()) {
+        <div class="load-more-error">
+          <p-message severity="error" styleClass="app-inline-message">{{
+            removeError()
+          }}</p-message>
+        </div>
+      }
+
+      <div #loadMoreSentinel class="load-sentinel"></div>
+
+      @if (loadingMore()) {
+        <p class="loading-more-copy">Loading more acquisition scenes...</p>
+      }
+
+      @if (loadMoreError()) {
+        <div class="load-more-error">
+          <p-message severity="error" styleClass="app-inline-message">{{
+            loadMoreError()
+          }}</p-message>
+          <button type="button" class="secondary-action compact" (click)="retryLoadMore()">
+            Retry
+          </button>
+        </div>
+      }
+    }
+  }
+</main>

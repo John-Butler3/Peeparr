@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Test And Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.32.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sp?schema=public
+        run: pnpm exec prisma generate --schema prisma/schema.prisma
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build backend
+        run: pnpm --filter ./apps/sp-api build
+
+      - name: Build frontend
+        run: pnpm --filter ./apps/sp-web build
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build production image
+        env:
+          DOCKER_BUILDKIT: 1
+        run: docker build --build-arg STASHARR_VERSION=0.0.0-ci -t stasharr-portal:test .

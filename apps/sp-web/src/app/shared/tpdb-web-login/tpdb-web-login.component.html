@@ -1,0 +1,63 @@
+<article class="tpdb-web-login" data-testid="tpdb-web-login">
+  <div class="head">
+    <p class="eyebrow">ThePornDB website</p>
+    <h3>Popular scenes</h3>
+    <p class="lede">
+      TPDB only shows its popular scenes to signed-in members. Save your TPDB website login and
+      Stasharr reads that list (at most every 3 hours) to show it first on Home and Scenes. Without
+      it, Scenes shows TPDB's latest releases.
+    </p>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <label>
+      Email
+      <input pInputText type="email" formControlName="email" autocomplete="off" />
+    </label>
+    <label>
+      Password
+      <input
+        pInputText
+        type="password"
+        formControlName="password"
+        autocomplete="new-password"
+        [placeholder]="status()?.configured ? 'Saved -- leave blank to keep' : ''"
+      />
+    </label>
+
+    <div class="actions">
+      <button pButton type="submit" [disabled]="busy() !== null">
+        {{ busy() === 'save' ? 'Signing in...' : 'Save & sign in' }}
+      </button>
+      @if (status()?.configured) {
+        <button pButton type="button" class="p-button-secondary" [disabled]="busy() !== null" (click)="test()">
+          {{ busy() === 'test' ? 'Checking...' : 'Check now' }}
+        </button>
+        <button pButton type="button" class="p-button-text" [disabled]="busy() !== null" (click)="remove()">
+          Remove
+        </button>
+      }
+    </div>
+  </form>
+
+  @if (error(); as message) {
+    <p-message severity="error" [text]="message" />
+  }
+
+  @if (status(); as s) {
+    @if (s.configured) {
+      @if (s.lastError) {
+        <p-message severity="warn">
+          {{ s.lastError }} Scenes is showing latest releases instead.
+        </p-message>
+      } @else if (s.popularFetchedAt) {
+        <p class="state ok">
+          <i class="pi pi-check-circle" aria-hidden="true"></i>
+          {{ s.popularCount }} popular scenes, read {{ s.popularFetchedAt | date: 'short' }}.
+        </p>
+      } @else {
+        <p class="state">Not read yet.</p>
+      }
+    }
+  }
+</article>

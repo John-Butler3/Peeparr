@@ -1,0 +1,186 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+}
+
+h1,
+h2,
+p,
+ul {
+  margin: 0;
+}
+
+.state {
+  margin-top: 1rem;
+}
+
+.meta-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.meta-chip {
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+.meta-chip.warning {
+  border-color: var(--warning-border);
+  background: color-mix(in srgb, var(--warning-bg) 85%, transparent);
+  color: var(--text-primary);
+}
+
+// Child studios: logo tiles with the name underneath, like the cards.
+.content-shell {
+  margin-top: 24px;
+}
+
+.content-shell:empty {
+  display: none;
+}
+
+.child-section {
+  display: grid;
+  gap: 12px;
+}
+
+.child-section h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.child-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.child-card {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+.hierarchy-link-stretch {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--yt-radius, 12px);
+}
+
+.hierarchy-link-stretch:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.child-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: var(--yt-radius, 12px);
+  background: var(--surface-elevated);
+  object-fit: contain;
+  transition: background-color 120ms var(--yt-ease, ease);
+}
+
+.child-card:hover .child-image {
+  background: var(--yt-chip-hover);
+}
+
+.child-image.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.child-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.child-name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.child-aliases {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controls-shell {
+  --app-control-height: 2.46rem;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+}
+
+.grid {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.72rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.load-sentinel {
+  height: 1px;
+}
+
+.load-more-error {
+  margin-top: 0.6rem;
+}
+
+@media (max-width: 980px) {
+  .controls-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .child-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@import '../../../styles/channel-header';
+
+// Content below the header: tall enough for the header to finish docking
+// even when there are only a few scenes.
+.hero-content {
+  min-height: calc(100dvh - 3rem);
+}

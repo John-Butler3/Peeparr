@@ -1,0 +1,826 @@
+// ============================================================================
+// YouTube-style theme.
+//
+// Loaded last (see the end of styles.scss) so it overrides the app's own
+// tokens and shared building blocks. Palette, radii and type follow the
+// YouTube app: near-black surfaces, flat panels, pill buttons and chips,
+// Roboto.
+// ============================================================================
+
+:root {
+  --yt-font: Roboto, 'YouTube Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial,
+    sans-serif;
+  --yt-red: #ff0033;
+  --yt-radius-sm: 8px;
+  --yt-radius: 12px;
+  --yt-radius-lg: 16px;
+  --yt-masthead-h: 56px;
+  --yt-guide-w: 240px;
+  --yt-mini-guide-w: 72px;
+  --yt-ease: cubic-bezier(0.2, 0, 0, 1);
+  --yt-ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --app-font-family: var(--yt-font);
+
+  // Light theme (YouTube light).
+  --app-bg: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f2f2f2;
+  --surface-elevated: #ffffff;
+  --surface-raised: #f2f2f2;
+  --text-primary: #0f0f0f;
+  --text-muted: #606060;
+  --border-subtle: #e5e5e5;
+  --border-strong: #cccccc;
+  --focus-ring: #065fd4;
+  --button-bg: rgb(0 0 0 / 5%);
+  --button-border: transparent;
+  --button-text: #0f0f0f;
+  --chip-bg: rgb(0 0 0 / 5%);
+  --chip-border: transparent;
+  --chip-text: #0f0f0f;
+  --yt-chip-hover: rgb(0 0 0 / 10%);
+  --yt-chip-active-bg: #0f0f0f;
+  --yt-chip-active-text: #ffffff;
+  --yt-hover: rgb(0 0 0 / 5%);
+  --yt-menu-bg: #ffffff;
+  --yt-input-bg: #ffffff;
+  --yt-input-border: #d3d3d3;
+  --yt-search-button-bg: #f8f8f8;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --surface-panel-background: var(--surface-1);
+  --surface-panel-shadow: none;
+  --surface-panel-tinted-background: var(--surface-2);
+  --surface-panel-muted-background: var(--surface-2);
+  --surface-panel-hero-background: var(--surface-2);
+  --surface-hero-shadow: none;
+  --surface-hero-orb: none;
+  --surface-hero-button-background: var(--button-bg);
+  --surface-dialog-background: var(--yt-menu-bg);
+  --surface-dialog-shadow: 0 4px 32px rgb(0 0 0 / 10%);
+  --surface-dialog-scrim: rgb(0 0 0 / 50%);
+  --surface-overlay-background: var(--yt-menu-bg);
+  --surface-overlay-shadow: 0 4px 32px rgb(0 0 0 / 10%);
+}
+
+:root[data-theme='dark'] {
+  // Dark theme (YouTube dark).
+  --app-bg: #0f0f0f;
+  --surface-1: #0f0f0f;
+  --surface-2: #272727;
+  --surface-elevated: #212121;
+  --surface-raised: #272727;
+  --text-primary: #f1f1f1;
+  --text-muted: #aaaaaa;
+  --text-on-media: #ffffff;
+  --border-subtle: rgb(255 255 255 / 10%);
+  --border-strong: rgb(255 255 255 / 20%);
+  --focus-ring: #3ea6ff;
+  --button-bg: rgb(255 255 255 / 10%);
+  --button-border: transparent;
+  --button-text: #f1f1f1;
+  --chip-bg: rgb(255 255 255 / 10%);
+  --chip-border: transparent;
+  --chip-text: #f1f1f1;
+  --yt-chip-hover: rgb(255 255 255 / 20%);
+  --yt-chip-active-bg: #f1f1f1;
+  --yt-chip-active-text: #0f0f0f;
+  --yt-hover: rgb(255 255 255 / 10%);
+  --yt-menu-bg: #282828;
+  --yt-input-bg: #121212;
+  --yt-input-border: #303030;
+  --yt-search-button-bg: #222222;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --surface-panel-background: var(--surface-1);
+  --surface-panel-shadow: none;
+  --surface-panel-tinted-background: var(--surface-elevated);
+  --surface-panel-muted-background: var(--surface-elevated);
+  --surface-panel-hero-background: var(--surface-elevated);
+  --surface-hero-shadow: none;
+  --surface-hero-orb: none;
+  --surface-hero-button-background: var(--button-bg);
+  --surface-dialog-background: var(--yt-menu-bg);
+  --surface-dialog-shadow: 0 4px 32px rgb(0 0 0 / 50%);
+  --surface-dialog-scrim: rgb(0 0 0 / 60%);
+  --surface-overlay-background: var(--yt-menu-bg);
+  --surface-overlay-shadow: 0 4px 32px rgb(0 0 0 / 50%);
+
+  // Media surfaces (scene/performer heroes, cards, dialogs): flat and neutral.
+  --media-detail-hero-background: #0f0f0f;
+  --media-hero-background: #0f0f0f;
+  --media-hero-shadow: none;
+  --media-detail-hero-shadow: none;
+  --media-card-background: #212121;
+  --media-card-shadow: none;
+  --media-action-background: rgb(255 255 255 / 10%);
+  --media-action-border: transparent;
+  --media-subtle-action-background: rgb(255 255 255 / 10%);
+  --media-subtle-action-border: transparent;
+  --media-surface-glass-background: rgb(0 0 0 / 60%);
+  --media-surface-glass-border: transparent;
+  --media-surface-glass-shadow: none;
+  --media-kicker-background: rgb(255 255 255 / 10%);
+  --media-kicker-border: transparent;
+  --media-chip-background: rgb(255 255 255 / 10%);
+  --media-chip-border: transparent;
+  --media-dialog-scrim: rgb(0 0 0 / 60%);
+  --media-dialog-background: #212121;
+  --media-dialog-border: transparent;
+  --media-dialog-header-background: #212121;
+
+  --p-content-background: var(--yt-menu-bg);
+  --p-form-field-background: var(--yt-input-bg);
+  --p-form-field-border-color: var(--yt-input-border);
+  --p-primary-color: var(--focus-ring);
+}
+
+html,
+body {
+  font-family: var(--yt-font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0;
+}
+
+// ---- Page chrome ----------------------------------------------------------
+
+// One page gutter everywhere: 24px on desktop, 16px on phones (YouTube's).
+.app-page-shell {
+  --app-page-max-width: min(2200px, 100%);
+  padding: 16px 24px 32px !important;
+}
+
+@media (max-width: 720px) {
+  .app-page-shell {
+    padding: 12px 16px 24px !important;
+  }
+}
+
+// Each page fades/slides in on navigation (pages render as siblings of the
+// shell's router-outlet).
+.route-view > :not(router-outlet) {
+  display: block;
+  animation: yt-page-in 220ms var(--yt-ease-out);
+}
+
+.app-page-shell--wide,
+.app-page-shell--xl {
+  --app-page-max-width: min(2200px, 100%);
+}
+
+.app-page-header__copy h1,
+.app-page-shell > header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.app-page-eyebrow {
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.app-back-link,
+.app-back-link--media {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+// Panels flatten into YouTube's borderless blocks.
+.app-section-panel,
+.app-state-block,
+.app-control-shell {
+  border: 0;
+  border-radius: var(--yt-radius);
+  background: var(--surface-elevated);
+}
+
+.app-page-alert {
+  border: 0;
+  border-radius: var(--yt-radius);
+}
+
+// ---- Buttons --------------------------------------------------------------
+
+// Plain buttons become YouTube pills ("tonal" buttons). :where() keeps the
+// specificity at zero, so any button a component styles itself wins.
+:where(button:not(.p-button):not([class*='p-'])),
+.app-filters-toggle-button,
+.reset-filters-button,
+.retry-button {
+  border-radius: 18px;
+  border: 0;
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-family: var(--yt-font);
+  font-weight: 500;
+  transition:
+    background-color 120ms var(--yt-ease),
+    transform 120ms var(--yt-ease);
+}
+
+:where(button:not(.p-button):not([class*='p-']):not(:disabled)):hover {
+  background: var(--yt-chip-hover);
+}
+
+// Press feedback, as on YouTube's touch targets.
+:where(button:not(:disabled)):active,
+:where(a):active {
+  transform: scale(0.97);
+}
+
+.p-button {
+  border-radius: 18px !important;
+  font-weight: 500 !important;
+}
+
+// ---- Chips ----------------------------------------------------------------
+
+.app-chip,
+.chip,
+.filter-chip,
+.app-sort-toggle-option,
+.filter-toggle {
+  border: 0 !important;
+  border-radius: var(--yt-radius-sm) !important;
+  background: var(--chip-bg) !important;
+  color: var(--chip-text) !important;
+  font-family: var(--yt-font);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem !important;
+  transition: background-color 120ms var(--yt-ease);
+}
+
+.app-chip:hover,
+.chip:hover,
+.filter-chip:hover,
+.app-sort-toggle-option:not(.active):hover,
+.filter-toggle:not(.is-active):hover {
+  background: var(--yt-chip-hover) !important;
+}
+
+.app-sort-toggle-option.active,
+.filter-toggle.is-active,
+.app-filters-toggle-button.active {
+  background: var(--yt-chip-active-bg) !important;
+  color: var(--yt-chip-active-text) !important;
+}
+
+.app-sort-toggle-group {
+  border: 0;
+  background: none;
+  gap: 0.6rem;
+  padding: 0;
+}
+
+// ---- Inputs -----------------------------------------------------------------
+
+.app-control-input,
+input[type='search'],
+input[type='text'],
+textarea {
+  border-radius: 20px;
+  border: 1px solid var(--yt-input-border);
+  background: var(--yt-input-bg);
+  color: var(--text-primary);
+  font-family: var(--yt-font);
+}
+
+textarea {
+  border-radius: var(--yt-radius);
+}
+
+.app-control-input:focus,
+input[type='search']:focus,
+input[type='text']:focus,
+textarea:focus {
+  border-color: #1c62b9;
+  outline: none;
+}
+
+// ---- Overlays: dialogs, menus, toasts ------------------------------------
+
+.p-dialog {
+  border: 0 !important;
+  border-radius: var(--yt-radius-lg) !important;
+  background: var(--yt-menu-bg) !important;
+}
+
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-content {
+  background: transparent !important;
+}
+
+.app-overlay-panel,
+.p-select-overlay,
+.p-multiselect-overlay {
+  border: 0 !important;
+  border-radius: var(--yt-radius) !important;
+  background: var(--yt-menu-bg) !important;
+  box-shadow: var(--surface-overlay-shadow) !important;
+}
+
+// YouTube's snackbar: a dark pill at the bottom left.
+.app-toast .p-toast-message {
+  border: 0 !important;
+  border-radius: var(--yt-radius-sm) !important;
+  background: #f1f1f1 !important;
+  color: #0f0f0f !important;
+  box-shadow: 0 4px 32px rgb(0 0 0 / 20%) !important;
+}
+
+:root:not([data-theme='dark']) .app-toast .p-toast-message {
+  background: #0f0f0f !important;
+  color: #f1f1f1 !important;
+}
+
+// ---- Scrollbars and motion -------------------------------------------------
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #717171 transparent;
+}
+
+@keyframes yt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes yt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes yt-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+// ---- Page action buttons ---------------------------------------------------
+// Pages style their own buttons; these overrides restyle them as YouTube
+// pills: the primary action as the high-contrast filled pill, the rest
+// tonal. (!important because component styles otherwise win.)
+
+:is(
+    .primary-button,
+    .text-button,
+    .secondary-link,
+    .primary-link,
+    .hero-action-button,
+    .hero-actions .p-button,
+    .create-button,
+    .toggle-button,
+    .degraded-action
+  ) {
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: var(--button-bg) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+  font-family: var(--yt-font) !important;
+  font-weight: 500 !important;
+  transition: background-color 120ms var(--yt-ease);
+}
+
+:is(.primary-button, .primary-link, .create-button, .cluster-action:not(.is-remove)) {
+  background: var(--yt-chip-active-bg) !important;
+  color: var(--yt-chip-active-text) !important;
+}
+
+:is(.text-button, .secondary-link, .hero-action-button, .hero-actions .p-button, .toggle-button):not(:disabled):hover {
+  background: var(--yt-chip-hover) !important;
+}
+
+.text-button.danger {
+  color: #ff4e45 !important;
+}
+
+.toggle-button.is-member {
+  background: var(--yt-chip-active-bg) !important;
+  color: var(--yt-chip-active-text) !important;
+}
+
+// The scene page's play/request pill on the banner.
+.cluster-action {
+  border: 0 !important;
+  border-radius: 18px !important;
+  box-shadow: none !important;
+  font-family: var(--yt-font) !important;
+  font-weight: 500 !important;
+}
+
+.cluster-action.is-remove {
+  background: rgb(255 255 255 / 15%) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px);
+}
+
+// Rows and panels on the series / local scene pages: flat, YouTube-like.
+.part,
+.series-row:hover,
+.series-card:hover {
+  border: 0 !important;
+}
+
+.part {
+  background: transparent !important;
+  border-radius: var(--yt-radius) !important;
+  transition: background-color 120ms var(--yt-ease);
+}
+
+.part:hover {
+  background: var(--yt-hover) !important;
+}
+
+// Horizontal rails scroll without a visible bar, as on YouTube.
+.rail-viewport,
+.similar-viewport {
+  scrollbar-width: none;
+}
+
+// ---- Home ---------------------------------------------------------------------
+// Appearance moved into the account menu; the old floating toggle would sit
+// on top of the masthead avatar.
+.global-controls {
+  display: none !important;
+}
+
+// YouTube's home has no hero: the intro collapses to a chip bar of shortcuts
+// (search lives in the masthead on desktop).
+app-home-page .hero-shell {
+  margin-bottom: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+app-home-page .hero-shell::before,
+app-home-page .hero-shell::after,
+app-home-page .hero-copy > .eyebrow,
+app-home-page .hero-copy > h1,
+app-home-page .hero-copy > .lede {
+  display: none !important;
+}
+
+@media (min-width: 721px) {
+  app-home-page .hero-search {
+    display: none !important;
+  }
+}
+
+app-home-page .hero-actions {
+  gap: 12px !important;
+  margin-top: 4px;
+}
+
+app-home-page .hero-link {
+  padding: 6px 12px !important;
+  border: 0 !important;
+  border-radius: var(--yt-radius-sm) !important;
+  background: var(--chip-bg) !important;
+  color: var(--chip-text) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+app-home-page .hero-link:hover {
+  background: var(--yt-chip-hover) !important;
+}
+
+// Shelf headings: YouTube's plain bold section titles.
+app-home-page .rail-head .rail-kicker {
+  display: none !important;
+}
+
+app-home-page .rail-head h2 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+}
+
+// Pages paint their own tinted gradient backdrops; YouTube is flat.
+.route-view > :not(router-outlet) {
+  background: var(--app-bg) !important;
+}
+
+// Phone chip bar: one horizontally scrolling row.
+@media (max-width: 720px) {
+  app-home-page .hero-actions {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  app-home-page .hero-link {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
+// ---- List pages: YouTube channel tiles and flat cards -------------------------
+
+// Performers / studios: channel-style tiles -- round avatar, centred name.
+:is(app-performers-page .performer-card, app-studios-page .studio-card) {
+  border: 0 !important;
+  border-radius: var(--yt-radius) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 12px 8px !important;
+  justify-items: center;
+  text-align: center;
+  transition: background-color 120ms var(--yt-ease);
+}
+
+:is(app-performers-page .performer-card, app-studios-page .studio-card):hover {
+  background: var(--yt-hover) !important;
+}
+
+app-performers-page .performer-image {
+  width: min(100%, 176px) !important;
+  aspect-ratio: 1 / 1 !important;
+  height: auto !important;
+  margin: 0 auto;
+  border-radius: 50% !important;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+app-studios-page .studio-image {
+  width: min(100%, 176px) !important;
+  aspect-ratio: 1 / 1 !important;
+  height: auto !important;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+  border-radius: 50% !important;
+  background: #fff !important;
+  object-fit: contain;
+}
+
+:is(app-performers-page .performer-meta, app-studios-page .studio-meta) {
+  justify-items: center;
+  background: none !important;
+  padding: 8px 0 0 !important;
+}
+
+:is(app-performers-page .performer-name, app-studios-page .studio-name) {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+}
+
+:is(app-performers-page, app-studios-page) .favorite-star {
+  top: 12px !important;
+  right: 12px !important;
+}
+
+// Galleries: borderless cards, rounded thumbnail, text underneath.
+app-galleries-page .gallery-card {
+  border: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+app-galleries-page .gallery-image {
+  aspect-ratio: 16 / 9 !important;
+  border-radius: var(--yt-radius);
+}
+
+app-galleries-page .gallery-meta {
+  padding: 12px 0 0 !important;
+}
+
+app-galleries-page .gallery-title {
+  font-size: 1rem;
+  font-weight: 500 !important;
+}
+
+// Settings: plain page header instead of a boxed hero.
+app-settings-page .shell-head {
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+app-settings-page .settings-nav-link {
+  border: 0 !important;
+  border-radius: var(--yt-radius-sm) !important;
+  background: var(--chip-bg) !important;
+  color: var(--chip-text) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+app-settings-page .settings-nav-link.active,
+app-settings-page .settings-nav-link[aria-current='page'] {
+  background: var(--yt-chip-active-bg) !important;
+  color: var(--yt-chip-active-text) !important;
+}
+
+// Filter/control panels sit flat on the page.
+.controls-shell,
+.app-control-shell {
+  box-shadow: none !important;
+}
+
+app-galleries-page .gallery-card {
+  align-content: start;
+  gap: 0 !important;
+}
+
+// ============================================================================
+// Consistency sweep: every page shares one gutter, one title style, flat
+// panels and the same buttons. (Pages set their own values for these, hence
+// !important.)
+// ============================================================================
+
+// One content gutter on every routed page (watch and auth pages lay
+// themselves out).
+.route-view > :not(router-outlet) > main:not(.watch-page),
+.route-view > app-settings-page > .settings-shell {
+  box-sizing: border-box;
+  max-width: 2200px !important;
+  margin: 0 auto !important;
+  padding: 16px 24px 32px !important;
+}
+
+@media (max-width: 720px) {
+  .route-view > :not(router-outlet) > main:not(.watch-page),
+  .route-view > app-settings-page > .settings-shell {
+    padding: 12px 16px 24px !important;
+  }
+}
+
+// Page titles and intros: one size and colour everywhere.
+.route-view main > header:not(.channel-header, .channel-dock) h1,
+.route-view .app-page-header__copy h1,
+.route-view .shell-head h1 {
+  margin: 0 !important;
+  font-size: 1.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+}
+
+.route-view main > header:not(.channel-header, .channel-dock) > p,
+.route-view .app-page-header__copy > p,
+.route-view .shell-head p:not(.eyebrow) {
+  max-width: 72ch;
+  margin-top: 6px !important;
+  color: var(--text-muted) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+}
+
+@media (max-width: 720px) {
+  .route-view main > header:not(.channel-header, .channel-dock) h1,
+  .route-view .app-page-header__copy h1,
+  .route-view .shell-head h1 {
+    font-size: 1.4rem !important;
+  }
+}
+
+// Filter/control panels: flat filled blocks with the same inner padding
+// (channel pages' Scenes heading is a plain row instead).
+.route-view :is(.controls-shell, .app-control-shell):not(.channel-section-head) {
+  border: 0 !important;
+  border-radius: var(--yt-radius) !important;
+  background: var(--surface-elevated) !important;
+  padding: 12px 16px !important;
+  margin-top: 16px !important;
+}
+
+// Card grids: YouTube's spacing (16px across, 40px down).
+.route-view main > .grid,
+.route-view main > section.grid {
+  gap: 40px 16px !important;
+  margin-top: 16px;
+}
+
+// Back links: same size and colour, always with an arrow.
+.app-back-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px !important;
+  color: var(--text-muted) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  text-decoration: none;
+}
+
+.app-back-link:hover {
+  color: var(--text-primary) !important;
+}
+
+.app-back-link:not(:has(i))::before {
+  content: '\2190';
+  font-size: 1rem;
+  line-height: 1;
+}
+
+// PrimeNG buttons: YouTube tonal pills; red only for destructive ones.
+.p-button:not(.p-button-text):not(.p-button-link):not(.p-button-rounded) {
+  border: 0 !important;
+  background: var(--button-bg) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+.p-button:not(.p-button-text):not(.p-button-link):not(.p-button-rounded):not(:disabled):hover {
+  background: var(--yt-chip-hover) !important;
+}
+
+.p-button.p-button-danger:not(.p-button-text) {
+  background: rgb(255 78 69 / 16%) !important;
+  color: #ff6b63 !important;
+}
+
+.p-button.p-button-text {
+  color: var(--text-primary) !important;
+}
+
+// Home: the chip bar and search line up with the shelves below.
+app-home-page .hero-grid {
+  padding: 0 !important;
+  gap: 12px !important;
+}
+
+app-home-page .hero-copy {
+  gap: 12px !important;
+  max-width: none !important;
+}
+
+// Shelf headings keep "See all" and the arrows on the heading's line.
+app-home-page .rail-head {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+app-home-page .rail-actions {
+  flex: none;
+  flex-wrap: nowrap !important;
+}
+
+@media (max-width: 720px) {
+  // The chip bar scrolls edge to edge, past the page gutter.
+  app-home-page .hero-actions {
+    margin-inline: -16px !important;
+    padding-inline: 16px !important;
+  }
+}
+
+// Performer/studio tiles: several per row on phones, as YouTube's channels.
+@media (max-width: 720px) {
+  app-performers-page .performer-grid,
+  app-studios-page .studio-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)) !important;
+    gap: 8px 4px !important;
+  }
+
+  :is(app-performers-page .performer-card, app-studios-page .studio-card) {
+    padding: 8px 4px !important;
+  }
+
+  :is(app-performers-page .performer-name, app-studios-page .studio-name) {
+    font-size: 0.85rem !important;
+  }
+
+  :is(app-performers-page, app-studios-page) .favorite-star {
+    top: 4px !important;
+    right: 4px !important;
+  }
+}

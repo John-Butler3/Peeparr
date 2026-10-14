@@ -1,0 +1,188 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--text-primary);
+  font-family: var(--app-font-family);
+}
+
+main {
+  --app-page-max-width: min(1540px, 96vw);
+  --app-page-padding-end: 1.8rem;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.state {
+  margin-top: 1rem;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.carousel-controls button,
+.load-more-error button,
+main > button {
+  width: fit-content;
+  padding: 0.42rem 0.72rem;
+  border-radius: 6px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  cursor: pointer;
+}
+
+:host ::ng-deep .image-picker-dialog .p-dialog-content {
+  padding: 0;
+}
+
+.image-picker-shell {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.image-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.image-picker-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.image-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  // A fixed row height instead of aspect-ratio on the tiles below: iOS
+  // Safari has a real bug where aspect-ratio on a grid item combined with
+  // a percentage-height <img> child collapses to a near-zero height (each
+  // photo renders as a thin, cropped sliver instead of a portrait tile).
+  // grid-auto-rows gives the tile a genuine pixel height for img's
+  // height: 100% to resolve against, sidestepping that entirely. 255px
+  // against the 170px min column width keeps a ~2:3 portrait shape.
+  grid-auto-rows: 255px;
+  gap: 0.75rem;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.image-picker-option {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--media-detail-subtle-surface-background);
+  cursor: pointer;
+}
+
+.image-picker-option[disabled] {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.image-picker-option.active {
+  border-color: var(--focus-ring);
+}
+
+.image-picker-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.current-badge {
+  position: absolute;
+  inset: auto 0.35rem 0.35rem auto;
+  padding: 0.14rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #fff;
+  background: color-mix(in srgb, var(--focus-ring) 85%, black);
+}
+
+.meta-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.meta-chip {
+  border-radius: 999px;
+  border: 1px solid var(--media-detail-chip-border);
+  background: var(--media-detail-chip-background);
+  color: var(--media-detail-chip-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.16rem 0.52rem;
+}
+
+.section {
+  margin-top: 0.9rem;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.55rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+}
+
+.hint {
+  font-size: 0.75rem;
+}
+
+.grid {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.72rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.load-sentinel {
+  height: 1px;
+}
+
+.load-more-error {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .controls-row {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@import '../../../styles/channel-header';
+
+// Content below the header: tall enough for the header to finish docking
+// even when there are only a few scenes.
+.hero-content {
+  min-height: calc(100dvh - 3rem);
+}
+
+.meta-flags {
+  margin: 0;
+}

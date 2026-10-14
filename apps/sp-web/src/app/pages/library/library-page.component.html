@@ -1,0 +1,340 @@
+<main class="app-page-shell app-page-shell--wide">
+  <header class="app-page-header__copy">
+    <h1>Library</h1>
+    <p class="app-page-lede">Browse scenes already indexed from your local Stash library.</p>
+    @if (!searchActive() && !loading() && !error()) {
+      <p class="state app-page-meta">{{ libraryStateLabel() }}</p>
+    }
+  </header>
+
+  <form class="library-search-form" role="search">
+    <i class="pi pi-search library-search-icon" aria-hidden="true"></i>
+    <input
+      type="search"
+      inputmode="search"
+      class="library-search-input"
+      name="librarySearch"
+      placeholder="Search your library by title, performer, site, or tag"
+      aria-label="Search your library by title, performer, site, or tag"
+      [ngModel]="searchInput()"
+      (ngModelChange)="onSearchInput($event)"
+      (keydown.escape)="clearSearch()"
+    />
+    @if (searchActive()) {
+      <button
+        type="button"
+        class="library-search-clear"
+        aria-label="Clear search"
+        (click)="clearSearch()"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    }
+  </form>
+
+  @if (pageAlert(); as alert) {
+    <section class="page-alert app-page-alert" data-testid="library-degraded-state" role="status">
+      <div class="page-alert-copy app-page-alert__copy">
+        <p class="page-alert-title app-page-alert__title">{{ alert.title }}</p>
+        <p>{{ alert.message }}</p>
+      </div>
+
+      <div class="page-alert-actions app-action-row">
+        <a class="secondary-link small" [routerLink]="['/settings/integrations']">
+          Repair integrations
+        </a>
+        <a class="secondary-link small" [routerLink]="['/settings/indexing']">Open Indexing</a>
+        <a class="secondary-link small" [routerLink]="['/acquisition']">Track Imports</a>
+      </div>
+    </section>
+  }
+
+  @if (searchActive()) {
+    <app-library-search [query]="searchInput()" />
+  } @else {
+    <section class="controls-shell app-section-panel app-control-shell" aria-label="Library controls">
+      <div class="controls-header app-control-shell__header">
+        <span class="controls-title app-control-title">Local Library</span>
+
+        <div class="app-sort-toggle-group" role="group" aria-label="Sort by release date">
+          <button
+            type="button"
+            class="app-sort-toggle-option"
+            [class.active]="selectedDirection() === 'DESC'"
+            (click)="onDirectionChanged('DESC')"
+          >
+            Latest
+          </button>
+          <button
+            type="button"
+            class="app-sort-toggle-option"
+            [class.active]="selectedDirection() === 'ASC'"
+            (click)="onDirectionChanged('ASC')"
+          >
+            Oldest
+          </button>
+        </div>
+
+        <div class="controls-actions app-action-row">
+          <button
+            type="button"
+            class="app-filters-toggle-button"
+            [class.active]="filtersExpanded()"
+            [attr.aria-expanded]="filtersExpanded()"
+            aria-controls="library-expanded-filters"
+            (click)="toggleFiltersExpanded()"
+          >
+            Filters
+            <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="reset-filters-button"
+            [disabled]="!hasActiveFilters()"
+            title="Clear filters and return to the default local library view"
+            (click)="resetFilters()"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      @if (filtersExpanded()) {
+        <div class="controls-row app-control-grid expanded-filters" id="library-expanded-filters">
+          <label class="control-field control-field--studio app-control-field">
+            <span class="app-control-label">Studio Filter</span>
+            <p-multiselect
+              inputId="library-studios"
+              [ngModel]="studioSelectedIdsModel()"
+              (ngModelChange)="onStudioSelectionChanged($event)"
+              (onFilter)="onStudioFilterChanged($event.filter)"
+              (onPanelHide)="onStudioFilterPanelHide()"
+              [filter]="true"
+              [filterValue]="studioSearchTerm()"
+              filterPlaceHolder="Search local studios"
+              [loading]="studioSearchLoading()"
+              [options]="studioSelectOptions()"
+              optionLabel="label"
+              optionValue="value"
+              [showToggleAll]="false"
+              display="chip"
+              [emptyMessage]="studioSelectEmptyMessage()"
+              [emptyFilterMessage]="studioSelectEmptyMessage()"
+              [resetFilterOnHide]="true"
+              [appendTo]="'body'"
+              panelStyleClass="app-overlay-panel"
+              placeholder="Choose local studios"
+              scrollHeight="16rem"
+            />
+          </label>
+
+          <label class="control-field control-field--tag app-control-field">
+            <span class="app-control-label">Tag Filter</span>
+            <div class="tag-input-row app-control-inline">
+              <p-multiselect
+                inputId="library-tags"
+                [ngModel]="selectedTagIdsModel()"
+                (ngModelChange)="onTagSelectionChanged($event)"
+                (onFilter)="onTagFilterChanged($event.filter)"
+                (onPanelHide)="onTagFilterPanelHide()"
+                [filter]="true"
+                [filterValue]="tagSearchTerm()"
+                filterPlaceHolder="Search local tags"
+                [loading]="tagSearchLoading()"
+                [options]="tagSelectOptions()"
+                optionLabel="label"
+                optionValue="value"
+                [showToggleAll]="false"
+                display="chip"
+                [emptyMessage]="tagSelectEmptyMessage()"
+                [emptyFilterMessage]="tagSelectEmptyMessage()"
+                [resetFilterOnHide]="true"
+                [appendTo]="'body'"
+                panelStyleClass="app-overlay-panel"
+                placeholder="Select matching tags"
+                scrollHeight="16rem"
+              />
+              <p-select
+                class="tag-mode-select"
+                inputId="library-tag-mode"
+                [ngModel]="selectedTagMode()"
+                (ngModelChange)="onTagMatchModeChanged($event)"
+                [options]="tagMatchOptions"
+                optionLabel="label"
+                optionValue="value"
+                [appendTo]="'body'"
+                panelStyleClass="app-overlay-panel"
+              />
+            </div>
+          </label>
+
+          <div class="control-field control-field--favorites app-control-field">
+            <span class="app-control-label">Local Favorite Overlays</span>
+            <div class="local-favorites-toggles">
+              <button
+                type="button"
+                class="filter-toggle"
+                [class.is-active]="favoritePerformersOnly()"
+                [attr.aria-pressed]="favoritePerformersOnly()"
+                (click)="onFavoritePerformersOnlyChanged(!favoritePerformersOnly())"
+              >
+                Favorite performers
+              </button>
+              <button
+                type="button"
+                class="filter-toggle"
+                [class.is-active]="favoriteStudiosOnly()"
+                [attr.aria-pressed]="favoriteStudiosOnly()"
+                (click)="onFavoriteStudiosOnlyChanged(!favoriteStudiosOnly())"
+              >
+                Favorite studios
+              </button>
+              <button
+                type="button"
+                class="filter-toggle"
+                [class.is-active]="favoriteTagsOnly()"
+                [attr.aria-pressed]="favoriteTagsOnly()"
+                (click)="onFavoriteTagsOnlyChanged(!favoriteTagsOnly())"
+              >
+                Favorite tags
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <p class="controls-note app-control-note">{{ libraryControlsNote() }}</p>
+
+      @if (hasNarrowingFilters()) {
+        <div class="active-filters" data-testid="library-active-filters">
+          <span class="active-filters-label">Active filters</span>
+          <div class="active-filters-list">
+            @if (queryTerm().trim().length > 0) {
+              <button type="button" class="filter-chip" (click)="clearQueryFilter()">
+                {{ queryFilterLabel() }}
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+
+            @for (studio of selectedStudios(); track studio.id) {
+              <button type="button" class="filter-chip" (click)="clearStudioFilter(studio.id)">
+                Studio: {{ studio.label }}
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+
+            @for (tag of selectedTags(); track tag.id) {
+              <button type="button" class="filter-chip" (click)="clearTagFilter(tag.id)">
+                Tag: {{ tag.name }}
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+
+            @for (performer of selectedPerformers(); track performer.id) {
+              <button
+                type="button"
+                class="filter-chip"
+                (click)="clearPerformerFilter(performer.id)"
+              >
+                Performer: {{ performer.label }}
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+
+            @if (favoritePerformersOnly()) {
+              <button type="button" class="filter-chip" (click)="clearFavoritePerformersFilter()">
+                Favorite performers
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+
+            @if (favoriteStudiosOnly()) {
+              <button type="button" class="filter-chip" (click)="clearFavoriteStudiosFilter()">
+                Favorite studios
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+
+            @if (favoriteTagsOnly()) {
+              <button type="button" class="filter-chip" (click)="clearFavoriteTagsFilter()">
+                Favorite tags
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (loading()) {
+      <div class="app-blocking-loader" role="status" aria-live="polite">
+        <p-progressspinner
+          styleClass="app-blocking-spinner"
+          strokeWidth="4"
+          [style]="{ width: '2.25rem', height: '2.25rem' }"
+        />
+        <p>Loading local library...</p>
+      </div>
+    } @else if (error()) {
+      <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+      <button type="button" class="retry-button" (click)="retryInitialLoad()">Retry</button>
+    } @else if (!hasItems()) {
+      <section class="state-shell empty-shell app-state-block" data-testid="library-empty-state">
+        <h2>{{ emptyStateTitle() }}</h2>
+        <p class="state-copy app-state-copy">{{ emptyStateMessage() }}</p>
+        @if (!hasNarrowingFilters()) {
+          <p class="state-copy app-state-copy">{{ indexingGuidance() }}</p>
+        }
+
+        <div class="state-actions app-action-row">
+          @if (hasNarrowingFilters()) {
+            <button type="button" class="secondary-link" (click)="resetFilters()">
+              Clear filters
+            </button>
+            <a class="primary-link" [routerLink]="['/scenes']">Browse Scenes</a>
+            <a class="secondary-link" [routerLink]="['/acquisition']">Track Imports</a>
+          } @else {
+            <a class="primary-link" [routerLink]="['/acquisition']">Track Imports</a>
+            <a class="secondary-link" [routerLink]="['/settings/indexing']">Open Indexing</a>
+            <a class="secondary-link" [routerLink]="['/scenes']">Browse Scenes</a>
+            @if (pageAlert()) {
+              <a class="secondary-link" [routerLink]="['/settings/integrations']">
+                Repair integrations
+              </a>
+            }
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="grid">
+        @for (item of items(); track item.id) {
+          <app-scene-card
+            [item]="item"
+            [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'local'"
+            [sceneRouteId]="item.activeCatalogSceneId"
+            [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+            [footerBadgeLabel]="item.activeCatalogSceneId ? null : 'Local only'"
+            [playable]="true"
+            previewKind="local"
+            (play)="playScene($event)"
+          />
+        }
+      </section>
+
+      <div #loadMoreSentinel class="load-sentinel"></div>
+
+      @if (loadingMore()) {
+        <p class="state">Loading more local scenes...</p>
+      }
+
+      @if (loadMoreError()) {
+        <div class="load-more-error">
+          <p-message severity="error" styleClass="app-inline-message">{{
+            loadMoreError()
+          }}</p-message>
+          <button type="button" class="retry-button" (click)="retryLoadMore()">Retry</button>
+        </div>
+      }
+    }
+  }
+</main>

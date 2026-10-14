@@ -1,0 +1,197 @@
+<main class="app-page-shell app-page-shell--wide">
+  <a class="app-back-link" [routerLink]="['/series']">
+    <i class="pi pi-arrow-left" aria-hidden="true"></i> Series
+  </a>
+
+  @if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading series...</p>
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
+    <button type="button" class="text-button" (click)="retry()">Retry</button>
+  } @else if (series(); as series) {
+    <section class="series-hero">
+      <img class="series-cover" [src]="series.coverImageUrl" alt="" />
+
+      <div class="series-info">
+        @if (editing()) {
+          <form class="edit-form" (ngSubmit)="saveEdit()">
+            <label class="field">
+              <span class="app-control-label">Name</span>
+              <input
+                class="app-control-input"
+                name="name"
+                maxlength="200"
+                autocomplete="off"
+                [ngModel]="editName()"
+                (ngModelChange)="editName.set($event)"
+              />
+            </label>
+            <label class="field">
+              <span class="app-control-label">Description</span>
+              <textarea
+                class="app-control-input"
+                name="synopsis"
+                rows="3"
+                maxlength="5000"
+                [ngModel]="editSynopsis()"
+                (ngModelChange)="editSynopsis.set($event)"
+              ></textarea>
+            </label>
+            <div class="action-row">
+              <button
+                type="submit"
+                class="primary-button"
+                [disabled]="!editName().trim() || saving()"
+              >
+                Save
+              </button>
+              <button type="button" class="text-button" (click)="cancelEdit()">Cancel</button>
+            </div>
+          </form>
+        } @else {
+          <p class="eyebrow">Series</p>
+          <h1>{{ series.name }}</h1>
+          <p class="series-meta">
+            {{ series.scenes.length }} part{{ series.scenes.length === 1 ? '' : 's' }}
+            @if (totalDurationLabel(); as total) {
+              &middot; {{ total }}
+            }
+            @if (series.studio) {
+              &middot; {{ series.studio }}
+            }
+          </p>
+          @if (series.synopsis) {
+            <p class="series-synopsis">{{ series.synopsis }}</p>
+          }
+
+          <div class="action-row">
+            <button
+              type="button"
+              class="primary-button play-all"
+              data-testid="series-play-all"
+              [disabled]="series.scenes.length === 0"
+              (click)="playAll()"
+            >
+              <i class="pi pi-play" aria-hidden="true"></i> Play all
+            </button>
+            <button type="button" class="text-button" [disabled]="saving()" (click)="startEdit()">
+              <i class="pi pi-pencil" aria-hidden="true"></i> Edit
+            </button>
+            <a class="text-button" [href]="series.viewUrl" target="_blank" rel="noopener noreferrer">
+              <i class="pi pi-external-link" aria-hidden="true"></i> Stash
+            </a>
+            <button
+              type="button"
+              class="text-button danger"
+              [disabled]="saving()"
+              (click)="confirmDelete()"
+            >
+              <i class="pi pi-trash" aria-hidden="true"></i> Delete
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (series.scenes.length === 0) {
+      <p class="state" data-testid="series-no-parts">
+        No scenes in this series yet. Open a scene and use "Add to series".
+      </p>
+    } @else {
+      <ol class="parts" aria-label="Parts">
+        @for (scene of series.scenes; track scene.id; let i = $index; let first = $first; let last = $last) {
+          <li class="part">
+            <button
+              type="button"
+              class="part-thumb"
+              [appScenePreview]="previewLoader(scene)"
+              [scenePreviewAutoplay]="false"
+              [attr.aria-label]="'Play from ' + partLabel(scene, i) + ': ' + scene.title"
+              (click)="playAll(i)"
+            >
+              @if (scene.cardImageUrl) {
+                <img [src]="scene.cardImageUrl" alt="" loading="lazy" />
+              }
+              <span class="part-thumb-play" aria-hidden="true"><i class="pi pi-play"></i></span>
+              @if (watchedPercent(scene.id); as watched) {
+                <span class="part-watched" aria-hidden="true"><span [style.width.%]="watched"></span></span>
+              }
+            </button>
+
+            <div class="part-info">
+              <p class="part-number">{{ partLabel(scene, i) }}</p>
+              @if (scene.activeCatalogSceneId) {
+                <a
+                  class="part-title"
+                  [routerLink]="['/scene', scene.activeCatalogSceneId]"
+                  [queryParams]="{ returnTo: currentRouteUrl() }"
+                >
+                  {{ scene.title }}
+                </a>
+              } @else {
+                <a
+                  class="part-title"
+                  [routerLink]="['/library/scene', scene.id]"
+                  [queryParams]="{ returnTo: currentRouteUrl() }"
+                >
+                  {{ scene.title }}
+                </a>
+              }
+              <p class="part-meta">
+                @if (durationLabel(scene.duration); as duration) {
+                  <span>{{ duration }}</span>
+                }
+                @if (scene.releaseDate) {
+                  <span>{{ scene.releaseDate }}</span>
+                }
+                @if (scene.performerNames.length > 0) {
+                  <span>{{ scene.performerNames.join(', ') }}</span>
+                }
+              </p>
+            </div>
+
+            <div class="part-actions">
+              <button
+                type="button"
+                class="icon-button"
+                [attr.aria-label]="'Move ' + scene.title + ' up'"
+                title="Move up"
+                [disabled]="first || saving()"
+                (click)="moveScene(i, -1)"
+              >
+                <i class="pi pi-arrow-up" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="icon-button"
+                [attr.aria-label]="'Move ' + scene.title + ' down'"
+                title="Move down"
+                [disabled]="last || saving()"
+                (click)="moveScene(i, 1)"
+              >
+                <i class="pi pi-arrow-down" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="icon-button"
+                [attr.aria-label]="'Remove ' + scene.title + ' from series'"
+                title="Remove from series"
+                [disabled]="saving()"
+                (click)="removeScene(scene)"
+              >
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            </div>
+          </li>
+        }
+      </ol>
+    }
+  }
+</main>

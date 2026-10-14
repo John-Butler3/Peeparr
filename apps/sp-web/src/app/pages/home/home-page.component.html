@@ -1,0 +1,398 @@
+<main class="app-page-shell app-page-shell--xl">
+  <!-- The latest additions, previewing one after another. -->
+  <app-home-hero [items]="recentlyAddedItems()" (play)="playScene($event)" />
+
+  <section class="hero-shell">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Home</p>
+        <h1>Pick up where you left off.</h1>
+        <p class="lede">
+          Continue watching, catch up on what's new in your library, and see the latest releases
+          from the performers and studios you've favorited.
+        </p>
+        <div class="hero-search">
+          <div class="hero-search-input-row">
+            <i class="pi pi-search hero-search-icon" aria-hidden="true"></i>
+            <input
+              type="search"
+              inputmode="search"
+              class="hero-search-input"
+              placeholder="Search scenes, performers, or studios"
+              aria-label="Search scenes, performers, or studios"
+              [ngModel]="searchTerm()"
+              (ngModelChange)="onSearchInput($event)"
+              (focus)="onSearchFocus()"
+              (keydown.enter)="submitSearch()"
+            />
+            @if (searchTerm().trim().length > 0) {
+              <button
+                type="button"
+                class="hero-search-clear"
+                aria-label="Clear search"
+                (click)="clearSearch()"
+              >
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+
+          @if (searchOpen() && searchTerm().trim().length > 0) {
+            <div class="hero-search-overlay" (click)="closeSearch()">
+              <div class="hero-search-overlay-inner" (click)="$event.stopPropagation()">
+                <div class="hero-search-overlay-head">
+                  <a
+                    class="hero-search-overlay-title"
+                    [routerLink]="['/search']"
+                    [queryParams]="{ q: searchTerm() }"
+                    (click)="closeSearch()"
+                  >
+                    See all results for "{{ searchTerm() }}"
+                  </a>
+                  <button
+                    type="button"
+                    class="hero-search-close"
+                    aria-label="Close search"
+                    (click)="closeSearch()"
+                  >
+                    <i class="pi pi-times" aria-hidden="true"></i>
+                  </button>
+                </div>
+
+                <div class="hero-search-panel" role="listbox" aria-label="Search results">
+                  @if (searchLoading()) {
+                    <p class="hero-search-state">Searching...</p>
+                  } @else if (!hasSearchResults()) {
+                    <p class="hero-search-state">No matches for "{{ searchTerm() }}".</p>
+                  } @else {
+                    @if (searchPerformerResults().length > 0) {
+                      <div class="hero-search-group">
+                        <p class="hero-search-group-label">Performers</p>
+                        @for (result of searchPerformersShown.slice(searchPerformerResults()); track result.id) {
+                          <a
+                            class="hero-search-result"
+                            [routerLink]="['/performer', result.id]"
+                            (click)="closeSearch()"
+                          >
+                            @if (result.cardImageUrl || result.imageUrl) {
+                              <img
+                                class="hero-search-result-image round"
+                                [src]="result.cardImageUrl ?? result.imageUrl"
+                                [alt]="result.name"
+                                loading="lazy"
+                              />
+                            } @else {
+                              <span
+                                class="hero-search-result-image round placeholder"
+                                aria-hidden="true"
+                              ></span>
+                            }
+                            <span class="hero-search-result-copy">
+                              <span class="hero-search-result-title">{{ result.name }}</span>
+                            </span>
+                          </a>
+                        }
+                        @if (searchPerformersShown.hasMore(searchPerformerResults().length)) {
+                          <button type="button" class="hero-search-more" (click)="searchPerformersShown.more()">
+                            Show more
+                          </button>
+                        }
+                      </div>
+                    }
+
+                    @if (searchStudioResults().length > 0) {
+                      <div class="hero-search-group">
+                        <p class="hero-search-group-label">Sites</p>
+                        @for (result of searchStudiosShown.slice(searchStudioResults()); track result.id) {
+                          <a
+                            class="hero-search-result"
+                            [routerLink]="['/studio', result.id]"
+                            (click)="closeSearch()"
+                          >
+                            @if (result.imageUrl) {
+                              <img
+                                class="hero-search-result-image"
+                                [src]="result.imageUrl"
+                                [alt]="result.name"
+                                loading="lazy"
+                              />
+                            } @else {
+                              <span
+                                class="hero-search-result-image placeholder"
+                                aria-hidden="true"
+                              ></span>
+                            }
+                            <span class="hero-search-result-copy">
+                              <span class="hero-search-result-title">{{ result.name }}</span>
+                            </span>
+                          </a>
+                        }
+                        @if (searchStudiosShown.hasMore(searchStudioResults().length)) {
+                          <button type="button" class="hero-search-more" (click)="searchStudiosShown.more()">
+                            Show more
+                          </button>
+                        }
+                      </div>
+                    }
+
+                    @if (searchSceneResults().length > 0) {
+                      <div class="hero-search-group">
+                        <p class="hero-search-group-label">Scenes</p>
+                        @for (result of searchScenesShown.slice(searchSceneResults()); track result.id) {
+                          <a
+                            class="hero-search-result"
+                            [routerLink]="['/scene', result.id]"
+                            (click)="closeSearch()"
+                          >
+                            @if (result.cardImageUrl || result.imageUrl) {
+                              <img
+                                class="hero-search-result-image"
+                                [src]="result.cardImageUrl ?? result.imageUrl"
+                                [alt]="result.title"
+                                loading="lazy"
+                              />
+                            } @else {
+                              <span
+                                class="hero-search-result-image placeholder"
+                                aria-hidden="true"
+                              ></span>
+                            }
+                            <span class="hero-search-result-copy">
+                              <span class="hero-search-result-title">{{ result.title }}</span>
+                              @if (result.studio) {
+                                <span class="hero-search-result-meta">{{ result.studio }}</span>
+                              }
+                            </span>
+                          </a>
+                        }
+                        @if (searchScenesShown.hasMore(searchSceneResults().length)) {
+                          <button type="button" class="hero-search-more" (click)="searchScenesShown.more()">
+                            Show more
+                          </button>
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  @if (pageAlert(); as alert) {
+    <section class="home-alert app-page-alert" data-testid="home-readiness-alert" role="status">
+      <div class="app-page-alert__copy">
+        <p class="eyebrow">{{ alert.eyebrow }}</p>
+        <h2>{{ alert.title }}</h2>
+        <p>{{ alert.message }}</p>
+      </div>
+
+      <div class="home-alert-actions app-action-row">
+        <a class="hero-link" [routerLink]="['/settings/integrations']">Repair integrations</a>
+        <a class="hero-link secondary" [routerLink]="['/settings/indexing']">Open indexing</a>
+      </div>
+    </section>
+  }
+
+  @if (continueWatchingItems().length > 0) {
+    <section class="rail-section">
+      <header class="rail-head">
+        <div class="rail-copy">
+          <p class="rail-kicker">Continue Watching</p>
+          <h2>Pick up where you left off</h2>
+        </div>
+
+        <div class="rail-actions app-action-row">
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('continue-watching', 'prev')"
+            aria-label="Scroll Continue Watching left"
+          >
+            <i class="pi pi-angle-left" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('continue-watching', 'next')"
+            aria-label="Scroll Continue Watching right"
+          >
+            <i class="pi pi-angle-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="rail-viewport" #railViewport data-rail-id="continue-watching">
+        <div class="rail-track">
+          @for (item of continueWatchingItems(); track item.id) {
+            <app-scene-card
+              class="rail-card"
+              [item]="item"
+              variant="rail"
+              [playable]="true"
+              previewKind="local"
+              playSize="large"
+              [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'local'"
+              [sceneRouteId]="item.activeCatalogSceneId"
+              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+              [progressPercent]="item.progressPercent"
+              [showMarkWatched]="true"
+              (play)="playScene($event)"
+              (markWatched)="markWatched($event)"
+            />
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (recentlyAddedItems().length > 0) {
+    <section class="rail-section">
+      <header class="rail-head">
+        <div class="rail-copy">
+          <p class="rail-kicker">Recently Added</p>
+          <h2>Fresh in your library</h2>
+        </div>
+
+        <div class="rail-actions app-action-row">
+          <a
+            class="see-all-link"
+            [routerLink]="['/library']"
+            [queryParams]="{ sort: 'CREATED_AT', dir: 'DESC' }"
+          >
+            See all
+          </a>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('recently-added', 'prev')"
+            aria-label="Scroll Recently Added left"
+          >
+            <i class="pi pi-angle-left" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('recently-added', 'next')"
+            aria-label="Scroll Recently Added right"
+          >
+            <i class="pi pi-angle-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="rail-viewport" #railViewport data-rail-id="recently-added">
+        <div class="rail-track">
+          @for (item of recentlyAddedItems(); track item.id) {
+            <app-scene-card
+              class="rail-card"
+              [item]="item"
+              variant="rail"
+              [playable]="true"
+              previewKind="local"
+              playSize="large"
+              [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'local'"
+              [sceneRouteId]="item.activeCatalogSceneId"
+              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+              (play)="playScene($event)"
+            />
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ThePornDB's popular scenes (read from its members' homepage when a TPDB
+       website login is saved in Settings > Integrations). -->
+  @if (popularItems().length > 0) {
+    <section class="rail-section" data-testid="home-popular">
+      <header class="rail-head">
+        <div class="rail-copy">
+          <p class="rail-kicker">Popular on ThePornDB</p>
+          <h2>Popular right now</h2>
+        </div>
+
+        <div class="rail-actions app-action-row">
+          <a class="see-all-link" [routerLink]="['/scenes']">See all</a>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('popular', 'prev')"
+            aria-label="Scroll Popular left"
+          >
+            <i class="pi pi-angle-left" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('popular', 'next')"
+            aria-label="Scroll Popular right"
+          >
+            <i class="pi pi-angle-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="rail-viewport" #railViewport data-rail-id="popular">
+        <div class="rail-track">
+          @for (item of popularItems(); track item.id) {
+            <app-scene-card
+              class="rail-card"
+              [item]="item"
+              variant="rail"
+              previewKind="catalog"
+              [requestable]="isRequestable(item)"
+              [playable]="true"
+              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+              (request)="openRequestModal($event)"
+              (play)="playPopularScene($event)"
+            />
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <div class="home-state loading app-state-block" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.15rem', height: '2.15rem' }"
+      />
+      <p>Loading recently released favorites...</p>
+    </div>
+  } @else if (error()) {
+    <section class="home-state error-state app-state-block">
+      <h2>Favorites could not be loaded</h2>
+      <p>{{ error() }}</p>
+      <button type="button" class="state-button" (click)="retryFavoriteReleases()">Retry</button>
+    </section>
+  }
+
+  @if (isPageEmptyState()) {
+    <section class="home-state empty-state app-state-block">
+      <h2>{{ emptyStateTitle() }}</h2>
+      <p>{{ emptyStateMessage() }}</p>
+      <p>{{ indexingGuidance() }}</p>
+      <div class="empty-links app-action-row">
+        <a class="hero-link" [routerLink]="['/scenes']">Browse Scenes</a>
+        <a class="hero-link secondary" [routerLink]="['/settings/indexing']">Open Indexing</a>
+        <a class="hero-link secondary" [routerLink]="['/library']">Browse Library</a>
+      </div>
+    </section>
+  }
+
+  <app-scene-request-modal
+    [open]="requestModalOpen()"
+    [sceneId]="requestContext()?.id ?? null"
+    [sceneTitle]="requestContext()?.title ?? null"
+    [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+    (closed)="onRequestModalClosed()"
+    (submitted)="onRequestSubmitted($event)"
+  />
+</main>

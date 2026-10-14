@@ -1,0 +1,128 @@
+.scene-title {
+  margin: 0 0 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-state {
+  display: grid;
+  place-items: center;
+  margin: 1rem 0;
+  color: var(--text-muted);
+}
+
+.dialog-state.error {
+  color: var(--danger, #e5484d);
+}
+
+.create-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.create-row .app-control-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.search {
+  width: 100%;
+  margin-top: 0.7rem;
+}
+
+.create-button,
+.toggle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.create-button {
+  border-color: color-mix(in srgb, var(--focus-ring) 45%, var(--border-strong));
+  background: color-mix(in srgb, var(--surface-raised) 78%, var(--focus-ring) 22%);
+}
+
+.toggle-button.is-member {
+  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
+  color: var(--focus-ring);
+}
+
+.create-button:disabled,
+.toggle-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.create-button:focus-visible,
+.toggle-button:focus-visible,
+.series-name:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.series-list {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: min(50dvh, 26rem);
+  overflow-y: auto;
+}
+
+.series-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.35rem;
+  border-radius: 10px;
+}
+
+.series-row:hover {
+  background: var(--surface-1);
+}
+
+.series-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.series-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.series-name {
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.series-name:hover {
+  text-decoration: underline;
+}
+
+.series-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

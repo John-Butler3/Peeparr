@@ -1,0 +1,400 @@
+// YouTube-style channel pages (performer and studio).
+//
+// A short banner (performers), then the channel header: avatar or logo,
+// name and byline. The header is sticky under the masthead and docks as
+// you scroll: --hero-collapse (0..1, hero-collapse.util) shrinks the
+// avatar/logo and the name, fades the byline out and the compact actions
+// in, and fades a blurred bar in behind it. The header gets shorter by
+// exactly --hero-shrink while its bottom margin grows by the same amount,
+// so the page below scrolls natively, attached to the header's bottom edge.
+
+.channel-banner {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  height: clamp(160px, 20vw, 260px);
+  margin-bottom: 12px;
+  border-radius: var(--yt-radius-lg, 16px);
+  overflow: hidden;
+  background: var(--surface-2);
+  animation: yt-page-in 220ms var(--yt-ease-out, ease-out);
+}
+
+// Blurred fill of the same photo behind it, so a portrait shot doesn't sit
+// between empty bars.
+.channel-banner-backdrop {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) brightness(0.55);
+  transform: scale(1.1);
+}
+
+// The photo itself, whole, centred in the banner.
+.channel-banner-photo {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+// Pins the collapse start to the moment the header reaches the masthead.
+.hero-sentinel {
+  position: relative;
+  top: calc(-1 * var(--shell-masthead-h, 0px));
+  height: 0;
+}
+
+.channel-dock {
+  --dock-avatar: 112px;
+  --dock-avatar-end: 40px;
+  --dock-title: 2rem;
+  --dock-title-end: 1rem;
+  --dock-gutter: 24px;
+  --hero-shrink: calc(var(--dock-avatar) - var(--dock-avatar-end));
+  --c: var(--hero-collapse, 0);
+  position: sticky;
+  top: calc(var(--shell-masthead-h, 0px) + env(safe-area-inset-top, 0px));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: calc(20px - 8px * var(--c));
+  margin-inline: calc(-1 * var(--dock-gutter));
+  margin-bottom: calc(var(--hero-shrink) * var(--c));
+  padding: 8px var(--dock-gutter);
+  transition: top 220ms var(--yt-ease, ease);
+  animation: yt-page-in 220ms var(--yt-ease-out, ease-out);
+}
+
+:host-context(.shell-bars-hidden) .channel-dock {
+  top: env(safe-area-inset-top, 0px);
+}
+
+// Resolves --hero-shrink to pixels for the scroll math.
+.hero-shrink-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: var(--hero-shrink);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+// The bar behind the docked header (its own layer, so fading it doesn't
+// fade the header's contents).
+.channel-dock-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--app-bg) 95%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  opacity: min(1, calc(var(--c) * 3));
+  pointer-events: none;
+}
+
+.channel-dock-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--dock-avatar) - var(--hero-shrink) * var(--c));
+  height: calc(var(--dock-avatar) - var(--hero-shrink) * var(--c));
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 20%;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: calc(2.5rem - 1.5rem * var(--c));
+  font-weight: 500;
+  cursor: pointer;
+}
+
+// Studio logos: whole, on a tile picked to suit them (LogoContrastDirective):
+// light for dark logos, dark for light ones, none when the logo has its own
+// background.
+.channel-dock-avatar.is-logo {
+  --logo-size: calc(var(--dock-avatar) - var(--hero-shrink) * var(--c));
+  --logo-pad: calc(14px - 8px * var(--c));
+  box-sizing: border-box;
+  width: auto;
+  min-width: var(--logo-size);
+  max-width: calc(var(--logo-size) * 2.6);
+  padding: var(--logo-pad);
+  border-radius: calc(16px - 6px * var(--c));
+  overflow: hidden;
+  background: #f1f1f1;
+  color: #0f0f0f;
+}
+
+.channel-dock-avatar.is-logo img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: calc(var(--logo-size) - var(--logo-pad) * 2);
+  object-fit: contain;
+}
+
+.channel-dock-avatar.is-logo[data-logo-tone='light'] {
+  background: #272727;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+.channel-dock-avatar.is-logo[data-logo-tone='opaque'] {
+  --logo-pad: 0px;
+  background: none;
+}
+
+span.channel-dock-avatar.is-logo:not(:has(img)) {
+  aspect-ratio: 1;
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.channel-dock-text {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-dock-title {
+  margin: 0;
+  overflow: hidden;
+  font-size: calc(var(--dock-title) - (var(--dock-title) - var(--dock-title-end)) * var(--c));
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// The byline (up to two lines) folds away as the header docks.
+.channel-dock-meta {
+  display: -webkit-box;
+  max-height: calc(3em * (1 - var(--c)));
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  opacity: calc(1 - var(--c) * 2.5);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+// Compact actions, fading in as the header docks (the full buttons below
+// have scrolled under it by then).
+.channel-dock-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  opacity: clamp(0, calc(var(--c) * 2 - 1), 1);
+  visibility: hidden;
+}
+
+.channel-dock.is-docked .channel-dock-actions {
+  visibility: visible;
+}
+
+.channel-dock-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.channel-dock-button:not(:disabled):hover {
+  background: var(--yt-chip-hover);
+}
+
+.channel-dock-button.is-active i {
+  color: var(--yt-red, #f03);
+}
+
+.channel-dock-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+// Full buttons under the name (lined up with it on wide screens).
+.channel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0 calc(var(--dock-avatar-col, 132px));
+}
+
+.channel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms var(--yt-ease, ease);
+}
+
+.channel-pill:not(:disabled):hover {
+  background: var(--yt-chip-hover);
+}
+
+// YouTube's Subscribe: high-contrast until you're subscribed.
+.channel-pill--subscribe:not(.is-active) {
+  background: var(--yt-chip-active-bg);
+  color: var(--yt-chip-active-text);
+}
+
+.channel-pill--subscribe:not(.is-active):not(:disabled):hover {
+  background: var(--yt-chip-active-bg);
+  opacity: 0.9;
+}
+
+.channel-pill.is-active i {
+  color: var(--yt-red, #f03);
+}
+
+.channel-pill:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.channel-pill-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.channel-pill-eyebrow {
+  color: var(--text-muted);
+}
+
+.channel-pill:focus-visible,
+.channel-dock-button:focus-visible,
+.channel-dock-avatar:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+// "About": aliases and details in one quiet box, folded to a few rows.
+.channel-about {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  border-radius: var(--yt-radius, 12px);
+  background: var(--surface-elevated);
+  font-size: 0.875rem;
+}
+
+.channel-about-aliases {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.channel-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px 24px;
+  margin: 0;
+}
+
+.channel-fact {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.channel-fact dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.channel-fact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.channel-about-toggle {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+// "Scenes" heading with its sort chips: a plain row, not a box.
+.channel-section-head {
+  margin-top: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.channel-section-head h2 {
+  margin-right: 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.channel-section-head .app-control-shell__header {
+  justify-content: flex-start;
+}
+
+.channel-section-head .app-filters-toggle-button {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .channel-banner {
+    height: 180px;
+    border-radius: var(--yt-radius, 12px);
+  }
+
+  .channel-dock {
+    --dock-avatar: 72px;
+    --dock-avatar-end: 36px;
+    --dock-title: 1.375rem;
+    --dock-gutter: 16px;
+    gap: 12px;
+  }
+
+  .channel-actions {
+    margin-left: 0;
+  }
+
+  .channel-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-banner,
+  .channel-dock {
+    animation: none;
+  }
+}

@@ -1,0 +1,182 @@
+<!-- YouTube-style video card -- thumbnail with the studio logo (top left, on
+     a blurred plaque) and a duration badge, then the two-line title and the
+     studio / date byline underneath. -->
+<app-scene-card-shell
+  [item]="item"
+  [variant]="shellVariant()"
+  [primaryLink]="primaryLink()"
+  [studioBadgeLink]="studioBadgeLink()"
+  [showStudioBadge]="showStudioBadge && !!item.studioImageUrl"
+  [progressPercent]="watchedPercent()"
+  [previewLoader]="previewLoader()"
+>
+  @if (statusIcon(); as statusIcon) {
+    <app-scene-status-badge
+      sceneCardTopRight
+      class="status-icon"
+      [status]="statusIcon"
+      mode="icon"
+    ></app-scene-status-badge>
+  }
+
+  @for (badge of topBadges; track badge.label) {
+    <span sceneCardTopRight class="top-badge">{{ badge.label }}</span>
+  }
+
+  @if (showMarkWatched) {
+    <button
+      type="button"
+      sceneCardTopRight
+      class="mark-watched-button"
+      aria-label="Mark as watched"
+      title="Mark as watched"
+      (click)="markSceneWatched($event)"
+    >
+      <i class="pi pi-check" aria-hidden="true"></i>
+    </button>
+  }
+
+  @if (durationLabel(); as duration) {
+    <div sceneCardMediaFooter class="media-footer">
+      <span class="duration-badge">{{ duration }}</span>
+    </div>
+  }
+
+  <div sceneCardBody class="details">
+    <!-- Makes the whole text area open the scene, like the thumbnail; the
+         avatar, title and buttons sit above it. -->
+    @if (titleRouterCommands(); as commands) {
+      <a
+        class="details-link-stretch"
+        [routerLink]="commands"
+        [queryParams]="titleQueryParams()"
+        tabindex="-1"
+        aria-hidden="true"
+      ></a>
+    } @else if (titleExternalHref(); as href) {
+      <a
+        class="details-link-stretch"
+        [href]="href"
+        target="_blank"
+        rel="noopener noreferrer"
+        tabindex="-1"
+        aria-hidden="true"
+      ></a>
+    }
+    <div class="details-text">
+      <!-- Title on one line up to the Play / Request button, then "…". -->
+      <div class="title-row">
+        @if (variant === 'rail') {
+          <h3 class="media-title">
+            @if (titleRouterCommands(); as commands) {
+              <a [routerLink]="commands" [queryParams]="titleQueryParams()">{{ item.title }}</a>
+            } @else if (titleExternalHref(); as href) {
+              <a [href]="href" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+            } @else {
+              {{ item.title }}
+            }
+          </h3>
+        } @else {
+          <h2 class="media-title">
+            @if (titleRouterCommands(); as commands) {
+              <a [routerLink]="commands" [queryParams]="titleQueryParams()">{{ item.title }}</a>
+            } @else if (titleExternalHref(); as href) {
+              <a [href]="href" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+            } @else {
+              {{ item.title }}
+            }
+          </h2>
+        }
+
+        @if (requestable) {
+          <button
+            type="button"
+            class="title-action request-action"
+            aria-label="Request"
+            title="Request"
+            (click)="requestScene($event)"
+          >
+            <i class="pi pi-download" aria-hidden="true"></i>
+          </button>
+        } @else if (titleStatus(); as status) {
+          <span
+            class="title-action status-action"
+            [attr.data-tone]="status.tone"
+            role="img"
+            [attr.aria-label]="status.label"
+            [title]="status.label"
+          >
+            <i [class]="status.icon" aria-hidden="true"></i>
+          </span>
+        } @else if (showCompactPlayAction()) {
+          <button
+            type="button"
+            class="title-action play-action"
+            aria-label="Play"
+            title="Play"
+            (click)="playScene($event)"
+          >
+            <i class="pi pi-play" aria-hidden="true"></i>
+          </button>
+        }
+      </div>
+
+      <p class="media-date">
+        @if (item.studio) {
+          @if (studioLinkCommands(); as commands) {
+            <a
+              class="byline-studio"
+              [routerLink]="commands"
+              [queryParams]="studioLinkQueryParams()"
+              [attr.aria-label]="'Open studio ' + item.studio"
+              >{{ item.studio }}</a
+            >
+          } @else {
+            <span class="byline-studio">{{ item.studio }}</span>
+          }
+        }
+        @if (item.studio && item.releaseDate) {
+          <span aria-hidden="true"> · </span>
+        }
+        @if (item.releaseDate) {
+          <time [attr.datetime]="item.releaseDate">{{ item.releaseDate }}</time>
+        } @else if (!item.studio) {
+          <span class="media-date-placeholder">No date</span>
+        }
+      </p>
+
+      <div class="media-action">
+        @if (requestable) {
+          <!-- Request lives beside the title. -->
+        } @else if (footerLinkText(); as label) {
+          @if (footerLinkIsExternal()) {
+            <a
+              class="footer-link"
+              [attr.href]="footerExternalHref()"
+              target="_blank"
+              rel="noopener noreferrer"
+              (click)="$event.stopPropagation()"
+            >
+              {{ label }}
+            </a>
+          } @else if (footerLinkRouterCommands(); as commands) {
+            <a
+              class="footer-link"
+              [routerLink]="commands"
+              [queryParams]="footerLinkQueryParams()"
+              (click)="$event.stopPropagation()"
+            >
+              {{ label }}
+            </a>
+          }
+        } @else if (footerBadgeText(); as footerBadgeText) {
+          <span class="footer-pill">{{ footerBadgeText }}</span>
+        } @else {
+          @if (footerStatus(); as footerStatus) {
+            <app-scene-status-badge class="footer-status-badge" [status]="footerStatus" />
+          }
+        }
+      </div>
+    </div>
+  </div>
+</app-scene-card-shell>
