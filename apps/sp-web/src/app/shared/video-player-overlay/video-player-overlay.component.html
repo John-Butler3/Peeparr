@@ -54,12 +54,12 @@
       <!-- Minimise by swiping down on the video or pressing Escape (no
            button: it sat over the native fullscreen control). -->
       @if (mini()) {
-        <!-- The whole miniplayer video area expands it again. -->
+        <!-- The whole miniplayer video area goes back to the scene page. -->
         <button
           type="button"
           class="mini-expand-hit"
           aria-label="Expand player"
-          (click)="expand()"
+          (click)="openScenePage()"
         ></button>
       }
     </div>
@@ -76,7 +76,7 @@
         <div class="mini-progress-fill" [style.transform]="'scaleX(' + progress() + ')'"></div>
       </div>
       <div class="mini-bar">
-        <button type="button" class="mini-text" (click)="expand()">
+        <button type="button" class="mini-text" (click)="openScenePage()">
           <span class="mini-title">{{ s.title }}</span>
           <span class="mini-sub">
             @if (queue(); as q) {

@@ -172,7 +172,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       return;
     }
 
-    const resume = source.resumeSeconds;
+    // Back from the miniplayer: carry on exactly where it was.
+    const resume = this.playerService.takeHandBack(source.stashSceneId) ?? source.resumeSeconds;
     if (resume > 0 && resume < video.duration - InlinePlayerComponent.RESUME_END_MARGIN_S) {
       video.currentTime = resume;
     }

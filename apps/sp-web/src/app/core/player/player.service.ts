@@ -54,6 +54,7 @@ interface ScenePlaybackInfo {
   providedIn: 'root',
 })
 export class PlayerService {
+  private pendingHandBack: { stashSceneId: string; seconds: number } | null = null;
   private readonly http = inject(HttpClient);
   private readonly watchProgress = inject(WatchProgressService);
   private readonly discoverService = inject(DiscoverService);
@@ -216,6 +217,23 @@ export class PlayerService {
     this.resolveLocalSource(params.localSceneId).subscribe((source) =>
       this.applySource(token, params.title, imageUrl, source),
     );
+  }
+
+  /**
+   * The miniplayer going back to its scene's page: where the video was, for
+   * that page's player to carry on from (taken once).
+   */
+  handBack(stashSceneId: string, seconds: number): void {
+    this.pendingHandBack = { stashSceneId, seconds };
+  }
+
+  takeHandBack(stashSceneId: string): number | null {
+    const pending = this.pendingHandBack;
+    if (!pending || pending.stashSceneId !== stashSceneId) {
+      return null;
+    }
+    this.pendingHandBack = null;
+    return pending.seconds;
   }
 
   close(): void {

@@ -20,15 +20,32 @@
     <p-message severity="error" styleClass="app-page-message">{{ performerError() }}</p-message>
     <button type="button" (click)="retryPerformerLoad()">Retry</button>
   } @else if (performer(); as performer) {
-    @if (performer.imageUrl; as mainImage) {
-      <div class="channel-banner">
-        <div
-          class="channel-banner-backdrop"
-          aria-hidden="true"
-          [style.background-image]="'url(' + mainImage + ')'"
-        ></div>
-        <img class="channel-banner-photo" [src]="mainImage" [alt]="performer.name" />
-      </div>
+    <!-- Banner: the main photo, with the performer's other photos either
+         side of it (a collage) when there are any. -->
+    @if (bannerPhotos(performer); as photos) {
+      @if (photos.length > 0) {
+        <div class="channel-banner" [class.is-collage]="photos.length > 1">
+          @for (photo of photos; track photo.url) {
+            @if (photo.main) {
+              <div
+                class="channel-banner-backdrop"
+                aria-hidden="true"
+                [style.background-image]="'url(' + photo.url + ')'"
+              ></div>
+            }
+          }
+          <div class="channel-collage">
+            @for (photo of photos; track photo.url) {
+              <img
+                [class]="photo.main ? 'channel-banner-photo' : 'channel-collage-photo'"
+                [src]="photo.url"
+                [alt]="photo.main ? performer.name : ''"
+                [attr.loading]="photo.main ? null : 'lazy'"
+              />
+            }
+          </div>
+        </div>
+      }
     }
 
     <!-- Photo and name, docking into a slim bar under the masthead as you

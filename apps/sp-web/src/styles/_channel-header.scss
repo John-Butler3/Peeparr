@@ -34,11 +34,43 @@
 // The photo itself, whole, centred in the banner.
 .channel-banner-photo {
   position: relative;
+  z-index: 1;
   display: block;
+  flex: none;
   height: 100%;
   width: auto;
   max-width: 100%;
   object-fit: contain;
+}
+
+// The row of photos: the main one in the middle, the rest either side,
+// spilling evenly off both ends and fading out towards them.
+.channel-collage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+}
+
+.is-collage .channel-collage {
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+}
+
+.is-collage .channel-banner-photo {
+  max-width: none;
+  box-shadow: 0 0 32px rgb(0 0 0 / 55%);
+}
+
+.channel-collage-photo {
+  display: block;
+  flex: none;
+  height: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  object-position: center 20%;
+  filter: brightness(0.75);
 }
 
 // Pins the collapse start to the moment the header reaches the masthead.

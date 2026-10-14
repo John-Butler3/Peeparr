@@ -1,3 +1,4 @@
+import { Router } from '@angular/router';
 import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { PlayerQueue, PlayerService, PlayerState } from '../../core/player/player.service';
@@ -74,6 +75,7 @@ describe('VideoPlayerOverlayComponent', () => {
       previous: vi.fn(),
       close: vi.fn(),
       saveProgress: vi.fn(),
+      handBack: vi.fn(),
       openByCatalogSceneId: vi.fn(),
       openByLocalSceneId: vi.fn(),
     };
@@ -388,6 +390,34 @@ describe('VideoPlayerOverlayComponent', () => {
 
     expect(element.querySelector('.watch.is-full')).toBeTruthy();
     expect(element.querySelector('video')).toBe(video);
+  });
+
+  it('goes back to the scene page from the miniplayer, handing over the position', async () => {
+    const { fixture, playerService } = await renderOverlay({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: null,
+      source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
+    });
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    (playerService.details as ReturnType<typeof signal>).set({
+      detailsLink: { commands: ['/library/scene', '411'] },
+    });
+    const element = fixture.nativeElement as HTMLElement;
+    const video = element.querySelector('video') as HTMLVideoElement;
+    video.currentTime = 42;
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    (element.querySelector('[aria-label="Expand player"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(playerService.handBack).toHaveBeenCalledWith('411', 42);
+    expect(navigate).toHaveBeenCalledWith(['/library/scene', '411'], {
+      queryParams: { autoplay: '1' },
+    });
+    expect(playerService.expand).not.toHaveBeenCalled();
   });
 
   it('draws a progress line along the miniplayer that follows playback', async () => {

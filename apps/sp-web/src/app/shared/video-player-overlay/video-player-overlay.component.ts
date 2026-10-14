@@ -126,6 +126,24 @@ export class VideoPlayerOverlayComponent {
     this.playerService.expand();
   }
 
+  // Tapping the miniplayer: back to the scene's own page, its player carrying
+  // on from here (no separate watch panel). Without a page, the full player.
+  protected openScenePage(): void {
+    const link = this.details()?.detailsLink;
+    const current = this.state();
+    const video = this.videoElRef?.nativeElement;
+    if (!link || current?.status !== 'ready' || !video) {
+      this.expand();
+      return;
+    }
+
+    this.saveCurrentProgress();
+    this.playerService.handBack(current.source.stashSceneId, video.currentTime);
+    void this.router.navigate([...link.commands], {
+      queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
+    });
+  }
+
   protected togglePlayback(): void {
     const video = this.videoElRef?.nativeElement;
     if (!video) {

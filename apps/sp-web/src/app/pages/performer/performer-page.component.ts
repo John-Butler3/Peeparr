@@ -91,6 +91,8 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   private static readonly DEFAULT_SORT: SceneFeedSort = 'DATE';
   private static readonly DEFAULT_DIRECTION: SortDirection = 'DESC';
   private static readonly IMAGE_PREVIEW_LIMIT = 4;
+  /** Photos in the banner collage, the main one included. */
+  private static readonly BANNER_PHOTOS = 9;
 
   protected static readonly SCENE_SORT_OPTIONS: Array<{
     value: SceneFeedSort;
@@ -675,6 +677,28 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     ]
       .filter(Boolean)
       .join(' · ');
+  }
+
+  // The banner: the main photo in the middle, the others either side of it
+  // (alternating, so it stays centred). One photo: just that.
+  protected bannerPhotos(performer: PerformerDetails): Array<{ url: string; main: boolean }> {
+    const urls = [...new Set(performer.images.map((image) => image.url).filter(Boolean))];
+    const main = performer.imageUrl ?? urls[0] ?? null;
+    if (!main) {
+      return [];
+    }
+
+    const others = urls
+      .filter((url) => url !== main)
+      .slice(0, PerformerPageComponent.BANNER_PHOTOS - 1);
+    const left: string[] = [];
+    const right: string[] = [];
+    others.forEach((url, index) => (index % 2 === 0 ? right : left).push(url));
+    return [
+      ...left.reverse().map((url) => ({ url, main: false })),
+      { url: main, main: true },
+      ...right.map((url) => ({ url, main: false })),
+    ];
   }
 
   protected performerInitial(name: string): string {
