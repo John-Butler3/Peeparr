@@ -19,20 +19,104 @@ Peeparr is a self-hosted, YouTube-style home for your Stash library. Browse and 
 
 </p>
 
-## What Peeparr Does
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Peeparr's Home page: a banner of the newest scenes in the library, then Pick up where you left off" width="100%" />
+</p>
 
-- Discover scenes through a configured catalog provider during first-run setup.
-- Submit and track acquisition requests through Whisparr.
-- Check local Stash availability so you can see what is already in your library.
+> The screenshots use demo data: placeholder pictures and made-up names.
 
-## What You Need
+## Contents
+
+- [How it fits together](#how-it-fits-together)
+- [Features](#features)
+- [On your phone](#on-your-phone)
+- [What you need](#what-you-need)
+- [Self-hosted quick start](#self-hosted-quick-start)
+- [Updating, rollback and backups](#updating)
+- [Local development](#local-development)
+
+## How it fits together
+
+| | Peeparr's part |
+| --- | --- |
+| **Stash** | Your library. Peeparr plays your scenes, shows what you have, and keeps up with what's new in it. |
+| **StashDB, FansDB or ThePornDB** | The catalog, chosen at setup. Peeparr discovers scenes, performers and studios there. |
+| **Whisparr (Eros)** | Downloads. Peeparr sends your requests there and follows each one into Stash. |
+
+Every scene shows where it is in that journey: requested, downloading, importing, failed, or in your library and ready to play.
+
+## Features
+
+### Home
+
+- **A banner of the newest scenes in your library.** Each one plays its preview and moves on when the preview has played through. You can swipe between scenes, and a bar along the bottom shows when the next one is coming. On wide screens a soft glow of the preview spreads out behind the banner.
+- **Pick up where you left off**, **Fresh in your library** and **Popular right now** rows. For ThePornDB, Popular is the site's own popular list, read with your saved website login and cached.
+- **Search everything from one box:** performers, sites and scenes, a few of each with *Show more*.
+
+### Discover and request
+
+<p align="center"><img src="docs/screenshots/scenes.png" alt="The Scenes page: Popular, Latest and Oldest, filters, and scene cards" width="100%" /></p>
+
+- **Browse the catalog** by Popular, Latest or Oldest, and filter by tags, studios and favourites. You can also hide amateur and creator networks.
+- **Request with one tap.** The button beside a scene's title becomes its status: requested, downloading, importing or failed.
+- **Previews everywhere.** Hover a scene (or, on a phone, just stop scrolling) and its Stash preview plays. If a scene has no preview clip, it plays from the middle of the video instead.
+- **Acquisition** shows every request on its way through the pipeline, with the ones that need you first.
+
+<p align="center"><img src="docs/screenshots/acquisition.png" alt="The Acquisition page: requests grouped by failed, awaiting import, downloading and requested" width="100%" /></p>
+
+### Watch
+
+<p align="center"><img src="docs/screenshots/scene.png" alt="A scene page: the player, title, status, site and date, performers, actions, description, and Up next" width="100%" /></p>
+
+- **YouTube-style scene pages.** Under the title is one tidy line: the status, the site, the date and the length. Below it are the performers, then the description and tags. Up next sits alongside.
+- **Picks up where you stopped**, and keeps your place across devices.
+- **Up next** follows a series in order. It then offers related library scenes, including ones with the same performers, even on scenes you don't have yet.
+- **Miniplayer.** Leave a playing scene and it carries on at the bottom of the screen. Tap it to go back to the scene, right where you were. On a phone, swipe the video down to send it there.
+- **Lock screen and AirPlay** show the scene's title and picture, with playback controls.
+- **Series:** group scenes into series, reorder their parts and play them in order. Peeparr uses Stash's own groups for this.
+
+### Performers, studios and your library
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/performer.png" alt="A performer page: a photo collage banner, name, Favorite and Monitor, details, and scenes" /></td>
+    <td width="50%"><img src="docs/screenshots/studio.png" alt="A studio page: logo and name, Favorite, the parent network, and the studio's scenes" /></td>
+  </tr>
+</table>
+
+- **Performer pages** open with a collage of the performer's photos. As you scroll, the name docks into a slim bar. You can favourite a performer, or **Monitor** them so their new scenes are requested automatically (past scenes never are).
+- **Studio pages** show the studio's logo on a background that suits it, plus its parent network, child studios and website.
+- **Library** browses your Stash library with filters, along with Galleries and Series.
+
+<p align="center"><img src="docs/screenshots/library.png" alt="The Library: local scenes with filters" width="100%" /></p>
+
+### Setup and admin
+
+- **Guided setup** for Stash, Whisparr and your catalog. Each connection is checked as you save it, and Settings shows when something needs repairing.
+- **One local admin account.** If you forget the password, a temporary one can be generated on the server.
+- **ThePornDB support** includes a metadata proxy, so Whisparr-Eros can use ThePornDB too.
+
+## On your phone
+
+Peeparr is built for phones as much as desktops: a bottom navigation bar, scrolling that autoplays previews, swipe gestures, and a picture that docks beside the title as you scroll. Add it to your home screen and it opens like an app.
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/screenshots/phone-home.png" alt="Home on a phone" /></td>
+    <td width="25%"><img src="docs/screenshots/phone-scene.png" alt="A scene page on a phone" /></td>
+    <td width="25%"><img src="docs/screenshots/phone-scene-docked.png" alt="A scene not yet in the library, scrolled: the picture docked beside the title" /></td>
+    <td width="25%"><img src="docs/screenshots/phone-search.png" alt="Search on a phone: performers, sites and scenes" /></td>
+  </tr>
+</table>
+
+## What you need
 
 - A Linux machine (or Proxmox LXC) with Docker, or a Debian/Ubuntu machine the installer can put Docker on
 - An existing Stash instance that Peeparr can reach
 - An existing Whisparr (Eros) instance that Peeparr can reach
-- A supported catalog provider to configure during setup: StashDB, FansDB or TPDB
+- A catalog to configure during setup: StashDB, FansDB or ThePornDB
 
-## Self-Hosted Quick Start
+## Self-hosted quick start
 
 Peeparr is built from source on the machine it runs on. On a Debian/Ubuntu machine, as root:
 
@@ -40,19 +124,26 @@ Peeparr is built from source on the machine it runs on. On a Debian/Ubuntu machi
 curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/install.sh | bash
 ```
 
-That installs Docker if needed, builds the app, writes `/opt/peeparr/compose.yaml` and a private `/opt/peeparr/.env` with a random database password, starts everything and prints the address. On Proxmox, use the [Proxmox VE Helper-Scripts](https://community-scripts.github.io/ProxmoxVE/)-style installer instead -- run this in the Proxmox shell for a native (no Docker) LXC:
+The installer:
+
+- installs Docker if needed;
+- builds the app;
+- writes `/opt/peeparr/compose.yaml` and a private `/opt/peeparr/.env` with a random database password;
+- starts everything and prints the address.
+
+On Proxmox, use the [Proxmox VE Helper-Scripts](https://community-scripts.github.io/ProxmoxVE/)-style installer instead. Run this in the Proxmox shell for a native (no Docker) LXC:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/infrastructure/proxmox/community-scripts/ct/peeparr.sh)"
 ```
 
-Open `http://<host>:3000`. The first visit asks you to create the single local admin account; after that, sign-in is required.
+Open `http://<host>:3000`. On the first visit you create the single local admin account; after that, signing in is required.
 
-**Using TPDB as the catalog?** Whisparr-Eros must then use Peeparr's TPDB metadata proxy instead of its built-in StashDB metadata -- run `scripts/configure-eros.sh --catalog tpdb --peeparr-url http://<host>:3000`. With StashDB, a stock Eros works as-is.
+**Using ThePornDB as the catalog?** Whisparr-Eros must then use Peeparr's ThePornDB metadata proxy instead of its built-in StashDB metadata. Run `scripts/configure-eros.sh --catalog tpdb --peeparr-url http://<host>:3000`. With StashDB, a stock Eros works as-is.
 
-See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for all options, Proxmox, updating, backups, password reset and the full Whisparr-Eros explanation.
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for all the options: Proxmox, updating, backups, password reset and the full Whisparr-Eros explanation.
 
-If catalog Save & Test repeatedly fails with `ETIMEDOUT` on an IPv4-only Docker network, uncomment `NODE_OPTIONS=--no-network-family-autoselection` in `/opt/peeparr/.env` and run `peeparr-update`.
+If the catalog's Save & Test keeps failing with `ETIMEDOUT` on an IPv4-only Docker network, uncomment `NODE_OPTIONS=--no-network-family-autoselection` in `/opt/peeparr/.env` and run `peeparr-update`.
 
 ## Updating
 
@@ -60,33 +151,46 @@ If catalog Save & Test repeatedly fails with `ETIMEDOUT` on an IPv4-only Docker 
 peeparr-update
 ```
 
-Rebuilds from the latest commits of the deployed branch and restarts. Peeparr applies Prisma migrations automatically when the app container starts.
+This rebuilds from the latest commits of the deployed branch and restarts. Peeparr applies database migrations automatically when the app container starts.
 
 ## Rollback
 
-Deploy an earlier branch or commit from the source checkout (`/opt/peeparr-src`), e.g. `peeparr-update -b <branch>`. Rolling back the app does not roll back database schema changes, so take a backup before updating and restore it if an older build can't start against the migrated schema.
+Deploy an earlier branch or commit from the source checkout (`/opt/peeparr-src`), for example `peeparr-update -b <branch>`.
+
+Rolling back the app does not roll back database schema changes. Take a backup before updating, and restore it if an older build can't start against the migrated schema.
 
 ## Backups
 
-Keep `/opt/peeparr/.env`, `/opt/peeparr/compose.yaml` and the Docker volumes `peeparr_postgres_data` and `peeparr_app_data` (generated session secret). A logical database dump:
+Keep:
+
+- `/opt/peeparr/.env` and `/opt/peeparr/compose.yaml`;
+- the Docker volumes `peeparr_postgres_data` and `peeparr_app_data` (the second holds the generated session secret).
+
+To take a database dump:
 
 ```bash
 cd /opt/peeparr
 docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > peeparr-backup.sql
 ```
 
-## Local Development
+## Local development
 
 To run the repo locally for development:
 
-- install dependencies with `pnpm install`
-- copy `.env.example` to `.env` and set `SESSION_SECRET`
-- start Postgres with `pnpm run dev:db`
-- run the backend with `pnpm run backend`
-- run the frontend with `pnpm run web`
+1. Install dependencies with `pnpm install`.
+2. Copy `.env.example` to `.env` and set `SESSION_SECRET`.
+3. Start Postgres with `pnpm run dev:db`.
+4. Run the backend with `pnpm run backend`.
+5. Run the frontend with `pnpm run web`.
+
+The app is an Angular front end and a NestJS back end, with Postgres through Prisma.
 
 If an older local database says migration `20260402142846` was modified after it was applied, run `pnpm run db:repair-runtime-health-migration` once, then rerun `pnpm prisma migrate dev`.
 
 ## Contributing
 
-For repo structure, release automation, CI expectations, PR conventions, and contributor deployment notes, see [CONTRIBUTING.md](CONTRIBUTING.md).
+For the repo's structure, release automation, CI expectations, PR conventions and deployment notes for contributors, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[GPL-3.0](LICENSE)
