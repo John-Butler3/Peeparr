@@ -17,11 +17,18 @@
 }
 
 @media (min-width: 1000px) {
+  // A little more room under the banner for the glow to fade out in.
+  .home-hero {
+    margin-bottom: 24px;
+  }
+
   .hero-ambient {
     --spread-x: 40px;
-    --spread-y: 64px;
+    --spread-top: 64px;
+    // Only as far as the gap below, so it never reaches the next section.
+    --spread-bottom: 24px;
     position: absolute;
-    inset: calc(-1 * var(--spread-y)) calc(-1 * var(--spread-x));
+    inset: calc(-1 * var(--spread-top)) calc(-1 * var(--spread-x)) calc(-1 * var(--spread-bottom));
     z-index: 0;
     display: block;
     overflow: hidden;
@@ -30,16 +37,22 @@
     pointer-events: none;
     mask-image:
       linear-gradient(to right, transparent, #000 var(--spread-x), #000 calc(100% - var(--spread-x)), transparent),
-      linear-gradient(to bottom, transparent, #000 var(--spread-y), #000 calc(100% - var(--spread-y)), transparent);
+      linear-gradient(
+        to bottom,
+        transparent,
+        #000 var(--spread-top),
+        #000 calc(100% - var(--spread-bottom)),
+        transparent
+      );
     mask-composite: intersect;
   }
 
   .hero-ambient img,
   .hero-ambient-video {
     position: absolute;
-    inset: var(--spread-y) var(--spread-x);
+    inset: var(--spread-top) var(--spread-x) var(--spread-bottom);
     width: calc(100% - var(--spread-x) * 2);
-    height: calc(100% - var(--spread-y) * 2);
+    height: calc(100% - var(--spread-top) - var(--spread-bottom));
     border-radius: 16px;
     object-fit: cover;
     transform: scale(1.06);
