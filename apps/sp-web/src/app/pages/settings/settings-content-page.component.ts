@@ -7,6 +7,8 @@ import { MultiSelect } from 'primeng/multiselect';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
+import { DiscreetLogoService } from '../../core/preferences/discreet-logo.service';
+import { BrandMarkComponent } from '../../shared/brand-mark/brand-mark.component';
 import { AppSettingsService } from '../../core/api/app-settings.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { DownloadProfileOptions } from '../../core/api/discover.types';
@@ -35,6 +37,7 @@ const NO_DEFAULT = '';
     ToggleSwitch,
     Select,
     MultiSelect,
+    BrandMarkComponent,
   ],
   templateUrl: './settings-content-page.component.html',
   styleUrl: './settings-content-page.component.scss',
@@ -42,6 +45,7 @@ const NO_DEFAULT = '';
 export class SettingsContentPageComponent implements OnInit {
   private readonly appSettingsService = inject(AppSettingsService);
   private readonly discoverService = inject(DiscoverService);
+  protected readonly discreetLogo = inject(DiscreetLogoService);
 
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);

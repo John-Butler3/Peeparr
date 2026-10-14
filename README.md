@@ -96,6 +96,7 @@ Every scene shows where it is in that journey: requested, downloading, importing
 ### Setup and admin
 
 - **Guided setup** for Stash, Whisparr and your catalog. Each connection is checked as you save it, and Settings shows when something needs repairing.
+- **Discreet logo.** A per-device option in Settings › Content swaps the logo for a plain one, the red tile with an almond outline (<img src="docs/assets/logo-discreet.svg" height="14" alt="Discreet logo" />). It applies in the top bar, on the sign-in page, at launch and on the browser tab.
 - **One local admin account.** If you forget the password, a temporary one can be generated on the server.
 - **ThePornDB, step by step.** Choose ThePornDB in setup and Peeparr explains what's needed:
   - where to get your API token;

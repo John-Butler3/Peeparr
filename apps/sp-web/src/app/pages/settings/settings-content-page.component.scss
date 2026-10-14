@@ -129,3 +129,14 @@ p {
   background: var(--surface-panel-background);
   color: var(--text-primary);
 }
+
+// Discreet logo card: the logo as it looks now.
+.logo-choice {
+  display: flex;
+  margin: 4px 0;
+}
+
+.logo-choice-mark {
+  width: 58px !important;
+  height: 40px !important;
+}

@@ -14,3 +14,13 @@
 .brand-mark > rect {
   fill: var(--yt-red, #ff0033);
 }
+
+// Discreet logo (DiscreetLogoService): the almond outline instead of the figure.
+.mark-almond,
+:host-context(.discreet-logo) .mark-figure {
+  display: none;
+}
+
+:host-context(.discreet-logo) .mark-almond {
+  display: inline;
+}

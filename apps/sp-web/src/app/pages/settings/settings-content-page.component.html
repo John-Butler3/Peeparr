@@ -47,6 +47,26 @@
       </article>
 
       <article class="summary-card">
+        <p class="eyebrow">This device</p>
+        <h2>Discreet logo</h2>
+        <p class="summary-copy">
+          Shows a plain logo -- the red tile with an almond outline -- in the top bar, on the
+          sign-in page, at launch and on the browser tab, on this device only.
+        </p>
+        <div class="logo-choice" aria-hidden="true">
+          <app-brand-mark class="logo-choice-mark" />
+        </div>
+        <label class="toggle-row">
+          <p-toggleswitch
+            inputId="discreet-logo"
+            [ngModel]="discreetLogo.enabled()"
+            (ngModelChange)="discreetLogo.set($event)"
+          />
+          <span>{{ discreetLogo.enabled() ? 'On' : 'Off' }}</span>
+        </label>
+      </article>
+
+      <article class="summary-card">
         <p class="eyebrow">Requests</p>
         <h2>Default request options</h2>
         <p class="summary-copy">
