@@ -288,9 +288,26 @@
   background: var(--yt-hover);
 }
 
+// The page you're on: a stronger tint, bold, a red icon and a red bar on
+// its left edge.
 .nav-item.active {
-  background: var(--yt-hover);
-  font-weight: 500;
+  background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  font-weight: 700;
+}
+
+.nav-item.active .icon i {
+  color: var(--yt-red, #f03);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--yt-red, #f03);
 }
 
 .nav-item .icon i {
@@ -348,6 +365,11 @@
 
 .layout.collapsed .guide-divider {
   display: none;
+}
+
+.layout.collapsed .nav-item.active::before {
+  top: 18px;
+  bottom: 18px;
 }
 
 // The mini guide shows the settings alert as the red dot only.
@@ -459,7 +481,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-muted);
   font: inherit;
   text-decoration: none;
   cursor: pointer;
@@ -468,7 +490,10 @@
 .mobile-nav-item .icon {
   display: grid;
   place-items: center;
-  height: 24px;
+  width: 56px;
+  height: 28px;
+  border-radius: 14px;
+  transition: background-color 160ms var(--yt-ease, ease);
 }
 
 .mobile-nav-item .icon i {
@@ -480,12 +505,18 @@
   line-height: 1;
 }
 
-.mobile-nav-item.active .mobile-nav-label {
-  font-weight: 500;
+// The page you're on: bright and bold, with a pill behind its icon (the
+// others are dimmed).
+.mobile-nav-item.active {
+  color: var(--text-primary);
 }
 
-.mobile-nav-item.active .icon i {
+.mobile-nav-item.active .mobile-nav-label {
   font-weight: 700;
+}
+
+.mobile-nav-item.active .icon {
+  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
 }
 
 .mobile-nav-indicator {
