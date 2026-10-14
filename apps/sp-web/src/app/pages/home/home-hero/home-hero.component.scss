@@ -1,7 +1,5 @@
 :host {
   display: block;
-  // The glow sizes itself to the page column (100cqw).
-  container-type: inline-size;
 }
 
 // Wide, centred at the top of Home.
@@ -11,26 +9,40 @@
   margin: 0 auto 16px;
 }
 
-// Ambient glow (wide screens): the current frame, tiny and heavily blurred,
-// spread across the page column (and its 24px gutters) behind the banner,
-// fading out well before any edge.
+// Ambient glow (wide screens): a copy of what's showing, the banner's own
+// shape and place, heavily blurred, in a box a little larger than the
+// banner whose edges fade out (so it never reaches the guide).
 .hero-ambient {
   display: none;
 }
 
 @media (min-width: 1000px) {
   .hero-ambient {
+    --spread-x: 40px;
+    --spread-y: 64px;
     position: absolute;
-    top: -64px;
-    left: calc((100% - 100cqw) / 2 - 24px);
+    inset: calc(-1 * var(--spread-y)) calc(-1 * var(--spread-x));
     z-index: 0;
     display: block;
-    width: calc(100cqw + 48px);
-    height: calc(100% + 144px);
-    filter: blur(48px) saturate(1.8);
+    overflow: hidden;
+    filter: blur(40px) saturate(1.6);
     opacity: 0.8;
     pointer-events: none;
-    mask-image: radial-gradient(closest-side, #000 70%, transparent 100%);
+    mask-image:
+      linear-gradient(to right, transparent, #000 var(--spread-x), #000 calc(100% - var(--spread-x)), transparent),
+      linear-gradient(to bottom, transparent, #000 var(--spread-y), #000 calc(100% - var(--spread-y)), transparent);
+    mask-composite: intersect;
+  }
+
+  .hero-ambient img,
+  .hero-ambient-video {
+    position: absolute;
+    inset: var(--spread-y) var(--spread-x);
+    width: calc(100% - var(--spread-x) * 2);
+    height: calc(100% - var(--spread-y) * 2);
+    border-radius: 16px;
+    object-fit: cover;
+    transform: scale(1.06);
   }
 }
 

@@ -1,14 +1,22 @@
 @if (current(); as item) {
   <section class="home-hero" aria-label="Recently added" data-testid="home-hero">
-    <!-- Wide screens: a soft glow of what's showing, spilling out behind the
-         banner (YouTube's ambient mode). -->
-    <canvas
-      #ambient
-      class="hero-ambient"
-      [attr.width]="ambientWidth"
-      [attr.height]="ambientHeight"
-      aria-hidden="true"
-    ></canvas>
+    <!-- Wide screens: a blurred copy of what's showing behind the banner,
+         glowing out around it (YouTube's ambient mode). While a preview
+         plays, a muted duplicate of it plays here in step. -->
+    <div class="hero-ambient" aria-hidden="true">
+      @if (item.cardImageUrl ?? item.imageUrl; as image) {
+        <img [src]="image" alt="" />
+      }
+      <video
+        #ambientVideo
+        class="hover-preview hero-ambient-video"
+        [class.is-playing]="videoPlaying()"
+        muted
+        [muted]="true"
+        playsinline
+        preload="auto"
+      ></video>
+    </div>
 
     <div
       class="hero-stage"

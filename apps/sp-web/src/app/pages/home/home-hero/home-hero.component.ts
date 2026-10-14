@@ -27,8 +27,9 @@ import {
  * (looping), or swipe sideways to change scene. Tapping the picture
  * opens the scene; Play plays it. While it's on screen the thumbnails below
  * don't autoplay their previews; scrolled away, it pauses and they do.
- * On wide screens a blurred glow of what's showing spills out behind it
- * (YouTube's ambient mode).
+ * On wide screens a blurred copy of what's showing glows out from behind it
+ * (YouTube's ambient mode): the slide's picture, or a muted duplicate of the
+ * playing preview kept in step with it.
  */
 @Component({
   selector: 'app-home-hero',
@@ -55,15 +56,10 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   @Output() play = new EventEmitter<string>();
 
   @ViewChild('video') private videoRef?: ElementRef<HTMLVideoElement>;
-  @ViewChild('ambient') private ambientRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('ambientVideo') private ambientVideoRef?: ElementRef<HTMLVideoElement>;
 
-  /** How often the glow takes in the current frame. */
-  static readonly AMBIENT_FRAME_MS = 150;
-  /** Each frame blends in at this strength, so colours drift rather than flicker. */
-  static readonly AMBIENT_BLEND = 0.18;
-  // Tiny on purpose: it's blurred heavily anyway.
-  protected readonly ambientWidth = 48;
-  protected readonly ambientHeight = 27;
+  /** How far the glow's copy may drift from the preview before it's put back in step. */
+  static readonly AMBIENT_MAX_DRIFT_S = 0.3;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly previewService = inject(ScenePreviewService);
@@ -87,13 +83,8 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   private holdStarted = false;
   private progressRuns = 0;
   private touchStart: { x: number; y: number; sideways: boolean | null } | null = null;
-  private ambientPrimed = false;
   private readonly wideScreen =
     typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1000px)') : null;
-  private readonly ambientTimer = setInterval(
-    () => this.drawAmbient(),
-    HomeHeroComponent.AMBIENT_FRAME_MS,
-  );
   private readonly observer =
     typeof IntersectionObserver === 'function'
       ? new IntersectionObserver((entries) => this.setOnScreen(entries[0]?.isIntersecting ?? true), {
@@ -127,7 +118,6 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    clearInterval(this.ambientTimer);
     document.removeEventListener('visibilitychange', this.onVisibility);
     this.observer?.disconnect();
     this.autoplay.releaseHold(this.host);
@@ -200,6 +190,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   // after buffering).
   protected onVideoPlaying(video: HTMLVideoElement): void {
     this.videoPlaying.set(true);
+    this.syncAmbient(video, true);
     if (!this.holdStarted) {
       this.holdStarted = true;
       this.scheduleAdvance(this.holdTime(video), true);
@@ -210,6 +201,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     if (!this.clipMode && video.currentTime > this.previewStart + HomeHeroComponent.PREVIEW_LOOP_SECONDS) {
       video.currentTime = this.previewStart;
     }
+    this.syncAmbient(video);
   }
 
   protected onVideoError(): void {
@@ -233,37 +225,32 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     );
   }
 
-  // Blends the current frame (the playing preview, else the slide's picture)
-  // into the glow. Only on wide screens, with the hero on screen.
-  private drawAmbient(): void {
-    const canvas = this.ambientRef?.nativeElement;
-    if (!canvas || document.hidden || !this.onScreen || !this.wideScreen?.matches) {
-      return;
-    }
-    const context = canvas.getContext('2d');
-    if (!context) {
-      return;
-    }
+  // The glow's copy of the preview (wide screens only): same source, muted,
+  // started and kept in step with the one on the banner.
+  private ambientVideo(): HTMLVideoElement | null {
+    return this.wideScreen?.matches ? (this.ambientVideoRef?.nativeElement ?? null) : null;
+  }
 
-    const video = this.videoRef?.nativeElement;
-    let source: CanvasImageSource | null = null;
-    if (video && this.videoPlaying() && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      source = video;
-    } else {
-      const image = this.host
-        .querySelectorAll<HTMLElement>('.hero-slide')
-        [this.index()]?.querySelector('img');
-      if (image?.complete && image.naturalWidth > 0) {
-        source = image;
-      }
-    }
-    if (!source) {
+  private syncAmbient(main: HTMLVideoElement, start = false): void {
+    const ambient = this.ambientVideo();
+    if (!ambient || !ambient.getAttribute('src')) {
       return;
     }
+    if (start || Math.abs(ambient.currentTime - main.currentTime) > HomeHeroComponent.AMBIENT_MAX_DRIFT_S) {
+      ambient.currentTime = main.currentTime;
+    }
+    if (ambient.paused && !main.paused) {
+      void ambient.play().catch(() => undefined);
+    }
+  }
 
-    context.globalAlpha = this.ambientPrimed ? HomeHeroComponent.AMBIENT_BLEND : 1;
-    context.drawImage(source, 0, 0, canvas.width, canvas.height);
-    this.ambientPrimed = true;
+  private stopAmbient(): void {
+    const ambient = this.ambientVideoRef?.nativeElement;
+    if (ambient) {
+      ambient.pause();
+      ambient.removeAttribute('src');
+      ambient.load();
+    }
   }
 
   private setOnScreen(onScreen: boolean): void {
@@ -282,6 +269,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     this.clearTimer();
     this.sourceSubscription?.unsubscribe();
     this.videoRef?.nativeElement.pause();
+    this.ambientVideoRef?.nativeElement.pause();
   }
 
   private next(): void {
@@ -296,6 +284,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     this.clearTimer();
     this.sourceSubscription?.unsubscribe();
     this.videoPlaying.set(false);
+    this.stopAmbient();
     this.holdStarted = false;
     const item = this.current();
     if (!item || document.hidden || !this.onScreen) {
@@ -335,6 +324,13 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     video.loop = this.clipMode;
     video.muted = true;
     video.src = src;
+
+    const ambient = this.ambientVideo();
+    if (ambient) {
+      ambient.loop = this.clipMode;
+      ambient.muted = true;
+      ambient.src = src;
+    }
   }
 
   private scheduleAdvance(ms: number, showProgress = false): void {
@@ -360,5 +356,6 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       video.removeAttribute('src');
       video.load();
     }
+    this.stopAmbient();
   }
 }

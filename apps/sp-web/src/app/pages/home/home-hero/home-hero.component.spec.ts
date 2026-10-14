@@ -73,14 +73,14 @@ describe('HomeHeroComponent', () => {
     expect(fixture.nativeElement.querySelector('.hero-slide').getAttribute('href')).toBe(
       '/scene/catalog-scene-1',
     );
-    expect(fixture.nativeElement.querySelector('video').getAttribute('src')).toBe(
+    expect(fixture.nativeElement.querySelector('.hero-video').getAttribute('src')).toBe(
       '/api/media/stash/scenes/local-scene-1/preview',
     );
   });
 
   it('moves on after eight seconds of full-file preview, looping back to the first', async () => {
     const fixture = await render([1, 2].map(buildItem));
-    const video: HTMLVideoElement = fixture.nativeElement.querySelector('video');
+    const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');
 
     video.dispatchEvent(new Event('playing'));
     vi.advanceTimersByTime(7900);
@@ -99,7 +99,7 @@ describe('HomeHeroComponent', () => {
 
   it('fills the progress bar over the preview time, without restarting after buffering', async () => {
     const fixture = await render([1, 2].map(buildItem));
-    const video: HTMLVideoElement = fixture.nativeElement.querySelector('video');
+    const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');
     const fill = () => fixture.nativeElement.querySelector('.hero-progress-fill') as HTMLElement | null;
     expect(fill()).toBeNull();
 
@@ -121,7 +121,7 @@ describe('HomeHeroComponent', () => {
 
   it("moves on when Stash's preview clip has played through once", async () => {
     const fixture = await render([1, 2].map(buildItem));
-    const video: HTMLVideoElement = fixture.nativeElement.querySelector('video');
+    const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');
     Object.defineProperty(video, 'duration', { value: 9.2, configurable: true });
 
     video.dispatchEvent(new Event('playing'));
