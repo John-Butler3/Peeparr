@@ -18,8 +18,8 @@
   @if (performers().length > 0) {
     <section class="result-section" aria-labelledby="library-search-performers">
       <h2 id="library-search-performers">Performers</h2>
-      <div class="tile-grid">
-        @for (performer of performersShown.slice(performers()); track performer.id) {
+      <div class="tile-grid" [style.--per-row]="perRow()">
+        @for (performer of performersShown.slice(performers(), perRow()); track performer.id) {
           <a
             class="tile-card"
             [routerLink]="['/library']"
@@ -32,8 +32,8 @@
           </a>
         }
       </div>
-      @if (performersShown.hasMore(performers().length)) {
-        <button type="button" class="show-more-button" (click)="performersShown.more()">Show more</button>
+      @if (performersShown.hasMore(performers().length, perRow())) {
+        <button type="button" class="show-more-button" [style.--per-row]="perRow()" (click)="performersShown.more()">Show more</button>
       }
     </section>
   }
@@ -41,8 +41,8 @@
   @if (studios().length > 0) {
     <section class="result-section" aria-labelledby="library-search-sites">
       <h2 id="library-search-sites">Sites</h2>
-      <div class="tile-grid">
-        @for (studio of studiosShown.slice(studios()); track studio.id) {
+      <div class="tile-grid" [style.--per-row]="perRow()">
+        @for (studio of studiosShown.slice(studios(), perRow()); track studio.id) {
           <a
             class="tile-card"
             [routerLink]="['/library']"
@@ -51,7 +51,7 @@
           >
             @if (studio.imageUrl) {
               <span class="tile-logo">
-                <img [src]="studio.imageUrl" alt="" loading="lazy" />
+                <img appLogoContrast [src]="studio.imageUrl" alt="" loading="lazy" />
               </span>
             } @else {
               <span class="tile-logo placeholder" aria-hidden="true">{{ initial(studio.name) }}</span>
@@ -61,8 +61,8 @@
           </a>
         }
       </div>
-      @if (studiosShown.hasMore(studios().length)) {
-        <button type="button" class="show-more-button" (click)="studiosShown.more()">Show more</button>
+      @if (studiosShown.hasMore(studios().length, perRow())) {
+        <button type="button" class="show-more-button" [style.--per-row]="perRow()" (click)="studiosShown.more()">Show more</button>
       }
     </section>
   }

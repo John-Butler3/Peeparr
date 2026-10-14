@@ -84,24 +84,6 @@ p {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
-.tile-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-}
-
-.tile-card {
-  display: grid;
-  gap: 0.4rem;
-  justify-items: center;
-  text-align: center;
-  text-decoration: none;
-  color: var(--text-primary);
-  padding: 0.5rem;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
-
 .tile-card:hover,
 .tile-card:focus-visible {
   border-color: var(--border-subtle);
@@ -113,36 +95,9 @@ p {
   outline-offset: 2px;
 }
 
-.tile-image {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
-  border-radius: 10px;
-  background: var(--surface-2);
-}
-
-.tile-image.round {
-  aspect-ratio: 1 / 1;
-  border-radius: 999px;
-}
-
-.tile-image.placeholder {
-  display: block;
-}
-
-.tile-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  line-height: 1.25;
-}
-
 @media (max-width: 640px) {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  }
-
-  .tile-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
 
@@ -169,4 +124,117 @@ p {
 .show-more-button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+// Performers and sites: one row of as many as fit (--per-row: 4, 6 or 8),
+// with Show more for the next rows.
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--per-row, 4), minmax(0, 1fr));
+  gap: 12px;
+  max-width: calc(var(--per-row, 4) * 190px);
+}
+
+.tile-card {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  align-content: start;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-align: center;
+  text-decoration: none;
+}
+
+.tile-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 20%;
+  background: var(--surface-2);
+}
+
+.tile-image.placeholder {
+  display: block;
+}
+
+// Site logos: whole, on a panel matched to the logo (LogoContrastDirective).
+.tile-logo {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 10%;
+  border-radius: 10px;
+  background: #f1f1f1;
+  color: #0f0f0f;
+}
+
+.tile-logo[data-logo-tone='light'] {
+  background: #272727;
+}
+
+.tile-logo[data-logo-tone='opaque'] {
+  padding: 0;
+  overflow: hidden;
+  background: none;
+}
+
+.tile-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tile-logo[data-logo-tone='opaque'] img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+}
+
+.tile-logo.placeholder {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tile-name {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@media (max-width: 640px) {
+  .tile-grid {
+    gap: 6px;
+  }
+
+  .tile-card {
+    gap: 4px;
+    padding: 2px;
+  }
+
+  .tile-name {
+    font-size: 0.75rem;
+  }
+}
+
+// Show more centred under the tiles, not the whole page.
+.tile-grid + .show-more-button {
+  margin-left: calc(min(var(--per-row, 4) * 190px, 100%) / 2);
+  transform: translateX(-50%);
 }

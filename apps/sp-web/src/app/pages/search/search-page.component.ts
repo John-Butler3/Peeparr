@@ -40,11 +40,13 @@ import { PlayerService } from '../../core/player/player.service';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
-import { Reveal } from '../../shared/show-more/reveal';
+import { Reveal, RowReveal, tilesPerRow } from '../../shared/show-more/reveal';
 
+import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
 @Component({
   selector: 'app-search-page',
   imports: [
+    LogoContrastDirective,
     FormsModule,
     RouterLink,
     ProgressSpinner,
@@ -77,9 +79,11 @@ export class SearchPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly favoritePerformersOnly = signal(false);
-  // 4 performers, 4 sites and 5 scenes at first, then more on request.
-  protected readonly performersShown = new Reveal(4, 8);
-  protected readonly studiosShown = new Reveal(4, 8);
+  // A row of performers and of sites (as many as fit), 5 scenes at first, then more on request.
+  protected readonly performersShown = new RowReveal(1, 2);
+  protected readonly studiosShown = new RowReveal(1, 2);
+  // Performers and sites: as many as fit in a row (4, 6 or 8).
+  protected readonly perRow = tilesPerRow();
   protected readonly scenesShown = new Reveal(5, 10);
 
   @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;

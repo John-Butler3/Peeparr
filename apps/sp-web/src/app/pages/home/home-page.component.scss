@@ -563,11 +563,37 @@ p {
   margin-top: 0.2rem;
 }
 
+// Row headers: See all and the arrows are one set -- 32px tall, rounded
+// squares, no border -- lined up with the heading.
+.see-all-link,
 .scroll-button {
-  width: 2.4rem;
-  min-width: 2.4rem;
-  height: 2.4rem;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--button-bg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  transition: background-color 120ms var(--yt-ease, ease);
+}
+
+.see-all-link {
+  padding: 0 12px;
+}
+
+.scroll-button {
+  width: 32px;
+  min-width: 32px;
   padding: 0;
+}
+
+.scroll-button i {
+  font-size: 0.95rem;
+}
+
+.see-all-link:hover,
+.scroll-button:hover {
+  background: var(--yt-chip-hover);
 }
 
 .rail-viewport {

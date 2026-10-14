@@ -67,69 +67,14 @@ p {
   outline-offset: 2px;
 }
 
-.tile-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-}
-
-.tile-card {
-  display: grid;
-  gap: 0.3rem;
-  justify-items: center;
-  align-content: start;
-  text-align: center;
-  text-decoration: none;
-  color: var(--text-primary);
-  padding: 0.5rem;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
-
 .tile-card:hover,
 .tile-card:focus-visible {
   border-color: var(--border-subtle);
   background: var(--surface-1);
 }
 
-.tile-image {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  object-position: center 20%;
-  border-radius: 999px;
-  background: var(--surface-2);
-}
-
 // Studio logos are mostly wide wordmarks: shown whole (contain) on a panel
 // rather than cropped into a circle.
-.tile-logo {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  display: grid;
-  place-items: center;
-  padding: 0.6rem;
-  border-radius: 10px;
-  background: var(--surface-2);
-}
-
-.tile-logo img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.tile-logo.placeholder {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.tile-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  line-height: 1.25;
-}
 
 .tile-meta {
   font-size: 0.76rem;
@@ -149,17 +94,117 @@ p {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
+}
 
+// Performers and sites: one row of as many as fit (--per-row: 4, 6 or 8),
+// with Show more for the next rows.
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--per-row, 4), minmax(0, 1fr));
+  gap: 12px;
+  max-width: calc(var(--per-row, 4) * 190px);
+}
+
+.tile-card {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  align-content: start;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-align: center;
+  text-decoration: none;
+}
+
+.tile-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 20%;
+  background: var(--surface-2);
+}
+
+.tile-image.placeholder {
+  display: block;
+}
+
+// Site logos: whole, on a panel matched to the logo (LogoContrastDirective).
+.tile-logo {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 10%;
+  border-radius: 10px;
+  background: #f1f1f1;
+  color: #0f0f0f;
+}
+
+.tile-logo[data-logo-tone='light'] {
+  background: #272727;
+}
+
+.tile-logo[data-logo-tone='opaque'] {
+  padding: 0;
+  overflow: hidden;
+  background: none;
+}
+
+.tile-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tile-logo[data-logo-tone='opaque'] img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+}
+
+.tile-logo.placeholder {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tile-name {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@media (max-width: 640px) {
   .tile-grid {
-    gap: 0.4rem;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 6px;
   }
 
   .tile-card {
-    padding: 0.35rem;
+    gap: 4px;
+    padding: 2px;
   }
 
   .tile-name {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
   }
+}
+
+// Show more centred under the tiles, not the whole page.
+.tile-grid + .show-more-button {
+  margin-left: calc(min(var(--per-row, 4) * 190px, 100%) / 2);
+  transform: translateX(-50%);
 }

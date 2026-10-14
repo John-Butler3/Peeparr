@@ -8,7 +8,7 @@
         type="search"
         inputmode="search"
         class="search-input"
-        placeholder="Search scenes, performers, or studios"
+        placeholder="Search scenes, performers, sites"
         aria-label="Search scenes, performers, or studios"
         [ngModel]="queryInput()"
         name="query"
@@ -43,8 +43,8 @@
     @if (performerResults().length > 0) {
       <section class="result-section">
         <h2>Performers</h2>
-        <div class="tile-grid">
-          @for (item of performersShown.slice(performerResults()); track item.id) {
+        <div class="tile-grid" [style.--per-row]="perRow()">
+          @for (item of performersShown.slice(performerResults(), perRow()); track item.id) {
             <a class="tile-card" [routerLink]="['/performer', item.id]">
               @if (item.cardImageUrl || item.imageUrl) {
                 <img
@@ -60,8 +60,8 @@
             </a>
           }
         </div>
-        @if (performersShown.hasMore(performerResults().length)) {
-          <button type="button" class="show-more-button" (click)="performersShown.more()">Show more</button>
+        @if (performersShown.hasMore(performerResults().length, perRow())) {
+          <button type="button" class="show-more-button" [style.--per-row]="perRow()" (click)="performersShown.more()">Show more</button>
         }
       </section>
     }
@@ -69,20 +69,22 @@
     @if (studioResults().length > 0) {
       <section class="result-section">
         <h2>Sites</h2>
-        <div class="tile-grid">
-          @for (item of studiosShown.slice(studioResults()); track item.id) {
+        <div class="tile-grid" [style.--per-row]="perRow()">
+          @for (item of studiosShown.slice(studioResults(), perRow()); track item.id) {
             <a class="tile-card" [routerLink]="['/studio', item.id]">
               @if (item.imageUrl) {
-                <img class="tile-image" [src]="item.imageUrl" [alt]="item.name" loading="lazy" />
+                <span class="tile-logo">
+                  <img appLogoContrast [src]="item.imageUrl" [alt]="item.name" loading="lazy" />
+                </span>
               } @else {
-                <span class="tile-image placeholder" aria-hidden="true"></span>
+                <span class="tile-logo placeholder" aria-hidden="true">{{ item.name.charAt(0).toUpperCase() }}</span>
               }
               <span class="tile-name">{{ item.name }}</span>
             </a>
           }
         </div>
-        @if (studiosShown.hasMore(studioResults().length)) {
-          <button type="button" class="show-more-button" (click)="studiosShown.more()">Show more</button>
+        @if (studiosShown.hasMore(studioResults().length, perRow())) {
+          <button type="button" class="show-more-button" [style.--per-row]="perRow()" (click)="studiosShown.more()">Show more</button>
         }
       </section>
     }

@@ -28,11 +28,12 @@ import { SceneCardComponent } from '../../../shared/scene-card/scene-card.compon
 // search box has text: matching scenes (a few at a time, with "Show more"),
 // plus the matching performers, sites and tags. Picking one of those opens
 // the library grid filtered to it.
-import { Reveal } from '../../../shared/show-more/reveal';
+import { RowReveal, tilesPerRow } from '../../../shared/show-more/reveal';
 
+import { LogoContrastDirective } from '../../../shared/logo-contrast/logo-contrast.directive';
 @Component({
   selector: 'app-library-search',
-  imports: [RouterLink, Message, ProgressSpinner, SceneCardComponent],
+  imports: [LogoContrastDirective, RouterLink, Message, ProgressSpinner, SceneCardComponent],
   templateUrl: './library-search.component.html',
   styleUrl: './library-search.component.scss',
 })
@@ -60,9 +61,11 @@ export class LibrarySearchComponent implements OnDestroy {
   protected readonly performers = signal<LibrarySearchPerformer[]>([]);
   protected readonly studios = signal<LibrarySearchStudio[]>([]);
   protected readonly tags = signal<LibrarySearchTag[]>([]);
-  // 4 performers and 4 sites at first, then more on request.
-  protected readonly performersShown = new Reveal(4, 8);
-  protected readonly studiosShown = new Reveal(4, 8);
+  // A row of performers and of sites (as many as fit) at first, then more on request.
+  protected readonly performersShown = new RowReveal(1, 2);
+  protected readonly studiosShown = new RowReveal(1, 2);
+  // Performers and sites: as many as fit in a row (4, 6 or 8).
+  protected readonly perRow = tilesPerRow();
 
   @Input({ required: true })
   set query(value: string) {
