@@ -122,18 +122,13 @@ export class VideoPlayerOverlayComponent {
     this.playerService.minimize();
   }
 
-  protected expand(): void {
-    this.playerService.expand();
-  }
-
   // Tapping the miniplayer: back to the scene's own page, its player carrying
-  // on from here (no separate watch panel). Without a page, the full player.
+  // on from here (never a separate watch panel).
   protected openScenePage(): void {
     const link = this.details()?.detailsLink;
     const current = this.state();
     const video = this.videoElRef?.nativeElement;
     if (!link || current?.status !== 'ready' || !video) {
-      this.expand();
       return;
     }
 

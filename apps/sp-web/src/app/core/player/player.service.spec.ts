@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
-import { Subject, of, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { Router } from '@angular/router';
 import { DiscoverService } from '../api/discover.service';
 import { ScenePlaybackSource } from '../api/discover.types';
 import { PlayerService } from './player.service';
@@ -32,156 +33,85 @@ describe('PlayerService', () => {
     service = TestBed.inject(PlayerService);
   });
 
-  it('sets loading state immediately, then ready state once the catalog-based source resolves', () => {
-    const source: ScenePlaybackSource = {
-      streamUrl: 'http://stash.local/stream',
-      stashSceneId: '411',
-      resumeSeconds: 30,
-      duration: 600,
-    };
-    getSceneStreamUrlMock.mockReturnValue(of(source));
-
-    service.openByCatalogSceneId({
-      title: 'A Scene',
-      catalogStashId: 'catalog-1',
-      imageUrl: 'http://cdn.local/a-scene.jpg',
-    });
-
-    expect(service.state()).toEqual({
-      status: 'ready',
-      title: 'A Scene',
-      imageUrl: 'http://cdn.local/a-scene.jpg',
-      source,
-    });
-    expect(getSceneStreamUrlMock).toHaveBeenCalledWith('catalog-1', undefined);
-  });
-
-  it('passes the copyId through for catalog-based lookups', () => {
-    getSceneStreamUrlMock.mockReturnValue(
-      of({ streamUrl: 'x', stashSceneId: '1', resumeSeconds: 0, duration: null }),
-    );
-
-    service.openByCatalogSceneId({
-      title: 'A Scene',
-      catalogStashId: 'catalog-1',
-      copyId: 'copy-1',
-    });
-
-    expect(getSceneStreamUrlMock).toHaveBeenCalledWith('catalog-1', 'copy-1');
-  });
-
-  it('sets an error state when the catalog-based source fails to load', () => {
-    getSceneStreamUrlMock.mockReturnValue(throwError(() => new Error('boom')));
+  it('plays a catalog scene on its own page, autoplaying (no separate watch panel)', () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
     service.openByCatalogSceneId({ title: 'A Scene', catalogStashId: 'catalog-1' });
 
-    expect(service.state()).toEqual({
-      status: 'error',
-      title: 'A Scene',
-      imageUrl: null,
-      message: 'Failed to load stream from Stash.',
+    expect(navigate).toHaveBeenCalledWith(['/scene', 'catalog-1'], {
+      queryParams: { autoplay: '1' },
     });
+    expect(service.state()).toBeNull();
+    expect(getSceneStreamUrlMock).not.toHaveBeenCalled();
   });
 
-  it('builds the stream URL directly and fetches resume info by local scene id', () => {
-    httpGetMock.mockReturnValue(of({ resumeSeconds: 90, duration: 1200 }));
+  it("plays a library scene on the page its details link names, keeping the link's query", () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
     service.openByLocalSceneId({
       title: 'Library Scene',
       localSceneId: '411',
-      imageUrl: 'http://stash.local/library-scene.jpg',
+      details: { detailsLink: { commands: ['/scene', 'catalog-9'], queryParams: { returnTo: '/home' } } },
     });
 
-    expect(httpGetMock).toHaveBeenCalledWith(
-      '/api/media/stash/scenes/411/playback-info',
+    expect(navigate).toHaveBeenCalledWith(['/scene', 'catalog-9'], {
+      queryParams: { returnTo: '/home', autoplay: '1' },
+    });
+  });
+
+  it("plays a series from the chosen part's page (its next parts follow from Up next)", () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    service.playQueue(
+      'Duo',
+      [
+        { localSceneId: '11', title: 'Part One', imageUrl: null },
+        { localSceneId: '12', title: 'Part Two', imageUrl: null },
+      ],
+      1,
     );
-    expect(service.state()).toEqual({
-      status: 'ready',
-      title: 'Library Scene',
-      imageUrl: 'http://stash.local/library-scene.jpg',
-      source: {
-        streamUrl: '/api/media/stash/scenes/411/stream',
-        stashSceneId: '411',
-        resumeSeconds: 90,
-        duration: 1200,
-      },
+
+    expect(navigate).toHaveBeenCalledWith(['/library/scene', '12'], {
+      queryParams: { autoplay: '1' },
+    });
+    expect(service.queue()).toBeNull();
+  });
+
+  it('builds the stream URL directly and fetches resume info by local scene id', () => {
+    httpGetMock.mockReturnValue(of({ resumeSeconds: 90, duration: 1200 }));
+    let source: ScenePlaybackSource | undefined;
+
+    service.resolveLocalSource('411').subscribe((value) => (source = value));
+
+    expect(httpGetMock).toHaveBeenCalledWith('/api/media/stash/scenes/411/playback-info');
+    expect(source).toEqual({
+      streamUrl: '/api/media/stash/scenes/411/stream',
+      stashSceneId: '411',
+      resumeSeconds: 90,
+      duration: 1200,
     });
   });
 
   it('falls back to no resume position when playback-info fails, rather than blocking playback', () => {
     httpGetMock.mockReturnValue(throwError(() => new Error('boom')));
+    let source: ScenePlaybackSource | undefined;
 
-    service.openByLocalSceneId({ title: 'Library Scene', localSceneId: '411' });
+    service.resolveLocalSource('411').subscribe((value) => (source = value));
 
-    expect(service.state()).toEqual({
-      status: 'ready',
-      title: 'Library Scene',
-      imageUrl: null,
-      source: {
-        streamUrl: '/api/media/stash/scenes/411/stream',
-        stashSceneId: '411',
-        resumeSeconds: 0,
-        duration: null,
-      },
-    });
-  });
-
-  it('ignores a stale response after the player has been closed', () => {
-    const subject = new Subject<ScenePlaybackSource>();
-    getSceneStreamUrlMock.mockReturnValue(subject.asObservable());
-
-    service.openByCatalogSceneId({ title: 'A Scene', catalogStashId: 'catalog-1' });
-    service.close();
-
-    subject.next({
-      streamUrl: 'http://stash.local/stream',
+    expect(source).toEqual({
+      streamUrl: '/api/media/stash/scenes/411/stream',
       stashSceneId: '411',
       resumeSeconds: 0,
-      duration: 600,
-    });
-
-    expect(service.state()).toBeNull();
-  });
-
-  it('ignores a stale response after a second scene was opened', () => {
-    const firstSubject = new Subject<ScenePlaybackSource>();
-    getSceneStreamUrlMock.mockReturnValueOnce(firstSubject.asObservable());
-
-    service.openByCatalogSceneId({ title: 'First Scene', catalogStashId: 'catalog-1' });
-
-    const secondSource: ScenePlaybackSource = {
-      streamUrl: 'http://stash.local/second',
-      stashSceneId: '999',
-      resumeSeconds: 0,
-      duration: 300,
-    };
-    getSceneStreamUrlMock.mockReturnValueOnce(of(secondSource));
-    service.openByCatalogSceneId({ title: 'Second Scene', catalogStashId: 'catalog-2' });
-
-    firstSubject.next({
-      streamUrl: 'http://stash.local/first',
-      stashSceneId: '411',
-      resumeSeconds: 0,
-      duration: 600,
-    });
-
-    expect(service.state()).toEqual({
-      status: 'ready',
-      title: 'Second Scene',
-      imageUrl: null,
-      source: secondSource,
+      duration: null,
     });
   });
 
-  it('clears state on close', () => {
-    getSceneStreamUrlMock.mockReturnValue(
-      of({ streamUrl: 'x', stashSceneId: '1', resumeSeconds: 0, duration: null }),
-    );
-    service.openByCatalogSceneId({ title: 'A Scene', catalogStashId: 'catalog-1' });
+  it('hands the miniplayer position back to the scene page once', () => {
+    service.handBack('411', 42);
 
-    service.close();
-
-    expect(service.state()).toBeNull();
+    expect(service.takeHandBack('999')).toBeNull();
+    expect(service.takeHandBack('411')).toBe(42);
+    expect(service.takeHandBack('411')).toBeNull();
   });
 
   it('posts resume position and play duration to save progress', () => {
@@ -218,54 +148,4 @@ describe('PlayerService', () => {
 
     expect(() => service.saveProgress('411', 10, 600)).not.toThrow();
   });
-
-  describe('play queue', () => {
-    const items = [
-      { localSceneId: '11', title: 'Part One', imageUrl: null },
-      { localSceneId: '12', title: 'Part Two', imageUrl: null },
-    ];
-
-    beforeEach(() => {
-      httpGetMock.mockReturnValue(of({ resumeSeconds: 0, duration: 600 }));
-    });
-
-    it('plays the queue from the requested part and steps through it', () => {
-      service.playQueue('Duo', items, 0);
-
-      expect(service.queue()).toEqual({ name: 'Duo', items, index: 0 });
-      expect(service.state()).toEqual(
-        expect.objectContaining({ status: 'ready', title: 'Part One' }),
-      );
-      expect(service.hasNext()).toBe(true);
-      expect(service.hasPrevious()).toBe(false);
-
-      expect(service.next()).toBe(true);
-      expect(service.queue()?.index).toBe(1);
-      expect(service.state()).toEqual(
-        expect.objectContaining({
-          status: 'ready',
-          title: 'Part Two',
-          source: expect.objectContaining({ stashSceneId: '12' }),
-        }),
-      );
-
-      // End of the series: stays on the last part.
-      expect(service.next()).toBe(false);
-      expect(service.queue()?.index).toBe(1);
-      expect(service.previous()).toBe(true);
-      expect(service.queue()?.index).toBe(0);
-    });
-
-    it('drops the queue when a single scene is opened or the player closes', () => {
-      service.playQueue('Duo', items, 1);
-      service.openByLocalSceneId({ title: 'Other', localSceneId: '99' });
-      expect(service.queue()).toBeNull();
-
-      service.playQueue('Duo', items, 0);
-      service.close();
-      expect(service.queue()).toBeNull();
-      expect(service.next()).toBe(false);
-    });
-  });
 });
-

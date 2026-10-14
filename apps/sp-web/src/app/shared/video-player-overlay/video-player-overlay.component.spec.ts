@@ -366,7 +366,7 @@ describe('VideoPlayerOverlayComponent', () => {
     expect(playerService.close).toHaveBeenCalled();
   });
 
-  it('minimizes to the miniplayer (Escape) and expands back, keeping the same video', async () => {
+  it('minimizes to the miniplayer (Escape), keeping the same video', async () => {
     const { fixture, playerService } = await renderOverlay({
       status: 'ready',
       title: 'A Scene',
@@ -385,10 +385,12 @@ describe('VideoPlayerOverlayComponent', () => {
     expect(element.querySelector('video')).toBe(video);
     expect(playerService.close).not.toHaveBeenCalled();
 
+    // No scene page to go back to: it stays the miniplayer (never the watch panel).
     (element.querySelector('[aria-label="Expand player"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(element.querySelector('.watch.is-full')).toBeTruthy();
+    expect(playerService.expand).not.toHaveBeenCalled();
+    expect(element.querySelector('.watch.is-mini')).toBeTruthy();
     expect(element.querySelector('video')).toBe(video);
   });
 

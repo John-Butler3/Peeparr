@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable, catchError, map, of } from 'rxjs';
 import { DiscoverService } from '../api/discover.service';
 import { ScenePlaybackSource } from '../api/discover.types';
@@ -58,6 +59,7 @@ export class PlayerService {
   private readonly http = inject(HttpClient);
   private readonly watchProgress = inject(WatchProgressService);
   private readonly discoverService = inject(DiscoverService);
+  private readonly router = inject(Router);
 
   // Guards against a slow/late response from a previous open() overwriting
   // state after the player was closed or a different scene was opened.
@@ -73,15 +75,14 @@ export class PlayerService {
   });
   readonly hasPrevious = computed(() => (this.queue()?.index ?? 0) > 0);
 
+  // Playing always happens on the scene's own page (its player, autoplaying
+  // there) -- never in a separate watch panel. A series plays from the part's
+  // page: its other parts are first in Up next and follow on automatically.
   playQueue(name: string, items: readonly PlayerQueueItem[], startIndex = 0): void {
-    if (items.length === 0) {
-      return;
+    const item = items[Math.min(Math.max(0, startIndex), items.length - 1)];
+    if (item) {
+      this.openScenePage(item.details?.detailsLink, ['/library/scene', item.localSceneId]);
     }
-
-    const index = Math.min(Math.max(0, startIndex), items.length - 1);
-    this.queue.set({ name, items, index });
-    this.mode.set('full');
-    this.loadLocalScene(items[index]);
   }
 
   /** Jumps to a queued scene (the watch panel's "Up next" list). */
@@ -157,28 +158,10 @@ export class PlayerService {
   openByCatalogSceneId(params: {
     title: string;
     catalogStashId: string;
-    copyId?: string;
     imageUrl?: string | null;
     details?: PlayerDetails | null;
   }): void {
-    this.queue.set(null);
-    this.mode.set('full');
-    this.details.set(params.details ?? null);
-    const imageUrl = params.imageUrl ?? null;
-    const token = this.beginLoad(params.title, imageUrl);
-
-    this.discoverService
-      .getSceneStreamUrl(params.catalogStashId, params.copyId)
-      .subscribe({
-        next: (source) => this.applySource(token, params.title, imageUrl, source),
-        error: () =>
-          this.applyError(
-            token,
-            params.title,
-            imageUrl,
-            'Failed to load stream from Stash.',
-          ),
-      });
+    this.openScenePage(params.details?.detailsLink, ['/scene', params.catalogStashId]);
   }
 
   openByLocalSceneId(params: {
@@ -187,9 +170,16 @@ export class PlayerService {
     imageUrl?: string | null;
     details?: PlayerDetails | null;
   }): void {
-    this.queue.set(null);
-    this.mode.set('full');
-    this.loadLocalScene(params);
+    this.openScenePage(params.details?.detailsLink, ['/library/scene', params.localSceneId]);
+  }
+
+  private openScenePage(
+    link: PlayerDetails['detailsLink'] | undefined,
+    fallback: readonly unknown[],
+  ): void {
+    void this.router.navigate([...(link?.commands ?? fallback)], {
+      queryParams: { ...(link?.queryParams ?? {}), autoplay: '1' },
+    });
   }
 
   private moveQueue(step: number): boolean {

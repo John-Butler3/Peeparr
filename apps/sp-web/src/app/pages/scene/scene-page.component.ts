@@ -287,28 +287,6 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     return scene.stash?.copies.find((copy) => copy.viewUrl === selectedViewUrl)?.id ?? null;
   }
 
-  protected playSelectedStashCopy(scene: SceneDetails): void {
-    const copyId = this.selectedStashCopyId(scene);
-    if (!copyId) {
-      return;
-    }
-
-    this.playerService.openByCatalogSceneId({
-      title: scene.title,
-      catalogStashId: scene.id,
-      copyId,
-      imageUrl: scene.imageUrl,
-      details: {
-        studio: scene.studio,
-        studioImageUrl: scene.studioImageUrl,
-        releaseDate: scene.releaseDate,
-        performers: scene.performers.map((performer) => performer.name),
-        description: scene.description,
-        stashUrl: this.selectedStashViewUrl(scene),
-      },
-    });
-  }
-
   protected studioLogoAriaLabel(scene: SceneDetails): string {
     const studioName = scene.studio?.trim();
     if (studioName) {
