@@ -50,6 +50,7 @@ describe('ScenesService', () => {
 
   const performerFavoritesService = {
     listAllFavoriteIds: jest.fn(),
+    getFavoriteIds: jest.fn(),
   } as unknown as PerformerFavoritesService;
 
   const performerImagePreferenceService = {
@@ -175,6 +176,7 @@ describe('ScenesService', () => {
       .fn()
       .mockResolvedValue({ hideAmateurNetworkResults: false });
     performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
+    performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
     stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([]);
     whisparrAdapter.findMovieByStashId = jest.fn().mockResolvedValue(null);
     whisparrAdapter.buildSceneViewUrl = jest
@@ -635,6 +637,25 @@ describe('ScenesService', () => {
         apiKey: stashIntegration.apiKey,
       },
     );
+  });
+
+  it("marks scene cast members favorited in Peeparr as favorites (TPDB never reports it)", async () => {
+    catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+      ...sceneDetails,
+      performers: [
+        { id: 'performer-1', name: 'One', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+        { id: 'performer-2', name: 'Two', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+      ],
+    });
+    performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
+    performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set(['performer-2']));
+
+    const result = await service.getSceneById('stashdb-scene-1');
+
+    expect(result.performers.map((performer) => [performer.id, performer.isFavorite])).toEqual([
+      ['performer-1', false],
+      ['performer-2', true],
+    ]);
   });
 
   it('applies a saved main-image override to scene cast members', async () => {

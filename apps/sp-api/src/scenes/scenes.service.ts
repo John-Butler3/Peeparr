@@ -550,6 +550,11 @@ export class ScenesService {
     const mainImageOverrides = await this.performerImagePreferenceService.getMainImageUrls(
       scene.performers.map((performer) => performer.id),
     );
+    // Favorites are kept locally (TPDB never reports them on scene credits),
+    // so a credit counts as a favorite if either source says so.
+    const localFavoriteIds = await this.performerFavoritesService.getFavoriteIds(
+      scene.performers.map((performer) => performer.id),
+    );
 
     return {
       id: scene.id,
@@ -569,6 +574,7 @@ export class ScenesService {
         const imageUrl = mainImageOverrides.get(performer.id) ?? performer.imageUrl;
         return {
           ...performer,
+          isFavorite: performer.isFavorite || localFavoriteIds.has(performer.id),
           imageUrl,
           cardImageUrl: withStashImageSize(imageUrl, 300),
         };
