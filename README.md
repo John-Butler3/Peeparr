@@ -23,7 +23,7 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
   <img src="docs/screenshots/home.png" alt="Peeparr's Home page: a banner of the newest scenes in the library, then Pick up where you left off" width="100%" />
 </p>
 
-> The screenshots use demo data: made-up scenes, sites and names, with scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)).
+> The screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
 
 ## Contents
 
