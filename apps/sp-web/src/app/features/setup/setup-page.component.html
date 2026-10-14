@@ -150,6 +150,10 @@
         }
       </section>
 
+      @if (visibleCatalogProviderTypes().includes('TPDB')) {
+        <app-tpdb-catalog-guide />
+      }
+
       <section class="cards">
         @for (type of requiredServiceTypes; track type) {
           <app-integration-repair-panel

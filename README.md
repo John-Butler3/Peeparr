@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/sp-web/public/favicon.svg" width="140" alt="Peeparr logo" />
+  <img src="docs/assets/logo-animated.svg" width="300" alt="Peeparr logo" />
 </p>
 
 <h1 align="center">Peeparr</h1>
@@ -52,6 +52,7 @@ Every scene shows where it is in that journey: requested, downloading, importing
 - **A banner of the newest scenes in your library.** Each one plays its preview and moves on when the preview has played through. You can swipe between scenes, and a bar along the bottom shows when the next one is coming. On wide screens a soft glow of the preview spreads out behind the banner.
 - **Pick up where you left off**, **Fresh in your library** and **Popular right now** rows. For ThePornDB, Popular is the site's own popular list, read with your saved website login and cached.
 - **Search everything from one box:** performers, sites and scenes, a few of each with *Show more*.
+- **Smooth page changes.** As with YouTube, a thin red bar runs along the top while the next page loads. The page then appears complete, rising gently into place, rather than filling in piece by piece.
 
 ### Discover and request
 
@@ -94,11 +95,22 @@ Every scene shows where it is in that journey: requested, downloading, importing
 
 - **Guided setup** for Stash, Whisparr and your catalog. Each connection is checked as you save it, and Settings shows when something needs repairing.
 - **One local admin account.** If you forget the password, a temporary one can be generated on the server.
-- **ThePornDB support** includes a metadata proxy, so Whisparr-Eros can use ThePornDB too.
+- **ThePornDB, step by step.** Choose ThePornDB in setup and Peeparr explains what's needed:
+  - where to get your API token;
+  - the command that points Whisparr-Eros at Peeparr's ThePornDB metadata, with your Peeparr's address filled in and a Copy button;
+  - the optional website login for ThePornDB's popular scenes.
+  The same guide is in Settings › Integrations.
 
 ## On your phone
 
-Peeparr is built for phones as much as desktops: a bottom navigation bar, scrolling that autoplays previews, swipe gestures, and a picture that docks beside the title as you scroll. Add it to your home screen and it opens like an app.
+Peeparr is built for phones as much as desktops:
+
+- a floating, Liquid Glass-style navigation bar, with a capsule that slides to the page you're on;
+- scrolling that autoplays previews;
+- swipe gestures;
+- a picture that docks beside the title as you scroll.
+
+Add it to your home screen and it opens like an app.
 
 <table>
   <tr>
@@ -139,7 +151,14 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/mai
 
 Open `http://<host>:3000`. On the first visit you create the single local admin account; after that, signing in is required.
 
-**Using ThePornDB as the catalog?** Whisparr-Eros must then use Peeparr's ThePornDB metadata proxy instead of its built-in StashDB metadata. Run `scripts/configure-eros.sh --catalog tpdb --peeparr-url http://<host>:3000`. With StashDB, a stock Eros works as-is.
+**Using ThePornDB as the catalog?** Whisparr-Eros must then use Peeparr's ThePornDB metadata proxy instead of its built-in StashDB metadata. Setup shows you how, with the command ready to copy. On the Whisparr-Eros machine:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/configure-eros.sh
+bash configure-eros.sh --catalog tpdb --peeparr-url http://<host>:3000
+```
+
+With StashDB, a stock Eros works as-is.
 
 See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for all the options: Proxmox, updating, backups, password reset and the full Whisparr-Eros explanation.
 

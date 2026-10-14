@@ -1,21 +1,27 @@
-// YouTube-style miniplayer: a bar above the phone's bottom navigation, a
-// floating card in the bottom-right corner on desktop.
+// YouTube-style miniplayer: a floating glass bar just above the phone's
+// navigation bar, a floating card in the bottom-right corner on desktop.
 :host {
   display: contents;
 }
 
 .miniplayer {
-  --mini-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  // Floating just above the phone's glass navigation bar (62px tall, 10px up).
+  --mini-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   position: fixed;
-  left: 0;
-  right: 0;
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
   bottom: var(--mini-bottom);
   z-index: 1300;
   display: flex;
   align-items: center;
   height: 56px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--yt-menu-bg, var(--surface-elevated));
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--yt-menu-bg, var(--surface-elevated)) 78%, transparent);
+  backdrop-filter: blur(22px) saturate(1.8);
+  -webkit-backdrop-filter: blur(22px) saturate(1.8);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
   color: var(--text-primary);
   font-family: var(--yt-font, inherit);
   transition: bottom 220ms var(--yt-ease);
@@ -24,7 +30,7 @@
 
 // The phone bottom bar slid away while scrolling down: drop into its place.
 :host-context(.shell-bars-hidden) .miniplayer {
-  --mini-bottom: env(safe-area-inset-bottom, 0px);
+  --mini-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
 @keyframes mini-in {

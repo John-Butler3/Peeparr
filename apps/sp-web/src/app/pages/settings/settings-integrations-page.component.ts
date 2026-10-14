@@ -42,9 +42,11 @@ import {
 } from '../../shared/integration-repair/integration-repair.utils';
 
 import { TpdbWebLoginComponent } from '../../shared/tpdb-web-login/tpdb-web-login.component';
+import { TpdbCatalogGuideComponent } from '../../shared/tpdb-catalog-guide/tpdb-catalog-guide.component';
 @Component({
   selector: 'app-settings-integrations-page',
   imports: [
+    TpdbCatalogGuideComponent,
     ButtonDirective,
     Message,
     ProgressSpinner,

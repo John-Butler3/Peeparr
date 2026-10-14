@@ -1,0 +1,99 @@
+:host {
+  display: block;
+}
+
+.tpdb-guide {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--yt-radius, 12px);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+h2 i {
+  color: var(--yt-blue, #3ea6ff);
+}
+
+.steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.steps li::marker {
+  font-weight: 700;
+}
+
+.steps strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+a {
+  color: var(--yt-blue, #3ea6ff);
+}
+
+.command {
+  position: relative;
+  margin: 8px 0;
+}
+
+pre {
+  margin: 0;
+  padding: 12px 84px 12px 12px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--app-bg);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.note code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--app-bg);
+}
+
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 15px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.copy:hover {
+  background: var(--yt-chip-hover);
+}
+
+.note {
+  display: block;
+  color: var(--text-muted);
+}

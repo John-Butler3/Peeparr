@@ -165,6 +165,8 @@ describe('SetupPageComponent', () => {
     );
 
     expect(component.visibleCatalogProviderTypes()).toEqual(['STASHDB', 'FANSDB', 'TPDB']);
+    // ThePornDB is on offer, so its how-to (token, Whisparr-Eros) is shown.
+    expect(fixture.nativeElement.querySelector('[data-testid="tpdb-catalog-guide"]')).toBeTruthy();
     expect(textContent(fixture.nativeElement.querySelector('.setup-overview'))).toContain(
       '0 of 3 required services ready',
     );

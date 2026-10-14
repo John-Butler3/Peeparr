@@ -2,7 +2,7 @@ import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -17,7 +17,9 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     // Scroll position (top on new pages, restored on going back) is handled
     // by ScrollMemoryService, started in App.
-    provideRouter(routes),
+    // Pages loaded on demand are fetched in the background after start-up,
+    // so going to them never waits for their code.
+    provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(withInterceptors([authRedirectInterceptor])),
     provideAnimationsAsync(),
     providePrimeNG({

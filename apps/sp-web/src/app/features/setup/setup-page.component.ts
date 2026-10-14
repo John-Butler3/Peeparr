@@ -41,9 +41,10 @@ import {
   setupCompleteSummary,
 } from '../../shared/readiness/first-run-readiness.utils';
 
+import { TpdbCatalogGuideComponent } from '../../shared/tpdb-catalog-guide/tpdb-catalog-guide.component';
 @Component({
   selector: 'app-setup-page',
-  imports: [Message, ProgressSpinner, ButtonDirective, RouterLink, IntegrationRepairPanelComponent],
+  imports: [TpdbCatalogGuideComponent, Message, ProgressSpinner, ButtonDirective, RouterLink, IntegrationRepairPanelComponent],
   templateUrl: './setup-page.component.html',
   styleUrl: './setup-page.component.scss',
 })

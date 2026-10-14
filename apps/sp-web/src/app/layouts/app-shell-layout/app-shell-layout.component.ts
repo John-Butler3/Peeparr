@@ -26,6 +26,7 @@ import { summarizeDegradedSetupState } from '../../core/api/setup.types';
 import { ThemeService } from '../../core/theme/theme.service';
 import { BrandMarkComponent } from '../../shared/brand-mark/brand-mark.component';
 import { AppSplashComponent } from '../../shared/app-splash/app-splash.component';
+import { PageTransitionDirective } from './page-transition.directive';
 
 interface ShellDegradedState {
   kind: 'setup' | 'runtime';
@@ -139,7 +140,7 @@ const MOBILE_SECONDARY_NAV_ITEMS: readonly ShellNavItem[] = [
 
 @Component({
   selector: 'app-shell-layout',
-  imports: [FormsModule, RouterLink, RouterOutlet, BrandMarkComponent, AppSplashComponent],
+  imports: [PageTransitionDirective, FormsModule, RouterLink, RouterOutlet, BrandMarkComponent, AppSplashComponent],
   templateUrl: './app-shell-layout.component.html',
   styleUrl: './app-shell-layout.component.scss',
 })
@@ -226,6 +227,15 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   protected readonly moreNavActive = computed(() => {
     const currentUrl = this.currentUrl();
     return this.mobileSecondaryNavItems.some((item) => this.matchesNavItem(item, currentUrl));
+  });
+  /** Which bottom-bar item the glass capsule sits behind (-1: none). */
+  protected readonly mobileActiveIndex = computed(() => {
+    const currentUrl = this.currentUrl();
+    const index = this.mobilePrimaryNavItems.findIndex((item) => this.matchesNavItem(item, currentUrl));
+    if (index >= 0) {
+      return index;
+    }
+    return this.moreMenuOpen() || this.moreNavActive() ? this.mobilePrimaryNavItems.length : -1;
   });
 
   ngOnInit(): void {

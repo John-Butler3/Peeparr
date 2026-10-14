@@ -162,15 +162,23 @@ h3 {
   }
 }
 
-// Each page rises slightly into place with a very quick fade on navigation,
-// like YouTube (pages render as siblings of the shell's router-outlet).
+// Page changes (page-transition.directive): the new page stays hidden while
+// it loads, then rises slightly into place with a very quick fade, like
+// YouTube (pages render as siblings of the shell's router-outlet).
 .route-view > :not(router-outlet) {
   display: block;
-  animation: yt-page-in 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.route-view.is-pending > :not(router-outlet) {
+  opacity: 0;
+}
+
+.route-view.is-entering > :not(router-outlet) {
+  animation: yt-page-in 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-view > :not(router-outlet) {
+  .route-view.is-entering > :not(router-outlet) {
     animation: none;
   }
 }

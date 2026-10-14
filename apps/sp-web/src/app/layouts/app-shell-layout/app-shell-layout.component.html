@@ -164,7 +164,10 @@
       </div>
     }
 
-    <div class="route-view">
+    <!-- Page changes: the new page shows once it's ready, rising into place
+         (page-transition.directive), with a progress bar while it loads. -->
+    <div class="page-progress" [class.is-active]="pageTransition.loading()" aria-hidden="true"></div>
+    <div class="route-view" appPageTransition #pageTransition="pageTransition">
       <router-outlet />
     </div>
   </main>
@@ -238,6 +241,12 @@
     aria-label="Bottom navigation"
     data-testid="mobile-bottom-nav"
   >
+    <span
+      class="mobile-nav-glass"
+      [class.is-none]="mobileActiveIndex() < 0"
+      [style.--active-index]="mobileActiveIndex() < 0 ? 0 : mobileActiveIndex()"
+      aria-hidden="true"
+    ></span>
     @for (item of mobilePrimaryNavItems; track item.route) {
       <a
         [routerLink]="item.route"

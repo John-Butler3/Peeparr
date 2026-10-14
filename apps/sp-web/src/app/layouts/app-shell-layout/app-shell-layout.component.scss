@@ -3,9 +3,12 @@
 :host {
   display: block;
   min-height: 100dvh;
-  --shell-mobile-nav-height: 56px;
+  // The floating glass bar: its height, and its gap above the screen's
+  // bottom edge (plus the home-indicator area).
+  --shell-mobile-nav-height: 62px;
+  --shell-mobile-nav-gap: 10px;
   --shell-mobile-nav-offset: calc(
-    var(--shell-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    var(--shell-mobile-nav-height) + var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px)
   );
   --shell-masthead-h: var(--yt-masthead-h, 56px);
   --shell-guide-w: var(--yt-guide-w, 240px);
@@ -452,23 +455,52 @@
 
 .mobile-bottom-nav {
   position: fixed;
-  inset: auto 0 0;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
   z-index: 55;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  // The bar's own height plus the home-indicator area, so the safe-area
-  // padding doesn't eat into the icons.
-  height: var(--shell-mobile-nav-offset);
-  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
-    env(safe-area-inset-left, 0px);
-  border-top: 1px solid var(--border-subtle);
-  background: var(--app-bg);
-  transition: transform 220ms var(--yt-ease);
+  box-sizing: border-box;
+  height: var(--shell-mobile-nav-height);
+  padding: 5px;
+  // Liquid Glass: a floating, translucent, blurred pill with a light edge.
+  border: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-bg) 58%, transparent);
+  backdrop-filter: blur(22px) saturate(1.8);
+  -webkit-backdrop-filter: blur(22px) saturate(1.8);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 40%),
+    inset 0 1px 0 color-mix(in srgb, var(--text-primary) 14%, transparent);
+  transition: transform 260ms var(--yt-ease);
 }
 
 // Like the masthead: slides away while scrolling down, back on scrolling up.
 .mobile-bottom-nav.is-hidden {
-  transform: translateY(100%);
+  transform: translateY(calc(100% + var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px) + 12px));
+}
+
+// The lighter glass capsule behind the page you're on; it slides across
+// with a little spring when you change page.
+.mobile-nav-glass {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / 5);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 15%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 18%, transparent);
+  transform: translateX(calc(var(--active-index, 0) * 100%));
+  transition:
+    transform 420ms cubic-bezier(0.3, 1.35, 0.5, 1),
+    opacity 200ms ease;
+  pointer-events: none;
+}
+
+.mobile-nav-glass.is-none {
+  opacity: 0;
 }
 
 .mobile-nav-item {
@@ -476,28 +508,26 @@
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 4px;
+  gap: 3px;
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
   text-decoration: none;
   cursor: pointer;
+  transition: color 200ms ease;
 }
 
 .mobile-nav-item .icon {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 28px;
-  border-radius: 14px;
-  transition: background-color 160ms var(--yt-ease, ease);
+  height: 26px;
 }
 
 .mobile-nav-item .icon i {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
 }
 
 .mobile-nav-label {
@@ -505,8 +535,7 @@
   line-height: 1;
 }
 
-// The page you're on: bright and bold, with a pill behind its icon (the
-// others are dimmed).
+// The page you're on: bright, bold, with a red icon (others dimmed).
 .mobile-nav-item.active {
   color: var(--text-primary);
 }
@@ -515,8 +544,14 @@
   font-weight: 700;
 }
 
-.mobile-nav-item.active .icon {
-  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
+.mobile-nav-item.active .icon i {
+  color: var(--yt-red, #f03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-glass {
+    transition: none;
+  }
 }
 
 .mobile-nav-indicator {
@@ -683,4 +718,33 @@
   opacity: 0;
   font-size: 16px;
   pointer-events: none;
+}
+
+// ---- Page changes ---------------------------------------------------------
+// YouTube's thin red bar along the top while the next page loads.
+.page-progress {
+  position: fixed;
+  inset: env(safe-area-inset-top, 0px) 0 auto;
+  z-index: 70;
+  height: 2px;
+  background: var(--yt-red, #f03);
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-progress.is-active {
+  opacity: 1;
+  animation: page-progress 900ms cubic-bezier(0.1, 0.6, 0.3, 1) forwards;
+}
+
+@keyframes page-progress {
+  from {
+    transform: scaleX(0.05);
+  }
+
+  to {
+    transform: scaleX(0.85);
+  }
 }

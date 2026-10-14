@@ -165,6 +165,18 @@ Things to know when Eros uses the proxy:
 
 ### configure-eros.sh
 
+When ThePornDB is the catalog, Peeparr's setup page (and Settings ›
+Integrations) shows these steps with your Peeparr address filled in. The
+script needs no checkout of Peeparr's source: download it and run it on the
+Eros machine:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/configure-eros.sh
+bash configure-eros.sh --catalog tpdb --peeparr-url http://<peeparr>:3000
+```
+
+Every way to run it:
+
 ```bash
 # On the Eros machine (community-scripts LXC or any systemd install)
 ./configure-eros.sh --catalog tpdb --peeparr-url http://10.50.50.201:3000
