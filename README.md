@@ -1,6 +1,14 @@
-# Stasharr
+<p align="center">
+  <img src="apps/sp-web/public/favicon.svg" width="140" alt="Stasharr logo" />
+</p>
 
+<h1 align="center">Stasharr</h1>
+
+<p align="center">
 Stasharr is a self-hosted console that discovers scenes from a supported catalog provider, sends acquisitions to Whisparr, and validates availability against your local Stash library.
+</p>
+
+<p align="center">
 
 [![Latest release](https://img.shields.io/github/v/release/John-Butler3/Stasharr?display_name=tag&sort=semver&style=for-the-badge)](https://github.com/John-Butler3/Stasharr/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/John-Butler3/Stasharr/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/John-Butler3/Stasharr/actions/workflows/ci.yml)
@@ -8,6 +16,8 @@ Stasharr is a self-hosted console that discovers scenes from a supported catalog
 [![Self-hosted](https://img.shields.io/badge/self--hosted-yes-0f766e?&style=for-the-badge)](#self-hosted-quick-start)
 [![Deploy: Docker Compose](https://img.shields.io/badge/deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white&style=for-the-badge)](#self-hosted-quick-start)
 [![Auth: local admin](https://img.shields.io/badge/auth-local%20admin-475569?&style=for-the-badge)](#self-hosted-quick-start)
+
+</p>
 
 ## What Stasharr Does
 
