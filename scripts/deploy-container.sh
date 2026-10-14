@@ -91,7 +91,14 @@ else
 fi
 
 log "Building Docker image: $IMAGE_TAG"
-docker build -t "$IMAGE_TAG" "$SRC_DIR"
+# The version shown in Settings > About: version.txt, plus the commit when
+# this isn't exactly that release's tag.
+APP_VERSION="$(tr -d '[:space:]' < "$SRC_DIR/version.txt" 2>/dev/null || true)"
+APP_VERSION="${APP_VERSION:-0.0.0}"
+if [[ "$(git -C "$SRC_DIR" describe --tags --exact-match 2>/dev/null || true)" != "v$APP_VERSION" ]]; then
+  APP_VERSION="$APP_VERSION+$(git -C "$SRC_DIR" rev-parse --short HEAD 2>/dev/null || echo dev)"
+fi
+docker build --build-arg PEEPARR_VERSION="$APP_VERSION" -t "$IMAGE_TAG" "$SRC_DIR"
 
 log "Restarting compose stack in $COMPOSE_DIR"
 cd "$COMPOSE_DIR"

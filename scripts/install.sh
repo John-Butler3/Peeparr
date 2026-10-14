@@ -163,7 +163,14 @@ fi
 
 # ---- 4. Build and start ----------------------------------------------------
 log "Building $IMAGE_TAG (compiles the app; a few minutes on first run)"
-docker build --quiet -t "$IMAGE_TAG" "$SRC_DIR" >/dev/null
+# The version shown in Settings > About: version.txt, plus the commit when
+# this isn't exactly that release's tag.
+APP_VERSION="$(tr -d '[:space:]' < "$SRC_DIR/version.txt" 2>/dev/null || true)"
+APP_VERSION="${APP_VERSION:-0.0.0}"
+if [[ "$(git -C "$SRC_DIR" describe --tags --exact-match 2>/dev/null || true)" != "v$APP_VERSION" ]]; then
+  APP_VERSION="$APP_VERSION+$(git -C "$SRC_DIR" rev-parse --short HEAD 2>/dev/null || echo dev)"
+fi
+docker build --quiet --build-arg PEEPARR_VERSION="$APP_VERSION" -t "$IMAGE_TAG" "$SRC_DIR" >/dev/null
 
 log "Starting Peeparr"
 (cd "$INSTALL_DIR" && docker compose up -d --remove-orphans)
