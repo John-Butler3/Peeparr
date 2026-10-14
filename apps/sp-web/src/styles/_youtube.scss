@@ -849,3 +849,13 @@ app-home-page .rail-actions {
     font-size: 16px !important;
   }
 }
+
+// Play buttons (card titles, Home banner): a solid, rounded triangle,
+// nudged right a touch so it looks centred in its circle.
+.play-glyph {
+  display: block;
+  width: 46%;
+  height: 46%;
+  margin-left: 8%;
+  fill: currentColor;
+}
