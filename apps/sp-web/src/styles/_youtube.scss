@@ -838,3 +838,14 @@ app-home-page .rail-actions {
     right: 4px !important;
   }
 }
+
+// Touch screens: iOS zooms the page in when a text field with text under
+// 16px gets focus (tapping Search did that). Text fields use 16px there.
+@media (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+  textarea,
+  select,
+  .p-inputtext {
+    font-size: 16px !important;
+  }
+}
