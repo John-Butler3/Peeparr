@@ -5,7 +5,7 @@
 <h1 align="center">Peeparr</h1>
 
 <p align="center">
-Peeparr is a self-hosted, YouTube-style home for your Stash library. Browse and watch what you already have, discover new scenes from StashDB, FansDB or ThePornDB, request them through Whisparr, and follow each one until it's in your library and ready to play.
+Peeparr is a self-hosted central hub for your adult library. Browse and watch everything in your Stash library, discover new scenes from StashDB, FansDB or ThePornDB, request them through Whisparr, and follow each one until it's in your library and ready to play.
 </p>
 
 <p align="center">
@@ -52,7 +52,7 @@ Every scene shows where it is in that journey: requested, downloading, importing
 - **A banner of the newest scenes in your library.** Each one plays its preview and moves on when the preview has played through. You can swipe between scenes, and a bar along the bottom shows when the next one is coming. On wide screens a soft glow of the preview spreads out behind the banner.
 - **Pick up where you left off**, **Fresh in your library** and **Popular right now** rows. For ThePornDB, Popular is the site's own popular list, read with your saved website login and cached.
 - **Search everything from one box:** performers, sites and scenes, a few of each with *Show more*.
-- **Smooth page changes.** As with YouTube, a thin red bar runs along the top while the next page loads. The page then appears complete, rising gently into place, rather than filling in piece by piece.
+- **Smooth page changes.** A thin red bar runs along the top while the next page loads. The page then appears complete, rising gently into place, rather than filling in piece by piece.
 
 ### Discover and request
 
@@ -69,7 +69,7 @@ Every scene shows where it is in that journey: requested, downloading, importing
 
 <p align="center"><img src="docs/screenshots/scene.png" alt="A scene page: the player, title, status, site and date, performers, actions, description, and Up next" width="100%" /></p>
 
-- **YouTube-style scene pages.** Under the title is one tidy line: the status, the site, the date and the length. Below it are the performers, then the description and tags. Up next sits alongside.
+- **Scene pages.** Under the title is one tidy line: the status, the site, the date and the length. Below it are the performers, then the description and tags. Up next sits alongside.
 - **Picks up where you stopped**, and keeps your place across devices.
 - **Up next** follows a series in order. It then offers related library scenes, including ones with the same performers, even on scenes you don't have yet.
 - **Miniplayer.** Leave a playing scene and it carries on at the bottom of the screen. Tap it to go back to the scene, right where you were. On a phone, swipe the video down to send it there.
