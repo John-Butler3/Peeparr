@@ -4,6 +4,7 @@ import { StashdbSortDirection } from '../providers/stashdb/stashdb.adapter';
 import { StudioDetailsDto } from './dto/studio-details.dto';
 import { StudioFeedResponseDto } from './dto/studio-feed-response.dto';
 import { StudioSort } from './dto/studios-query.dto';
+import { StudioFavoritesService } from './studio-favorites.service';
 
 @Injectable()
 export class StudiosService {
@@ -12,7 +13,10 @@ export class StudiosService {
   private static readonly DEFAULT_SORT: StudioSort = 'NAME';
   private static readonly DEFAULT_DIRECTION: StashdbSortDirection = 'ASC';
 
-  constructor(private readonly catalogProviderService: CatalogProviderService) {}
+  constructor(
+    private readonly catalogProviderService: CatalogProviderService,
+    private readonly studioFavoritesService: StudioFavoritesService,
+  ) {}
 
   async getStudiosFeed(
     page = StudiosService.DEFAULT_PAGE,
@@ -24,6 +28,13 @@ export class StudiosService {
       favoritesOnly?: boolean;
     },
   ): Promise<StudioFeedResponseDto> {
+    if (filters?.favoritesOnly) {
+      const localFavoriteIds = await this.studioFavoritesService.listAllFavoriteIds();
+      if (localFavoriteIds.length > 0) {
+        return this.getFavoritedStudiosFeed(localFavoriteIds, page, perPage, filters.name);
+      }
+    }
+
     const config = await this.getActiveCatalogConfig();
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
@@ -40,6 +51,9 @@ export class StudiosService {
     });
 
     const hasMore = page * perPage < studios.total;
+    const favoriteIds = await this.studioFavoritesService.getFavoriteIds(
+      studios.studios.map((studio) => studio.id),
+    );
 
     return {
       total: studios.total,
@@ -49,7 +63,48 @@ export class StudiosService {
       items: studios.studios.map((studio) => ({
         id: studio.id,
         name: studio.name,
-        isFavorite: studio.isFavorite,
+        isFavorite: studio.isFavorite || favoriteIds.has(studio.id),
+        imageUrl: studio.imageUrl,
+        parentStudio: studio.parentStudio,
+        childStudios: studio.childStudios,
+      })),
+    };
+  }
+
+  // Favorites only, from Peeparr's own list: each favorited studio looked up
+  // by id (TPDB can't filter by favorites), name-filtered and A-Z.
+  private async getFavoritedStudiosFeed(
+    favoriteIds: string[],
+    page: number,
+    perPage: number,
+    name: string | undefined,
+  ): Promise<StudioFeedResponseDto> {
+    const config = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const studios = (
+      await Promise.all(
+        favoriteIds.map((studioId) =>
+          catalogAdapter.getStudioById(studioId, config).catch(() => null),
+        ),
+      )
+    ).filter((studio): studio is NonNullable<typeof studio> => studio !== null);
+
+    const query = name?.trim().toLowerCase();
+    const matching = (query ? studios.filter((studio) => studio.name.toLowerCase().includes(query)) : studios).sort(
+      (a, b) => a.name.localeCompare(b.name),
+    );
+    const start = (page - 1) * perPage;
+
+    return {
+      total: matching.length,
+      page,
+      perPage,
+      hasMore: page * perPage < matching.length,
+      items: matching.slice(start, start + perPage).map((studio) => ({
+        id: studio.id,
+        name: studio.name,
+        isFavorite: true,
         imageUrl: studio.imageUrl,
         parentStudio: studio.parentStudio,
         childStudios: studio.childStudios,
@@ -71,12 +126,14 @@ export class StudiosService {
       config,
     );
 
+    const favoritedLocally = (await this.studioFavoritesService.getFavoriteIds([studio.id])).has(studio.id);
+
     return {
       id: studio.id,
       name: studio.name,
       aliases: studio.aliases,
       deleted: studio.deleted,
-      isFavorite: studio.isFavorite,
+      isFavorite: studio.isFavorite || favoritedLocally,
       createdAt: studio.createdAt,
       updatedAt: studio.updatedAt,
       imageUrl: studio.imageUrl,

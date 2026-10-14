@@ -7,6 +7,7 @@ import { StashdbModule } from '../providers/stashdb/stashdb.module';
 import { WhisparrModule } from '../providers/whisparr/whisparr.module';
 import { SceneStatusModule } from '../scene-status/scene-status.module';
 import { SettingsModule } from '../settings/settings.module';
+import { StudioFavoritesModule } from '../studios/studio-favorites.module';
 import { TpdbWebModule } from '../tpdb-web/tpdb-web.module';
 import { ScenesController } from './scenes.controller';
 import { ScenesService } from './scenes.service';
@@ -22,6 +23,7 @@ import { ScenesService } from './scenes.service';
     PerformerFavoritesModule,
     PerformerImagePreferenceModule,
     TpdbWebModule,
+    StudioFavoritesModule,
   ],
   controllers: [ScenesController],
   providers: [ScenesService],

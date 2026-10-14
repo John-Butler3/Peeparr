@@ -301,6 +301,13 @@ model FavoritePerformer {
   createdAt   DateTime @default(now())
 }
 
+model FavoriteStudio {
+  id        String   @id @default(cuid())
+  /// External studio id from the instance's currently active catalog provider (StashDB/FansDB/TPDB).
+  studioId  String   @unique
+  createdAt DateTime @default(now())
+}
+
 model MonitoredPerformer {
   id              String    @id @default(cuid())
   /// External performer id from the instance's currently active catalog provider.

@@ -19,6 +19,7 @@ import {
 import { filterExcludedNetworkScenes } from '../scene-status/exclude-network-scenes.util';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { AppSettingsService } from '../settings/app-settings.service';
+import { StudioFavoritesService } from '../studios/studio-favorites.service';
 import { TpdbWebService } from '../tpdb-web/tpdb-web.service';
 import { SceneTagOptionDto } from './dto/scene-tag-option.dto';
 import {
@@ -80,6 +81,7 @@ export class ScenesService {
     private readonly performerFavoritesService: PerformerFavoritesService,
     private readonly performerImagePreferenceService: PerformerImagePreferenceService,
     private readonly tpdbWebService: TpdbWebService,
+    private readonly studioFavoritesService: StudioFavoritesService,
   ) {}
 
   async getScenesFeed(
@@ -118,6 +120,24 @@ export class ScenesService {
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
     const normalizedTagIds = this.normalizeTagIds(tagIds);
+    // Favorite studios: TPDB ignores favorites: STUDIO, so when studios are
+    // favorited in Peeparr the feed asks for those studios by id instead
+    // (narrowed to any studios already selected).
+    let providerFavorites = favorites;
+    let providerStudioIds = normalizedStudioIds;
+    if (favorites === 'STUDIO') {
+      const localFavoriteStudioIds = await this.studioFavoritesService.listAllFavoriteIds();
+      if (localFavoriteStudioIds.length > 0) {
+        providerFavorites = undefined;
+        providerStudioIds =
+          normalizedStudioIds.length > 0
+            ? normalizedStudioIds.filter((id) => localFavoriteStudioIds.includes(id))
+            : localFavoriteStudioIds;
+        if (providerStudioIds.length === 0) {
+          return { total: 0, page, perPage, hasMore: false, items: [] };
+        }
+      }
+    }
     const fetchProviderPage = (providerPage: number) =>
       catalogAdapter.getScenesBySort({
         baseUrl: catalogProvider.baseUrl,
@@ -126,8 +146,8 @@ export class ScenesService {
         perPage,
         sort,
         direction,
-        favorites,
-        studioIds: normalizedStudioIds,
+        favorites: providerFavorites,
+        studioIds: providerStudioIds,
         titleQuery,
         tagFilter:
           normalizedTagIds.length > 0
@@ -555,6 +575,9 @@ export class ScenesService {
     const localFavoriteIds = await this.performerFavoritesService.getFavoriteIds(
       scene.performers.map((performer) => performer.id),
     );
+    const studioFavoritedLocally = scene.studioId
+      ? (await this.studioFavoritesService.getFavoriteIds([scene.studioId])).has(scene.studioId)
+      : false;
 
     return {
       id: scene.id,
@@ -563,7 +586,7 @@ export class ScenesService {
       imageUrl: scene.imageUrl,
       images: scene.images,
       studioId: scene.studioId,
-      studioIsFavorite: scene.studioIsFavorite,
+      studioIsFavorite: scene.studioIsFavorite || studioFavoritedLocally,
       studio: scene.studioName,
       studioImageUrl: scene.studioImageUrl,
       studioUrl: this.resolveStudioUrl(scene.sourceUrls),
@@ -740,15 +763,24 @@ export class ScenesService {
       throw new BadRequestException('Studio id is required.');
     }
 
-    const catalogProvider =
-      await this.catalogProviderService.getConfiguredCatalogProvider();
-    const catalogAdapter =
-      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const result = await this.studioFavoritesService.setFavorite(normalizedStudioId, favorite);
 
-    return catalogAdapter.favoriteStudio(normalizedStudioId, favorite, {
-      baseUrl: catalogProvider.baseUrl,
-      apiKey: catalogProvider.apiKey,
-    });
+    // Best-effort only: Peeparr's own list is what counts (TPDB can't keep
+    // studio favorites), so the provider never blocks the toggle.
+    try {
+      const catalogProvider =
+        await this.catalogProviderService.getConfiguredCatalogProvider();
+      const catalogAdapter =
+        await this.catalogProviderService.getConfiguredCatalogAdapter();
+      await catalogAdapter.favoriteStudio(normalizedStudioId, favorite, {
+        baseUrl: catalogProvider.baseUrl,
+        apiKey: catalogProvider.apiKey,
+      });
+    } catch {
+      // ignore
+    }
+
+    return result;
   }
 
   private async resolveStashAvailability(

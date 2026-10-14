@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
+import { StudioFavoritesService } from './studio-favorites.service';
 import { StudiosService } from './studios.service';
 
 describe('StudiosService', () => {
@@ -22,11 +23,18 @@ describe('StudiosService', () => {
     apiKey: 'stashdb-key',
   };
 
+  const studioFavoritesService = {
+    getFavoriteIds: jest.fn(),
+    listAllFavoriteIds: jest.fn(),
+  } as unknown as StudioFavoritesService;
+
   let service: StudiosService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new StudiosService(catalogProviderService);
+    service = new StudiosService(catalogProviderService, studioFavoritesService);
+    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+    studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
 
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
@@ -274,5 +282,40 @@ describe('StudiosService', () => {
     await expect(service.getStudioById('studio-404')).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  it("marks studios favorited in Peeparr as favorites (TPDB never reports it)", async () => {
+    catalogAdapter.getStudiosFeed = jest.fn().mockResolvedValue({
+      total: 2,
+      studios: [
+        { id: 'st-1', name: 'One', isFavorite: false, imageUrl: null, parentStudio: null, childStudios: [] },
+        { id: 'st-2', name: 'Two', isFavorite: false, imageUrl: null, parentStudio: null, childStudios: [] },
+      ],
+    });
+    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set(['st-2']));
+
+    const result = await service.getStudiosFeed(1, 24);
+
+    expect(result.items.map((item) => [item.id, item.isFavorite])).toEqual([
+      ['st-1', false],
+      ['st-2', true],
+    ]);
+  });
+
+  it("lists favorites-only from Peeparr's own list, looked up by id, A-Z", async () => {
+    studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['st-z', 'st-a', 'gone']);
+    catalogAdapter.getStudioById = jest.fn().mockImplementation(async (id: string) => {
+      if (id === 'gone') {
+        throw new NotFoundException();
+      }
+      return { id, name: id === 'st-z' ? 'Zeta' : 'Alpha', imageUrl: null, parentStudio: null, childStudios: [] };
+    });
+
+    const result = await service.getStudiosFeed(1, 24, { favoritesOnly: true });
+
+    expect(catalogAdapter.getStudiosFeed).not.toHaveBeenCalled();
+    expect(result.total).toBe(2);
+    expect(result.items.map((item) => item.name)).toEqual(['Alpha', 'Zeta']);
+    expect(result.items.every((item) => item.isFavorite)).toBe(true);
   });
 });

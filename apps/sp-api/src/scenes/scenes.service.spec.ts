@@ -1,3 +1,4 @@
+import { StudioFavoritesService } from '../studios/studio-favorites.service';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PerformerFavoritesService } from '../performers/performer-favorites.service';
@@ -52,6 +53,12 @@ describe('ScenesService', () => {
     listAllFavoriteIds: jest.fn(),
     getFavoriteIds: jest.fn(),
   } as unknown as PerformerFavoritesService;
+
+  const studioFavoritesService = {
+    getFavoriteIds: jest.fn(),
+    listAllFavoriteIds: jest.fn(),
+    setFavorite: jest.fn(),
+  } as unknown as StudioFavoritesService;
 
   const performerImagePreferenceService = {
     getMainImageUrls: jest.fn(),
@@ -110,6 +117,7 @@ describe('ScenesService', () => {
       performerFavoritesService,
       performerImagePreferenceService,
       tpdbWebService,
+      studioFavoritesService,
     );
 
     performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
@@ -177,6 +185,8 @@ describe('ScenesService', () => {
       .mockResolvedValue({ hideAmateurNetworkResults: false });
     performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
     performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+    studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
     stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([]);
     whisparrAdapter.findMovieByStashId = jest.fn().mockResolvedValue(null);
     whisparrAdapter.buildSceneViewUrl = jest
@@ -637,6 +647,43 @@ describe('ScenesService', () => {
         apiKey: stashIntegration.apiKey,
       },
     );
+  });
+
+  it('asks for favorited studios by id when they are kept in Peeparr', async () => {
+    studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['studio-9', 'studio-3']);
+
+    await service.getScenesFeed(1, 25, 'DATE', undefined, [], 'OR', 'STUDIO');
+
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith(
+      expect.objectContaining({ favorites: undefined, studioIds: ['studio-9', 'studio-3'] }),
+    );
+  });
+
+  it("marks the scene's studio and cast favorited in Peeparr as favorites", async () => {
+    catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+      ...sceneDetails,
+      studioId: 'studio-1',
+      studioIsFavorite: false,
+      performers: [],
+    });
+    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set(['studio-1']));
+
+    const result = await service.getSceneById('stashdb-scene-1');
+
+    expect(result.studioIsFavorite).toBe(true);
+  });
+
+  it('saves a studio favorite in Peeparr even when the catalog cannot', async () => {
+    studioFavoritesService.setFavorite = jest
+      .fn()
+      .mockResolvedValue({ favorited: true, alreadyFavorited: false });
+    catalogAdapter.favoriteStudio = jest.fn().mockRejectedValue(new Error('not supported'));
+
+    await expect(service.favoriteStudio('studio-1', true)).resolves.toEqual({
+      favorited: true,
+      alreadyFavorited: false,
+    });
+    expect(studioFavoritesService.setFavorite).toHaveBeenCalledWith('studio-1', true);
   });
 
   it("marks scene cast members favorited in Peeparr as favorites (TPDB never reports it)", async () => {
