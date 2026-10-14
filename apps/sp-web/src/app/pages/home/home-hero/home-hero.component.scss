@@ -1,15 +1,42 @@
 :host {
   display: block;
+  // The glow sizes itself to the page column (100cqw).
+  container-type: inline-size;
 }
 
 // Wide, centred at the top of Home.
 .home-hero {
+  position: relative;
   max-width: 1100px;
   margin: 0 auto 16px;
 }
 
+// Ambient glow (wide screens): the current frame, tiny and heavily blurred,
+// spread across the page column (and its 24px gutters) behind the banner,
+// fading out well before any edge.
+.hero-ambient {
+  display: none;
+}
+
+@media (min-width: 1000px) {
+  .hero-ambient {
+    position: absolute;
+    top: -64px;
+    left: calc((100% - 100cqw) / 2 - 24px);
+    z-index: 0;
+    display: block;
+    width: calc(100cqw + 48px);
+    height: calc(100% + 144px);
+    filter: blur(48px) saturate(1.8);
+    opacity: 0.8;
+    pointer-events: none;
+    mask-image: radial-gradient(closest-side, #000 70%, transparent 100%);
+  }
+}
+
 .hero-stage {
   position: relative;
+  z-index: 1;
   aspect-ratio: 16 / 9;
   max-height: 52vh;
   width: 100%;

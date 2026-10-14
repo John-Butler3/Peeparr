@@ -1,5 +1,15 @@
 @if (current(); as item) {
   <section class="home-hero" aria-label="Recently added" data-testid="home-hero">
+    <!-- Wide screens: a soft glow of what's showing, spilling out behind the
+         banner (YouTube's ambient mode). -->
+    <canvas
+      #ambient
+      class="hero-ambient"
+      [attr.width]="ambientWidth"
+      [attr.height]="ambientHeight"
+      aria-hidden="true"
+    ></canvas>
+
     <div
       class="hero-stage"
       (touchstart)="onTouchStart($event)"

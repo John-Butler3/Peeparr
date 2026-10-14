@@ -5,7 +5,7 @@
 <h1 align="center">Peeparr</h1>
 
 <p align="center">
-Peeparr is a self-hosted console that discovers scenes from a supported catalog provider, sends acquisitions to Whisparr, and validates availability against your local Stash library.
+Peeparr is a self-hosted, YouTube-style home for your Stash library. Browse and watch what you already have, discover new scenes from StashDB, FansDB or ThePornDB, request them through Whisparr, and follow each one until it's in your library and ready to play.
 </p>
 
 <p align="center">
