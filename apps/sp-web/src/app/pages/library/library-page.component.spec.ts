@@ -410,8 +410,12 @@ describe('LibraryPageComponent', () => {
     // Text search lives in the library search box above the controls now.
     expect(fixture.nativeElement.querySelector('.controls-row input[type="search"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('.library-search-input')).toBeTruthy();
+    // The filters fold away behind the Filters button.
+    expect(fixture.nativeElement.querySelectorAll('p-multiselect')).toHaveLength(0);
+    (fixture.nativeElement.querySelector('.app-filters-toggle-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('p-multiselect')).toHaveLength(2);
-    expect(fixture.nativeElement.querySelectorAll('p-select')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelectorAll('p-select')).toHaveLength(1);
     expect(fixture.nativeElement.querySelector('.grid')).toBeTruthy();
   });
 

@@ -207,7 +207,7 @@ describe('IntegrationsService', () => {
     expect(updateMany).toHaveBeenCalledWith({
       where: {
         type: {
-          in: [IntegrationType.STASHDB],
+          in: [IntegrationType.STASHDB, IntegrationType.TPDB],
         },
       },
       data: {
@@ -444,6 +444,8 @@ describe('IntegrationsService', () => {
   });
 
   it('tests TPDB integration via the TpdbAdapter and stores success metadata', async () => {
+    // No catalog provider chosen yet.
+    findMany.mockResolvedValue([]);
     findUnique.mockResolvedValue({
       type: IntegrationType.TPDB,
       enabled: true,
@@ -457,6 +459,11 @@ describe('IntegrationsService', () => {
       status: IntegrationStatus.CONFIGURED,
       lastErrorMessage: null,
     });
+    // TPDB is a catalog provider: saving it also resets the other catalogs.
+    updateMany.mockResolvedValue({ count: 0 });
+    transaction.mockImplementation(async (operations: Promise<unknown>[]) =>
+      Promise.all(operations),
+    );
 
     await expect(
       service.testIntegration(IntegrationType.TPDB, {}),

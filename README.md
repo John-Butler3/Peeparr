@@ -2,9 +2,9 @@
 
 Stasharr is a self-hosted console that discovers scenes from a supported catalog provider, sends acquisitions to Whisparr, and validates availability against your local Stash library.
 
-[![Latest release](https://img.shields.io/github/v/release/enymawse/stasharr-portal?display_name=tag&sort=semver&style=for-the-badge)](https://github.com/enymawse/stasharr-portal/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/enymawse/stasharr-portal/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/enymawse/stasharr-portal/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/enymawse/stasharr-portal?&style=for-the-badge)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/John-Butler3/Stasharr?display_name=tag&sort=semver&style=for-the-badge)](https://github.com/John-Butler3/Stasharr/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/John-Butler3/Stasharr/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/John-Butler3/Stasharr/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/John-Butler3/Stasharr?&style=for-the-badge)](LICENSE)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-yes-0f766e?&style=for-the-badge)](#self-hosted-quick-start)
 [![Deploy: Docker Compose](https://img.shields.io/badge/deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white&style=for-the-badge)](#self-hosted-quick-start)
 [![Auth: local admin](https://img.shields.io/badge/auth-local%20admin-475569?&style=for-the-badge)](#self-hosted-quick-start)
@@ -24,16 +24,16 @@ Stasharr is a self-hosted console that discovers scenes from a supported catalog
 
 ## Self-Hosted Quick Start
 
-This fork is built from source (the upstream `ghcr.io/enymawse/stasharr-portal` image doesn't include its features). On a Debian/Ubuntu machine, as root:
+Stasharr is built from source on the machine it runs on. On a Debian/Ubuntu machine, as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/scripts/install.sh | bash
 ```
 
 That installs Docker if needed, builds the app, writes `/opt/stasharr/compose.yaml` and a private `/opt/stasharr/.env` with a random database password, starts everything and prints the address. On Proxmox, use the [Proxmox VE Helper-Scripts](https://community-scripts.github.io/ProxmoxVE/)-style installer instead -- run this in the Proxmox shell for a native (no Docker) LXC:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
 ```
 
 Open `http://<host>:3000`. The first visit asks you to create the single local admin account; after that, sign-in is required.

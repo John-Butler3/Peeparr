@@ -109,6 +109,7 @@ export class ScenesService {
         direction,
         normalizedStudioIds,
         titleQuery,
+        { tagIds: this.normalizeTagIds(tagIds), mode: tagMode },
       );
     }
 
@@ -382,6 +383,7 @@ export class ScenesService {
     direction: SortDirection,
     studioIds: string[],
     titleQuery: string | undefined,
+    tagFilter: { tagIds: string[]; mode: SceneTagMatchMode },
   ): Promise<ScenesFeedResponseDto> {
     const favoriteIds = await this.performerFavoritesService.listAllFavoriteIds();
     if (favoriteIds.length === 0) {
@@ -405,6 +407,11 @@ export class ScenesService {
             perPage: ScenesService.FAVORITE_PERFORMER_SCENES_PER_PERFORMER_CAP,
             sort: 'DATE',
             direction: 'DESC',
+            // Selected tags narrow each performer's scenes (the provider
+            // filters; scene lists don't carry tags to filter here).
+            ...(tagFilter.tagIds.length > 0
+              ? { tagIds: tagFilter.tagIds, tagMode: tagFilter.mode }
+              : {}),
           });
           return result.scenes;
         } catch {

@@ -164,7 +164,7 @@ describe('SetupPageComponent', () => {
       ],
     );
 
-    expect(component.visibleCatalogProviderTypes()).toEqual(['STASHDB', 'FANSDB']);
+    expect(component.visibleCatalogProviderTypes()).toEqual(['STASHDB', 'FANSDB', 'TPDB']);
     expect(textContent(fixture.nativeElement.querySelector('.setup-overview'))).toContain(
       '0 of 3 required services ready',
     );

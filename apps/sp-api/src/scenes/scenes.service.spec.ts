@@ -758,30 +758,6 @@ describe('ScenesService', () => {
     });
   });
 
-  it('forwards PERFORMER favorites filter to stashdb adapter', async () => {
-    await service.getScenesFeed(
-      1,
-      25,
-      'DATE',
-      undefined,
-      [],
-      'OR',
-      'PERFORMER',
-    );
-
-    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
-      baseUrl: stashdbIntegration.baseUrl,
-      apiKey: stashdbIntegration.apiKey,
-      page: 1,
-      perPage: 25,
-      sort: 'DATE',
-      direction: 'DESC',
-      favorites: 'PERFORMER',
-      tagFilter: undefined,
-      studioIds: [],
-    });
-  });
-
   it('marks NOT_REQUESTED discovery scenes as requestable from status resolution', async () => {
     sceneStatusService.resolveForScenes = jest
       .fn()
@@ -830,7 +806,6 @@ describe('ScenesService', () => {
       undefined,
       ['t-1', 't-2', 't-1'],
       'AND',
-      'PERFORMER',
     );
 
     expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
@@ -840,13 +815,41 @@ describe('ScenesService', () => {
       perPage: 25,
       sort: 'DATE',
       direction: 'DESC',
-      favorites: 'PERFORMER',
+      favorites: undefined,
       tagFilter: {
         tagIds: ['t-1', 't-2'],
         mode: 'AND',
       },
       studioIds: [],
     });
+  });
+
+  it('narrows favorite performers scenes by the selected tags (and their mode)', async () => {
+    performerFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['performer-1']);
+    catalogAdapter.getScenesForPerformer = jest
+      .fn()
+      .mockResolvedValue({ total: 0, scenes: [] });
+
+    await service.getScenesFeed(
+      1,
+      25,
+      'DATE',
+      undefined,
+      ['t-1', 't-2', 't-1'],
+      'AND',
+      'PERFORMER',
+    );
+
+    expect(catalogAdapter.getScenesBySort).not.toHaveBeenCalled();
+    expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        performerId: 'performer-1',
+        tagIds: ['t-1', 't-2'],
+        tagMode: 'AND',
+      }),
+    );
   });
 
   it('forwards normalized studioIds to stashdb adapter', async () => {

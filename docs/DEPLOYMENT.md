@@ -1,8 +1,7 @@
-# Deploying Stasharr (this fork)
+# Deploying Stasharr
 
-This fork adds features the upstream `ghcr.io/enymawse/stasharr-portal`
-image doesn't have, so it's built from source. The helper scripts here do
-that for you on any machine.
+Stasharr is built from source on the machine it runs on. The helper
+scripts here do that for you.
 
 | Script | Run on | Does |
 | --- | --- | --- |
@@ -19,11 +18,11 @@ that for you on any machine.
 As root on a Debian/Ubuntu machine (Docker is installed if missing):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/scripts/install.sh | bash
 ```
 
 Options (flags or environment variables): `--port 3000`, `--branch
-add-remove-request`, `--install-dir /opt/stasharr`, `--src-dir
+main`, `--install-dir /opt/stasharr`, `--src-dir
 /opt/stasharr-src`. It:
 
 - clones the source to `/opt/stasharr-src` and builds `stasharr-portal:custom`
@@ -44,7 +43,7 @@ engine), in [`infrastructure/proxmox/community-scripts`](../infrastructure/proxm
 In the Proxmox shell:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
 ```
 
 You get the familiar Default / Advanced settings dialog (CT ID, hostname,
@@ -54,7 +53,7 @@ afterwards. Inside the container the app runs natively -- no Docker:
 
 | | |
 | --- | --- |
-| App | `/opt/stasharr` (git checkout of `add-remove-request`) |
+| App | `/opt/stasharr` (git checkout of `main`) |
 | Settings | `/opt/stasharr/.env` (database URL, session secret, port) |
 | Database | PostgreSQL 17 in the container; credentials in `~/stasharr.creds` |
 | Service | `systemctl status stasharr`, logs: `journalctl -u stasharr -f` |

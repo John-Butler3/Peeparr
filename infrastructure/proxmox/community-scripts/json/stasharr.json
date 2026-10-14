@@ -9,9 +9,9 @@
   "updateable": true,
   "privileged": false,
   "interface_port": 3000,
-  "documentation": "https://github.com/John-Butler3/stasharr-portal/blob/add-remove-request/docs/DEPLOYMENT.md",
-  "website": "https://github.com/John-Butler3/stasharr-portal",
-  "logo": "https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/apps/sp-web/public/icons/icon-192.png",
+  "documentation": "https://github.com/John-Butler3/Stasharr/blob/main/docs/DEPLOYMENT.md",
+  "website": "https://github.com/John-Butler3/Stasharr",
+  "logo": "https://raw.githubusercontent.com/John-Butler3/Stasharr/main/apps/sp-web/public/icons/icon-192.png",
   "config_path": "/opt/stasharr/.env",
   "description": "Stasharr is a self-hosted console that discovers scenes from a catalog (StashDB, FansDB or TPDB), sends requests to Whisparr and checks what's already in your Stash library, with a YouTube-style player and library browser.",
   "install_methods": [

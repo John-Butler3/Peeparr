@@ -205,6 +205,8 @@ export interface StashdbPerformerScenesConfig extends StashdbAdapterBaseConfig {
   direction?: StashdbSortDirection;
   studioIds?: string[];
   tagIds?: string[];
+  /** OR (default): scenes with any of the tags; AND: with all of them. */
+  tagMode?: 'OR' | 'AND';
   onlyFavoriteStudios?: boolean;
 }
 
@@ -1178,8 +1180,9 @@ export class StashdbAdapter implements CatalogAdapter {
     }
 
     if (tagIds.length > 0) {
+      const tagModifier = config.tagMode === 'AND' ? 'INCLUDES_ALL' : 'INCLUDES';
       variableDeclarations.push('$tagIds: [ID!]!');
-      inputParts.push('tags: { value: $tagIds, modifier: INCLUDES }');
+      inputParts.push(`tags: { value: $tagIds, modifier: ${tagModifier} }`);
     }
 
     if (config.onlyFavoriteStudios) {

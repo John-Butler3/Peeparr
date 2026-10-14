@@ -7,13 +7,13 @@ so it behaves like any other script there and could be submitted upstream:
 | File | Role |
 | --- | --- |
 | `ct/stasharr.sh` | run in the Proxmox shell: creates the LXC (Default / Advanced dialog) and, run inside an existing container, updates it |
-| `install/stasharr-install.sh` | runs inside the new LXC: Node.js 22, PostgreSQL 17, builds Stasharr from the `add-remove-request` branch, systemd service `stasharr` |
+| `install/stasharr-install.sh` | runs inside the new LXC: Node.js 22, PostgreSQL 17, builds Stasharr from the `main` branch, systemd service `stasharr` |
 | `json/stasharr.json` | website metadata (category 14, *Arr Suite) |
 
 Install:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/infrastructure/proxmox/community-scripts/ct/stasharr.sh)"
 ```
 
 Both scripts load the shared engine (`build.func`, `install.func`,

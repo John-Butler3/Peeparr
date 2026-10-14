@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: John-Butler3
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/John-Butler3/stasharr-portal
+# Source: https://github.com/John-Butler3/Stasharr
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -21,7 +21,7 @@ NODE_VERSION="22" setup_nodejs
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="stasharr" PG_DB_USER="stasharr" setup_postgresql_db
 
-fetch_and_deploy_gh_branch "stasharr" "John-Butler3/stasharr-portal" "add-remove-request" "/opt/stasharr"
+fetch_and_deploy_gh_branch "stasharr" "John-Butler3/Stasharr" "main" "/opt/stasharr"
 
 msg_info "Configuring Stasharr"
 mkdir -p /var/lib/stasharr

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Stasharr isn't in the community-scripts catalogue: load ct/ and install/
 # from this repository instead (the engine still comes from community-scripts/core).
-export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/infrastructure/proxmox/community-scripts}"
+export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/John-Butler3/Stasharr/main/infrastructure/proxmox/community-scripts}"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: John-Butler3
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/John-Butler3/stasharr-portal
+# Source: https://github.com/John-Butler3/Stasharr
 
 APP="Stasharr"
 var_tags="${var_tags:-arr}"
@@ -34,7 +34,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_branch "stasharr" "John-Butler3/stasharr-portal" "add-remove-request"; then
+  if check_for_gh_branch "stasharr" "John-Butler3/Stasharr" "main"; then
     msg_info "Stopping Service"
     systemctl stop stasharr
     msg_ok "Stopped Service"
@@ -43,7 +43,7 @@ function update_script() {
     cp /opt/stasharr/.env /opt/stasharr.env.bak
     msg_ok "Backed up Configuration"
 
-    fetch_and_deploy_gh_branch "stasharr" "John-Butler3/stasharr-portal" "add-remove-request" "/opt/stasharr"
+    fetch_and_deploy_gh_branch "stasharr" "John-Butler3/Stasharr" "main" "/opt/stasharr"
 
     msg_info "Restoring Configuration"
     cp /opt/stasharr.env.bak /opt/stasharr/.env

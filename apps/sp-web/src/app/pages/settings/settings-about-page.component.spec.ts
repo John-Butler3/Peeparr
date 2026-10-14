@@ -47,9 +47,9 @@ describe('SettingsAboutPageComponent', () => {
     expect(text).toContain('sp-api');
     expect(text.toLowerCase()).not.toContain('stub');
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      'https://github.com/enymawse/stasharr-portal',
-      'https://github.com/enymawse/stasharr-portal#self-hosted-quick-start',
-      'https://github.com/enymawse/stasharr-portal/releases',
+      'https://github.com/John-Butler3/Stasharr',
+      'https://github.com/John-Butler3/Stasharr#self-hosted-quick-start',
+      'https://github.com/John-Butler3/Stasharr/releases',
     ]);
     expect(links.some((link) => link.getAttribute('href') === '#')).toBe(false);
   });

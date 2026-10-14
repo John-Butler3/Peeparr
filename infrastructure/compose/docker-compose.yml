@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: ghcr.io/enymawse/stasharr-portal:${STASHARR_IMAGE_TAG:-latest}
+    image: ghcr.io/john-butler3/stasharr:${STASHARR_IMAGE_TAG:-latest}
     env_file:
       - ../../.env
       - .env

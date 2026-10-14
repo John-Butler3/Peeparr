@@ -43,10 +43,10 @@ If an older local database reports that migration `20260402142846` was modified 
 
 ## Docker And Deployment Notes For Contributors
 
-- The primary self-hosted install path for this fork is [`scripts/install.sh`](scripts/install.sh) (Docker, builds the image from source using [`infrastructure/compose/compose.selfbuild.yaml`](infrastructure/compose/compose.selfbuild.yaml)) or, on Proxmox, the community-scripts-style [`infrastructure/proxmox/community-scripts`](infrastructure/proxmox/community-scripts) (`ct/stasharr.sh` + `install/stasharr-install.sh` + `json/stasharr.json`; native Node.js + PostgreSQL LXC, systemd service `stasharr`). See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), including the Whisparr-Eros metadata setup.
+- The primary self-hosted install path is [`scripts/install.sh`](scripts/install.sh) (Docker, builds the image from source using [`infrastructure/compose/compose.selfbuild.yaml`](infrastructure/compose/compose.selfbuild.yaml)) or, on Proxmox, the community-scripts-style [`infrastructure/proxmox/community-scripts`](infrastructure/proxmox/community-scripts) (`ct/stasharr.sh` + `install/stasharr-install.sh` + `json/stasharr.json`; native Node.js + PostgreSQL LXC, systemd service `stasharr`). See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), including the Whisparr-Eros metadata setup.
 - [`infrastructure/compose/docker-compose.yml`](infrastructure/compose/docker-compose.yml) plus [`infrastructure/compose/.env.example`](infrastructure/compose/.env.example) remain available as a secondary repo-checkout deployment path for contributors or operators who want checked-in compose assets.
 - The repo-managed compose stack uses named volumes `sp_postgres_data` and `sp_app_data` so Postgres data and the generated session secret survive container recreation.
-- The app image is `ghcr.io/enymawse/stasharr-portal:${STASHARR_IMAGE_TAG:-latest}`.
+- The app image is `ghcr.io/john-butler3/stasharr:${STASHARR_IMAGE_TAG:-latest}`.
 - Root `.env` owns the shared database identity for contributor workflows: `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
 - Root `.env` also owns `SESSION_SECRET` and the local-development `DATABASE_URL`, which points at `localhost`.
 - [`infrastructure/compose/.env.example`](infrastructure/compose/.env.example) owns deployment-specific settings such as `STASHARR_IMAGE_TAG`, `DATABASE_HOST`, `HOST`, `PORT`, migration retry values, and optional cookie overrides.
@@ -55,7 +55,7 @@ If an older local database reports that migration `20260402142846` was modified 
 
 ## Container Images
 
-Stasharr publishes one production image to GHCR at `ghcr.io/enymawse/stasharr-portal`.
+Stasharr publishes one production image to GHCR at `ghcr.io/john-butler3/stasharr`.
 
 - Pushes to `main` publish development tags `edge` and `sha-<shortsha>`.
 - Pushes of release tags matching `vX.Y.Z` publish `vX.Y.Z`, `vX.Y`, `vX`, and `latest`.

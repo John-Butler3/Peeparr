@@ -44,7 +44,7 @@ set -euo pipefail
 CATALOG="${CATALOG:-}"                 # tpdb | stashdb (asked if unset)
 STASHARR_URL="${STASHARR_URL:-}"       # e.g. http://10.50.50.201:3000 (tpdb only)
 COMMUNITY_SCRIPT_URL="${COMMUNITY_SCRIPT_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/whisparr-eros.sh}"
-CONFIGURE_EROS_URL="${CONFIGURE_EROS_URL:-https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/scripts/configure-eros.sh}"
+CONFIGURE_EROS_URL="${CONFIGURE_EROS_URL:-https://raw.githubusercontent.com/John-Butler3/Stasharr/main/scripts/configure-eros.sh}"
 
 if [[ -z "$CATALOG" ]]; then
   read -r -p "Which catalog does Stasharr use? [tpdb/stashdb]: " CATALOG

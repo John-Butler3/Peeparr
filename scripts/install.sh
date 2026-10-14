@@ -4,7 +4,7 @@
 # built from this fork's source so it includes all of the fork's features.
 #
 # On a fresh Debian/Ubuntu machine (as root):
-#   curl -fsSL https://raw.githubusercontent.com/John-Butler3/stasharr-portal/add-remove-request/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/scripts/install.sh | bash
 #
 # or from a checkout:
 #   sudo ./scripts/install.sh [options]
@@ -22,7 +22,7 @@
 # Re-running it is safe: existing .env, database and settings are kept.
 #
 # Options (or the matching environment variables):
-#   --branch NAME       git branch to deploy           (BRANCH, default add-remove-request)
+#   --branch NAME       git branch to deploy           (BRANCH, default main)
 #   --repo URL          git repository                 (REPO_URL)
 #   --port N            host port for the web UI       (APP_PORT, default 3000)
 #   --install-dir DIR   compose + .env directory       (INSTALL_DIR, default /opt/stasharr)
@@ -33,8 +33,8 @@
 #
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/John-Butler3/stasharr-portal.git}"
-BRANCH="${BRANCH:-add-remove-request}"
+REPO_URL="${REPO_URL:-https://github.com/John-Butler3/Stasharr.git}"
+BRANCH="${BRANCH:-main}"
 APP_PORT="${APP_PORT:-3000}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/stasharr}"
 SRC_DIR="${SRC_DIR:-/opt/stasharr-src}"

@@ -419,32 +419,27 @@ describe('ScenesPageComponent', () => {
     expect(repairLink).toBeTruthy();
   });
 
-  it('disables sort controls for TPDB, since it only supports one fixed ordering', async () => {
+  // Popular / Latest / Oldest: TPDB only lists newest first.
+  function oldestChip(fixture: { nativeElement: HTMLElement }): HTMLButtonElement | undefined {
+    return [...fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.app-sort-toggle-option')].find(
+      (button) => button.textContent?.trim() === 'Oldest',
+    );
+  }
+
+  it('disables Oldest for TPDB, since it only lists newest first', async () => {
     const { fixture } = await renderPage(
       {},
       { setupStatus: buildSetupStatus({ catalogProvider: 'TPDB' }) },
     );
 
-    const directionToggle = fixture.nativeElement.querySelector(
-      '.sort-direction-toggle',
-    ) as HTMLButtonElement | null;
-
-    expect(directionToggle?.disabled).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain(
-      'ThePornDB only supports newest-first ordering.',
-    );
+    const oldest = oldestChip(fixture);
+    expect(oldest?.disabled).toBe(true);
+    expect(oldest?.getAttribute('title')).toBe('ThePornDB only supports newest-first ordering');
   });
 
-  it('leaves sort controls enabled for StashDB', async () => {
+  it('leaves Oldest enabled for StashDB', async () => {
     const { fixture } = await renderPage();
 
-    const directionToggle = fixture.nativeElement.querySelector(
-      '.sort-direction-toggle',
-    ) as HTMLButtonElement | null;
-
-    expect(directionToggle?.disabled).toBe(false);
-    expect(fixture.nativeElement.textContent).not.toContain(
-      'ThePornDB only supports newest-first ordering.',
-    );
+    expect(oldestChip(fixture)?.disabled).toBe(false);
   });
 });

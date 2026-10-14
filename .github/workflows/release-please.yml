@@ -24,6 +24,6 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           # Dedicated token so release PRs and tags can trigger downstream workflows.
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json

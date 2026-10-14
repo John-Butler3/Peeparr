@@ -42,9 +42,10 @@ describe('TpdbAdapter', () => {
     adapter = new TpdbAdapter(runtimeHealthService as unknown as RuntimeHealthService);
   });
 
-  it('sends a Bearer token and records runtime health on a successful connection check', async () => {
+  it('sends a Bearer token on a connection check, recording runtime health only for probes', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { data: [] }));
 
+    // A settings "Test" doesn't touch runtime health (the caller records it).
     await adapter.testConnection(config);
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -53,6 +54,9 @@ describe('TpdbAdapter', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer tpdb-token' }),
       }),
     );
+    expect(runtimeHealthService.recordSuccess).not.toHaveBeenCalled();
+
+    await adapter.probeConnection(config);
     expect(runtimeHealthService.recordSuccess).toHaveBeenCalled();
   });
 

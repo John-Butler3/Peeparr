@@ -738,6 +738,10 @@ describe('IndexingService', () => {
         },
       ],
     });
+    // Backed by a live Whisparr movie (requests without one are cancelled).
+    getMovieSnapshotMock.mockResolvedValue([
+      { movieId: 22, stashId: 'scene-1', hasFile: false },
+    ]);
     const service = new IndexingService(
       prisma,
       integrationsService,
@@ -1237,7 +1241,13 @@ describe('IndexingService', () => {
         computedLifecycle: 'AVAILABLE',
       }),
     );
-    expect(sceneIndexStore.get('scene-2')).toBeUndefined();
+    // Linked only under another catalog provider: still in Stash, so available.
+    expect(sceneIndexStore.get('scene-2')).toEqual(
+      expect.objectContaining({
+        stashAvailable: true,
+        computedLifecycle: 'AVAILABLE',
+      }),
+    );
     expect(sceneIndexStore.get('scene-stale')).toEqual(
       expect.objectContaining({
         stashAvailable: false,
@@ -1247,7 +1257,7 @@ describe('IndexingService', () => {
     expectInteractiveTransactionsToUseIndexWriteOptions(prisma);
   });
 
-  it('does not treat an inactive-provider raw id as locally available during library projection', async () => {
+  it('treats a scene tagged under another catalog provider as locally available during library projection', async () => {
     configuredStashdbIntegration.baseUrl = 'https://fansdb.cc/graphql';
 
     const { prisma, sceneIndexStore, librarySceneIndexStore } =
@@ -1324,8 +1334,8 @@ describe('IndexingService', () => {
     );
     expect(sceneIndexStore.get('shared-123')).toEqual(
       expect.objectContaining({
-        stashAvailable: false,
-        computedLifecycle: 'NOT_REQUESTED',
+        stashAvailable: true,
+        computedLifecycle: 'AVAILABLE',
       }),
     );
   });

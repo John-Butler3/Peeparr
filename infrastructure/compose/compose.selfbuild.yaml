@@ -2,7 +2,7 @@
 # (scripts/install.sh writes this to /opt/stasharr/compose.yaml).
 #
 # The app image is built locally from the source checkout as
-# stasharr-portal:custom, so it includes this fork's features. Secrets and
+# stasharr-portal:custom, so it's always the checked-out version. Secrets and
 # per-install settings live in .env next to this file (written once by the
 # installer with a random database password; keep it private).
 
