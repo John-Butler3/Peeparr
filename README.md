@@ -20,10 +20,10 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
 </p>
 
 <p align="center">
-  <img src="docs/assets/peeparr-demo.gif" alt="A 30-second tour: the Home banner playing a preview, a card previewing on hover, requesting a scene, following it in Acquisition while it downloads, playing a scene, and the Peeparr logo" width="100%" />
+  <img src="docs/assets/peeparr-ad.gif" alt="A 30-second ad: previews everywhere, one-click downloads and watching anywhere, on desktop and phone, ending on the Peeparr logo" width="100%" />
 </p>
 
-> The tour and screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
+> The ad ([MP4](docs/assets/peeparr-ad.mp4)) and screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
 
 ## Contents
 
