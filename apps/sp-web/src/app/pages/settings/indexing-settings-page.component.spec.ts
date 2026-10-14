@@ -118,7 +118,7 @@ describe('IndexingSettingsPageComponent', () => {
     const text = fixture.nativeElement.textContent;
 
     expect(indexingService.getStatus).toHaveBeenCalledTimes(1);
-    expect(text).toContain('Indexing & Sync');
+    expect(text).toContain('Indexing keeps Acquisition');
     expect(text).toContain('Sync All');
     expect(text).toContain('Whisparr Queue');
     expect(text).toContain('Every 30 seconds');

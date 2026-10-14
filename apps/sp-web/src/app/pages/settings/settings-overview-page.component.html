@@ -16,7 +16,7 @@
     >
       <div class="hero-head">
         <div class="hero-copy">
-          <p class="eyebrow">Overview</p>
+          <p class="eyebrow">Status</p>
           <h2>{{ progressSummary() }}</h2>
           <p class="hero-lead">{{ statusLead() }}</p>
         </div>
@@ -49,5 +49,18 @@
         <p-message severity="warn" styleClass="state-message">{{ loadError() }}</p-message>
       }
     </section>
+
+    <nav class="section-list" aria-label="Settings sections">
+      @for (section of sections; track section.route) {
+        <a class="section-row" [routerLink]="section.route">
+          <span class="section-icon" aria-hidden="true"><i [class]="section.icon"></i></span>
+          <span class="section-text">
+            <span class="section-title">{{ section.title }}</span>
+            <span class="section-desc">{{ section.description }}</span>
+          </span>
+          <i class="pi pi-angle-right section-chevron" aria-hidden="true"></i>
+        </a>
+      }
+    </nav>
   }
 </section>

@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { throwError, of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -32,6 +33,7 @@ describe('SettingsOverviewPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SettingsOverviewPageComponent],
       providers: [
+        provideRouter([]),
         {
           provide: SetupService,
           useValue: setupService,

@@ -1,3 +1,4 @@
+import { RouterLink } from '@angular/router';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
@@ -12,11 +13,44 @@ import { SetupStatusResponse, summarizeDegradedSetupState } from '../../core/api
 
 @Component({
   selector: 'app-settings-overview-page',
-  imports: [Message, ProgressSpinner],
+  imports: [Message, ProgressSpinner, RouterLink],
   templateUrl: './settings-overview-page.component.html',
   styleUrl: './settings-overview-page.component.scss',
 })
 export class SettingsOverviewPageComponent implements OnInit {
+  protected readonly sections = [
+    {
+      route: '/settings/integrations',
+      icon: 'pi pi-link',
+      title: 'Integrations',
+      description: 'Stash, Whisparr and your catalog',
+    },
+    {
+      route: '/settings/indexing',
+      icon: 'pi pi-sync',
+      title: 'Indexing',
+      description: 'Keep your library and scene statuses up to date',
+    },
+    {
+      route: '/settings/content',
+      icon: 'pi pi-sliders-h',
+      title: 'Content',
+      description: 'What shows while browsing, and request defaults',
+    },
+    {
+      route: '/settings/account',
+      icon: 'pi pi-user',
+      title: 'Account',
+      description: 'Your admin password',
+    },
+    {
+      route: '/settings/about',
+      icon: 'pi pi-info-circle',
+      title: 'About',
+      description: 'Version, links and release notes',
+    },
+  ];
+
   private readonly setupService = inject(SetupService);
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly healthService = inject(HealthService);

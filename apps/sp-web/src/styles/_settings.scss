@@ -1,0 +1,245 @@
+// Settings and its pages: one look throughout -- a plain title, a row of
+// section chips, a plain heading per page, flat cards of the same shape,
+// small uppercase labels, and forms at a readable width. (The pages each set
+// their own values for these, hence !important.)
+
+app-settings-page .settings-shell {
+  gap: 16px !important;
+}
+
+app-settings-page .shell-head h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+// Section chips: one row, scrolling sideways on phones.
+app-settings-page .settings-nav {
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  margin-inline: -16px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+app-settings-page .settings-nav::-webkit-scrollbar {
+  display: none;
+}
+
+app-settings-page .settings-nav-link {
+  flex: none;
+  min-height: 32px !important;
+  height: 32px;
+  padding: 0 12px !important;
+  font-size: 0.875rem;
+  transform: none !important;
+}
+
+// Each page: a plain heading and one muted line, no box.
+app-settings-page :is(.page-head, .section-head) {
+  display: grid !important;
+  gap: 4px !important;
+  margin: 8px 0 4px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+app-settings-page :is(.page-head, .section-head) .eyebrow {
+  display: none !important;
+}
+
+app-settings-page :is(.page-head, .section-head) h2 {
+  margin: 0;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+}
+
+app-settings-page :is(.page-head, .section-head) .lede {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--text-muted) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5;
+}
+
+// Cards: flat, filled, rounded the same way.
+app-settings-page
+  :is(
+    .hero-card,
+    .summary-card,
+    .settings-overview,
+    .danger-card,
+    .info-card,
+    .account-card,
+    .repair-card,
+    .job-card,
+    .state-shell
+  ) {
+  padding: 16px !important;
+  border: 0 !important;
+  border-radius: var(--yt-radius, 12px) !important;
+  background: var(--surface-elevated) !important;
+  box-shadow: none !important;
+}
+
+app-settings-page :is(.summary-card, .info-card, .account-card, .danger-card) {
+  align-content: start !important;
+  gap: 8px !important;
+}
+
+// Cards within cards: a lighter tint instead of another box.
+app-settings-page :is(.checklist-item, .check-item, .error-block, .meta-item) {
+  padding: 8px 12px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+  box-shadow: none !important;
+}
+
+// Status cards keep a thin coloured edge for their state.
+app-settings-page .hero-card.tone-good,
+app-settings-page .summary-card-hero.tone-good {
+  box-shadow: inset 3px 0 0 var(--tone-good-border, #2ba640) !important;
+}
+
+app-settings-page .hero-card.tone-warn,
+app-settings-page .summary-card-hero.tone-warn {
+  box-shadow: inset 3px 0 0 var(--tone-warn-border, #e8a33d) !important;
+}
+
+// Small uppercase labels on cards.
+app-settings-page .eyebrow {
+  margin: 0;
+  color: var(--text-muted) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+}
+
+app-settings-page :is(.summary-card, .info-card, .account-card, .repair-card, .danger-card) h2,
+app-settings-page :is(.summary-card, .info-card, .account-card, .repair-card, .danger-card) h3 {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+// Grids of cards: one gap.
+app-settings-page :is(.summary-grid, .about-grid, .cards, .checklist-grid) {
+  gap: 16px !important;
+}
+
+// Forms at a readable width.
+app-settings-page :is(.account-card form, .download-profile-form, .repair-card form) {
+  max-width: 560px;
+}
+
+// Buttons: the app's rounded buttons.
+app-settings-page .p-button:not(.p-button-text):not(.p-button-link) {
+  height: 36px;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: var(--button-bg) !important;
+  color: var(--text-primary) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+app-settings-page .p-button:not(.p-button-text):not(.p-button-link):not(:disabled):hover {
+  background: var(--yt-chip-hover) !important;
+}
+
+// Overview: the sections as a list of rows.
+app-settings-page .section-list {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--yt-radius, 12px);
+  background: var(--surface-elevated);
+}
+
+app-settings-page .section-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background-color 120ms var(--yt-ease, ease);
+}
+
+app-settings-page .section-row + .section-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+app-settings-page .section-row:hover {
+  background: var(--yt-hover);
+}
+
+app-settings-page .section-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--button-bg);
+}
+
+app-settings-page .section-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+app-settings-page .section-title {
+  font-weight: 500;
+}
+
+app-settings-page .section-desc {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+app-settings-page .section-chevron {
+  color: var(--text-muted);
+}
+
+app-settings-page .overview-page {
+  display: grid;
+  gap: 16px;
+}
+
+// Integrations: the readiness card says the catalog once, in its summary.
+app-settings-page .settings-overview .overview-meta {
+  display: none !important;
+}
+
+app-settings-page .settings-overview .overview-summary {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+// Account: the page heading already names it; the card shows who's signed in.
+app-settings-page .account-card .eyebrow {
+  display: none !important;
+}
+
+app-settings-page .account-card .identity-pill {
+  align-self: start;
+  padding: 4px 12px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: var(--button-bg) !important;
+  color: var(--text-primary) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+}
+
+app-settings-page .account-card .identity-pill::before {
+  content: 'Signed in as ';
+  color: var(--text-muted);
+}
