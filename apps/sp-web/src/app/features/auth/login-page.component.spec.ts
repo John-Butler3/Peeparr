@@ -38,7 +38,7 @@ describe('LoginPageComponent', () => {
     fixture.detectChanges();
 
     expect(authService.requestPasswordReset).toHaveBeenCalledTimes(1);
-    expect(element.textContent).toContain('stasharr-reset-password');
+    expect(element.textContent).toContain('peeparr-reset-password');
   });
 
   it('sends the admin to change their password after a temporary-password sign in', async () => {

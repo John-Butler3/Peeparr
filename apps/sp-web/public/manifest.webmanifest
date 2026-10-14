@@ -1,6 +1,6 @@
 {
-  "name": "Stasharr",
-  "short_name": "Stasharr",
+  "name": "Peeparr",
+  "short_name": "Peeparr",
   "description": "Self-hosted media acquisition console for Stash, Whisparr, and StashDB.",
   "start_url": "/",
   "scope": "/",

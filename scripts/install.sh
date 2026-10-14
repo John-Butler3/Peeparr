@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# One-command install (or update) of Stasharr on any Linux host with Docker,
+# One-command install (or update) of Peeparr on any Linux host with Docker,
 # built from this fork's source so it includes all of the fork's features.
 #
 # On a fresh Debian/Ubuntu machine (as root):
-#   curl -fsSL https://raw.githubusercontent.com/John-Butler3/Stasharr/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/install.sh | bash
 #
 # or from a checkout:
 #   sudo ./scripts/install.sh [options]
@@ -14,10 +14,10 @@
 #   2. Clones (or updates) the source into $SRC_DIR.
 #   3. Writes $INSTALL_DIR/compose.yaml and, on first install only,
 #      $INSTALL_DIR/.env with a random database password (mode 600).
-#   4. Builds the app image and starts Postgres + Stasharr.
+#   4. Builds the app image and starts Postgres + Peeparr.
 #   5. Waits until the app reports healthy and prints the next steps.
-#   6. Installs `stasharr-update` (rebuild + restart from the latest commits)
-#      and `stasharr-reset-password` helpers into /usr/local/bin.
+#   6. Installs `peeparr-update` (rebuild + restart from the latest commits)
+#      and `peeparr-reset-password` helpers into /usr/local/bin.
 #
 # Re-running it is safe: existing .env, database and settings are kept.
 #
@@ -25,20 +25,20 @@
 #   --branch NAME       git branch to deploy           (BRANCH, default main)
 #   --repo URL          git repository                 (REPO_URL)
 #   --port N            host port for the web UI       (APP_PORT, default 3000)
-#   --install-dir DIR   compose + .env directory       (INSTALL_DIR, default /opt/stasharr)
-#   --src-dir DIR       source checkout                (SRC_DIR, default /opt/stasharr-src)
+#   --install-dir DIR   compose + .env directory       (INSTALL_DIR, default /opt/peeparr)
+#   --src-dir DIR       source checkout                (SRC_DIR, default /opt/peeparr-src)
 #   --no-docker-install fail instead of installing Docker when it's missing
-#   --no-helpers        don't install stasharr-update / stasharr-reset-password
+#   --no-helpers        don't install peeparr-update / peeparr-reset-password
 #   -h, --help          show this help
 #
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/John-Butler3/Stasharr.git}"
+REPO_URL="${REPO_URL:-https://github.com/John-Butler3/Peeparr.git}"
 BRANCH="${BRANCH:-main}"
 APP_PORT="${APP_PORT:-3000}"
-INSTALL_DIR="${INSTALL_DIR:-/opt/stasharr}"
-SRC_DIR="${SRC_DIR:-/opt/stasharr-src}"
-IMAGE_TAG="${IMAGE_TAG:-stasharr-portal:custom}"
+INSTALL_DIR="${INSTALL_DIR:-/opt/peeparr}"
+SRC_DIR="${SRC_DIR:-/opt/peeparr-src}"
+IMAGE_TAG="${IMAGE_TAG:-peeparr:custom}"
 INSTALL_DOCKER="${INSTALL_DOCKER:-yes}"
 INSTALL_HELPERS="${INSTALL_HELPERS:-yes}"
 
@@ -134,13 +134,13 @@ fi
 if [[ ! -f "$ENV_FILE" ]]; then
   umask 077
   cat > "$ENV_FILE" <<ENV
-# Stasharr install settings (read by compose.yaml). Keep this file private.
-POSTGRES_DB=stasharr
-POSTGRES_USER=stasharr
+# Peeparr install settings (read by compose.yaml). Keep this file private.
+POSTGRES_DB=peeparr
+POSTGRES_USER=peeparr
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 APP_PORT=${APP_PORT}
-STASHARR_IMAGE=${IMAGE_TAG}
-# Set to true once Stasharr is served over HTTPS.
+PEEPARR_IMAGE=${IMAGE_TAG}
+# Set to true once Peeparr is served over HTTPS.
 SESSION_COOKIE_SECURE=false
 # Uncomment if catalog Save & Test times out on an IPv4-only network:
 # NODE_OPTIONS=--no-network-family-autoselection
@@ -156,8 +156,8 @@ else
     fi
     APP_PORT="$EXISTING_PORT"
   fi
-  if grep -q '^STASHARR_IMAGE=' "$ENV_FILE"; then
-    IMAGE_TAG="$(grep '^STASHARR_IMAGE=' "$ENV_FILE" | tail -1 | cut -d= -f2)"
+  if grep -q '^PEEPARR_IMAGE=' "$ENV_FILE"; then
+    IMAGE_TAG="$(grep '^PEEPARR_IMAGE=' "$ENV_FILE" | tail -1 | cut -d= -f2)"
   fi
 fi
 
@@ -165,7 +165,7 @@ fi
 log "Building $IMAGE_TAG (compiles the app; a few minutes on first run)"
 docker build --quiet -t "$IMAGE_TAG" "$SRC_DIR" >/dev/null
 
-log "Starting Stasharr"
+log "Starting Peeparr"
 (cd "$INSTALL_DIR" && docker compose up -d --remove-orphans)
 
 # ---- 5. Wait for healthy ---------------------------------------------------
@@ -190,17 +190,17 @@ fi
 
 # ---- 6. Helper commands ----------------------------------------------------
 if [[ "$INSTALL_HELPERS" == yes ]]; then
-cat > /usr/local/bin/stasharr-update <<HELPER
+cat > /usr/local/bin/peeparr-update <<HELPER
 #!/usr/bin/env bash
-# Rebuild and restart Stasharr from the latest commits (installed by install.sh).
+# Rebuild and restart Peeparr from the latest commits (installed by install.sh).
 exec env SRC_DIR="$SRC_DIR" COMPOSE_DIR="$INSTALL_DIR" IMAGE_TAG="$IMAGE_TAG" "$SRC_DIR/scripts/deploy-container.sh" "\$@"
 HELPER
-cat > /usr/local/bin/stasharr-reset-password <<HELPER
+cat > /usr/local/bin/peeparr-reset-password <<HELPER
 #!/usr/bin/env bash
 # Show the temporary password from "Forgot password?" (installed by install.sh).
-cd "$INSTALL_DIR" && exec docker compose exec app stasharr-reset-password
+cd "$INSTALL_DIR" && exec docker compose exec app peeparr-reset-password
 HELPER
-chmod +x /usr/local/bin/stasharr-update /usr/local/bin/stasharr-reset-password
+chmod +x /usr/local/bin/peeparr-update /usr/local/bin/peeparr-reset-password
 fi
 
 HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
@@ -208,22 +208,22 @@ HOST_IP="${HOST_IP:-localhost}"
 
 cat <<SUMMARY
 
-==> Stasharr is running.
+==> Peeparr is running.
 
     Open:           http://${HOST_IP}:${APP_PORT}
     Settings:       ${ENV_FILE}  (database password, port)
     Compose:        ${COMPOSE_FILE}
     Source:         ${SRC_DIR} @ ${BRANCH}
 
-    Update later:   stasharr-update   (or ${SRC_DIR}/scripts/deploy-container.sh)
+    Update later:   peeparr-update   (or ${SRC_DIR}/scripts/deploy-container.sh)
     Lost password:  click "Forgot password?" on the sign-in page, then run
-                    stasharr-reset-password   (or: cd ${INSTALL_DIR} && docker compose exec app stasharr-reset-password)
+                    peeparr-reset-password   (or: cd ${INSTALL_DIR} && docker compose exec app peeparr-reset-password)
 
 Next: create the admin account in the browser, then connect your catalog
 (StashDB / FansDB / TPDB), Stash and Whisparr.
 
 If Whisparr-Eros should use TPDB as its metadata source, point it at this
-Stasharr with scripts/configure-eros.sh -- see docs/DEPLOYMENT.md
+Peeparr with scripts/configure-eros.sh -- see docs/DEPLOYMENT.md
 ("Whisparr-Eros and the catalog choice"). The proxy URL is:
     http://${HOST_IP}:${APP_PORT}/api/whisparr-metadata/{route}
 SUMMARY

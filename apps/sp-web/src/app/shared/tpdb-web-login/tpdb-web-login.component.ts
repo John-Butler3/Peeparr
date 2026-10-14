@@ -8,7 +8,7 @@ import { switchMap } from 'rxjs';
 import { TpdbWebService, TpdbWebStatus } from '../../core/api/tpdb-web.service';
 
 /**
- * Settings card for the optional ThePornDB website login: Stasharr signs in
+ * Settings card for the optional ThePornDB website login: Peeparr signs in
  * to read the site's members-only popular scenes (shown first on Home and
  * Scenes). The website is checked at most every few hours.
  */
@@ -72,7 +72,7 @@ export class TpdbWebLoginComponent implements OnInit {
       },
       error: () => {
         this.busy.set(null);
-        this.error.set('Could not reach Stasharr.');
+        this.error.set('Could not reach Peeparr.');
       },
     });
   }

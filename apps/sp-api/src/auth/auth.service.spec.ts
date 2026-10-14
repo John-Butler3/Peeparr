@@ -49,7 +49,7 @@ describe('AuthService', () => {
 
     prisma = createPrismaMock();
     sessionCookieService = {
-      cookieName: 'stasharr_session',
+      cookieName: 'peeparr_session',
       sessionTtlMs: 30 * 24 * 60 * 60 * 1000,
       readSessionId: jest.fn().mockReturnValue(null),
       setSessionCookie: jest.fn(),
@@ -61,7 +61,7 @@ describe('AuthService', () => {
       clear: jest.fn(),
     } as unknown as jest.Mocked<LoginAttemptService>;
 
-    resetDir = mkdtempSync(join(tmpdir(), 'stasharr-reset-'));
+    resetDir = mkdtempSync(join(tmpdir(), 'peeparr-reset-'));
     passwordResetService = new PasswordResetService();
     passwordResetService.filePath = join(resetDir, 'password-reset.txt');
 
@@ -318,7 +318,7 @@ describe('AuthService', () => {
     sessionCookieService.readSessionId.mockReturnValue(currentSession.id);
 
     await service.changePassword(
-      createRequest({ cookie: 'stasharr_session=signed' }),
+      createRequest({ cookie: 'peeparr_session=signed' }),
       createResponse(),
       {
         currentPassword: 'old-password-123',
@@ -340,7 +340,7 @@ describe('AuthService', () => {
     sessionCookieService.readSessionId.mockReturnValue(oldSession.id);
     await expect(
       service.getStatus(
-        createRequest({ cookie: 'stasharr_session=signed' }),
+        createRequest({ cookie: 'peeparr_session=signed' }),
         createResponse(),
       ),
     ).resolves.toEqual({

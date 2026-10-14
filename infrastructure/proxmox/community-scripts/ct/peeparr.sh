@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Stasharr isn't in the community-scripts catalogue: load ct/ and install/
+# Peeparr isn't in the community-scripts catalogue: load ct/ and install/
 # from this repository instead (the engine still comes from community-scripts/core).
-export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/John-Butler3/Stasharr/main/infrastructure/proxmox/community-scripts}"
+export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/John-Butler3/Peeparr/main/infrastructure/proxmox/community-scripts}"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: John-Butler3
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/John-Butler3/Stasharr
+# Source: https://github.com/John-Butler3/Peeparr
 
-APP="Stasharr"
+APP="Peeparr"
 var_tags="${var_tags:-arr}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-3072}"
@@ -29,43 +29,43 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/stasharr ]]; then
+  if [[ ! -d /opt/peeparr ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_branch "stasharr" "John-Butler3/Stasharr" "main"; then
+  if check_for_gh_branch "peeparr" "John-Butler3/Peeparr" "main"; then
     msg_info "Stopping Service"
-    systemctl stop stasharr
+    systemctl stop peeparr
     msg_ok "Stopped Service"
 
     msg_info "Backing up Configuration"
-    cp /opt/stasharr/.env /opt/stasharr.env.bak
+    cp /opt/peeparr/.env /opt/peeparr.env.bak
     msg_ok "Backed up Configuration"
 
-    fetch_and_deploy_gh_branch "stasharr" "John-Butler3/Stasharr" "main" "/opt/stasharr"
+    fetch_and_deploy_gh_branch "peeparr" "John-Butler3/Peeparr" "main" "/opt/peeparr"
 
     msg_info "Restoring Configuration"
-    cp /opt/stasharr.env.bak /opt/stasharr/.env
-    rm -f /opt/stasharr.env.bak
+    cp /opt/peeparr.env.bak /opt/peeparr/.env
+    rm -f /opt/peeparr.env.bak
     msg_ok "Restored Configuration"
 
-    msg_info "Building Stasharr (Patience)"
-    cd /opt/stasharr
+    msg_info "Building Peeparr (Patience)"
+    cd /opt/peeparr
     export NODE_OPTIONS="--max-old-space-size=2048"
     set -a
-    source /opt/stasharr/.env
+    source /opt/peeparr/.env
     set +a
     $STD pnpm install --frozen-lockfile
     $STD ./node_modules/.bin/prisma generate --schema prisma/schema.prisma
     $STD pnpm --filter sp-api build
     $STD pnpm --filter sp-web build
-    cp infrastructure/docker/reset-password.sh /usr/local/bin/stasharr-reset-password
-    chmod +x /usr/local/bin/stasharr-reset-password
-    msg_ok "Built Stasharr"
+    cp infrastructure/docker/reset-password.sh /usr/local/bin/peeparr-reset-password
+    chmod +x /usr/local/bin/peeparr-reset-password
+    msg_ok "Built Peeparr"
 
     msg_info "Starting Service"
-    systemctl start stasharr
+    systemctl start peeparr
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi

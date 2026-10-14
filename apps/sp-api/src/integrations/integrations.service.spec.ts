@@ -330,7 +330,7 @@ describe('IntegrationsService', () => {
         baseUrl: 'http://stashdb.local/graphql',
       }),
     ).rejects.toThrow(
-      'This Stasharr instance is configured for FansDB. Reset catalog setup before configuring StashDB.',
+      'This Peeparr instance is configured for FansDB. Reset catalog setup before configuring StashDB.',
     );
 
     expect(upsert).not.toHaveBeenCalled();
@@ -570,7 +570,7 @@ describe('IntegrationsService', () => {
         baseUrl: 'http://stashdb.local/graphql',
       }),
     ).rejects.toThrow(
-      'This Stasharr instance is configured for FansDB. Reset catalog setup before configuring StashDB.',
+      'This Peeparr instance is configured for FansDB. Reset catalog setup before configuring StashDB.',
     );
 
     expect(stashdbTestConnection).not.toHaveBeenCalled();

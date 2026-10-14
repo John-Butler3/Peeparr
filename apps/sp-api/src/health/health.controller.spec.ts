@@ -2,7 +2,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { HealthController } from './health.controller';
 
 describe('HealthController', () => {
-  const originalStasharrVersion = process.env.STASHARR_VERSION;
+  const originalPeeparrVersion = process.env.PEEPARR_VERSION;
   const originalNpmPackageVersion = process.env.npm_package_version;
 
   const prisma = {
@@ -13,18 +13,18 @@ describe('HealthController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    delete process.env.STASHARR_VERSION;
+    delete process.env.PEEPARR_VERSION;
     delete process.env.npm_package_version;
     controller = new HealthController(prisma);
   });
 
   afterAll(() => {
-    restoreEnv('STASHARR_VERSION', originalStasharrVersion);
+    restoreEnv('PEEPARR_VERSION', originalPeeparrVersion);
     restoreEnv('npm_package_version', originalNpmPackageVersion);
   });
 
-  it('returns STASHARR_VERSION as the app version when it is set', async () => {
-    process.env.STASHARR_VERSION = '9.9.9-test';
+  it('returns PEEPARR_VERSION as the app version when it is set', async () => {
+    process.env.PEEPARR_VERSION = '9.9.9-test';
     process.env.npm_package_version = '0.0.1';
 
     await expect(controller.getStatus()).resolves.toMatchObject({
@@ -36,7 +36,7 @@ describe('HealthController', () => {
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to npm_package_version when STASHARR_VERSION is unset', async () => {
+  it('falls back to npm_package_version when PEEPARR_VERSION is unset', async () => {
     process.env.npm_package_version = '1.2.3-local';
 
     await expect(controller.getStatus()).resolves.toMatchObject({

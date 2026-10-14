@@ -1,4 +1,4 @@
-# Contributing to Stasharr
+# Contributing to Peeparr
 
 This document keeps local development, repository workflow, and maintainer process details out of the user-facing README.
 
@@ -43,31 +43,31 @@ If an older local database reports that migration `20260402142846` was modified 
 
 ## Docker And Deployment Notes For Contributors
 
-- The primary self-hosted install path is [`scripts/install.sh`](scripts/install.sh) (Docker, builds the image from source using [`infrastructure/compose/compose.selfbuild.yaml`](infrastructure/compose/compose.selfbuild.yaml)) or, on Proxmox, the community-scripts-style [`infrastructure/proxmox/community-scripts`](infrastructure/proxmox/community-scripts) (`ct/stasharr.sh` + `install/stasharr-install.sh` + `json/stasharr.json`; native Node.js + PostgreSQL LXC, systemd service `stasharr`). See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), including the Whisparr-Eros metadata setup.
+- The primary self-hosted install path is [`scripts/install.sh`](scripts/install.sh) (Docker, builds the image from source using [`infrastructure/compose/compose.selfbuild.yaml`](infrastructure/compose/compose.selfbuild.yaml)) or, on Proxmox, the community-scripts-style [`infrastructure/proxmox/community-scripts`](infrastructure/proxmox/community-scripts) (`ct/peeparr.sh` + `install/peeparr-install.sh` + `json/peeparr.json`; native Node.js + PostgreSQL LXC, systemd service `peeparr`). See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), including the Whisparr-Eros metadata setup.
 - [`infrastructure/compose/docker-compose.yml`](infrastructure/compose/docker-compose.yml) plus [`infrastructure/compose/.env.example`](infrastructure/compose/.env.example) remain available as a secondary repo-checkout deployment path for contributors or operators who want checked-in compose assets.
 - The repo-managed compose stack uses named volumes `sp_postgres_data` and `sp_app_data` so Postgres data and the generated session secret survive container recreation.
-- The app image is `ghcr.io/john-butler3/stasharr:${STASHARR_IMAGE_TAG:-latest}`.
+- The app image is `ghcr.io/john-butler3/peeparr:${PEEPARR_IMAGE_TAG:-latest}`.
 - Root `.env` owns the shared database identity for contributor workflows: `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
 - Root `.env` also owns `SESSION_SECRET` and the local-development `DATABASE_URL`, which points at `localhost`.
-- [`infrastructure/compose/.env.example`](infrastructure/compose/.env.example) owns deployment-specific settings such as `STASHARR_IMAGE_TAG`, `DATABASE_HOST`, `HOST`, `PORT`, migration retry values, and optional cookie overrides.
-- The compose app container intentionally starts with an empty `DATABASE_URL`; `infrastructure/docker/start-app.sh` rebuilds it with host `postgres`, loads or generates the per-install session secret under `/var/lib/stasharr`, retries `prisma migrate deploy` until Postgres is reachable, and then launches the production server.
+- [`infrastructure/compose/.env.example`](infrastructure/compose/.env.example) owns deployment-specific settings such as `PEEPARR_IMAGE_TAG`, `DATABASE_HOST`, `HOST`, `PORT`, migration retry values, and optional cookie overrides.
+- The compose app container intentionally starts with an empty `DATABASE_URL`; `infrastructure/docker/start-app.sh` rebuilds it with host `postgres`, loads or generates the per-install session secret under `/var/lib/peeparr`, retries `prisma migrate deploy` until Postgres is reachable, and then launches the production server.
 - The published runtime exposes `/api/v1/status` for Docker and external health probes. Normal app pages, integration APIs, indexing APIs, and other product routes require the signed local admin session once bootstrap is complete.
 
 ## Container Images
 
-Stasharr publishes one production image to GHCR at `ghcr.io/john-butler3/stasharr`.
+Peeparr publishes one production image to GHCR at `ghcr.io/john-butler3/peeparr`.
 
 - Pushes to `main` publish development tags `edge` and `sha-<shortsha>`.
 - Pushes of release tags matching `vX.Y.Z` publish `vX.Y.Z`, `vX.Y`, `vX`, and `latest`.
 - `latest` tracks the newest stable tagged release, not the tip of `main`.
-- Release images bake `STASHARR_VERSION` from the tag without the leading `v`, so tag `v0.1.0` displays app version `0.1.0` in health, About, and Settings Overview.
-- `main` images bake `STASHARR_VERSION=edge-<shortsha>`. Local Docker builds that omit the build arg use `0.0.0-dev`.
+- Release images bake `PEEPARR_VERSION` from the tag without the leading `v`, so tag `v0.1.0` displays app version `0.1.0` in health, About, and Settings Overview.
+- `main` images bake `PEEPARR_VERSION=edge-<shortsha>`. Local Docker builds that omit the build arg use `0.0.0-dev`.
 
 The published image is built from the repo-root `Dockerfile`. It installs the workspace, generates the Prisma client, builds the Nest API and Angular frontend, then copies the production runtime artifacts into a separate runtime stage.
 
 ## Release And Versioning Flow
 
-Stasharr uses one repo-level product version for the whole repository.
+Peeparr uses one repo-level product version for the whole repository.
 
 - The canonical version source is root `version.txt`.
 - Release tags use `vX.Y.Z`.

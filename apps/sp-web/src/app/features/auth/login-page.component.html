@@ -2,12 +2,12 @@
   <section class="auth-card" appAuthIntro aria-labelledby="login-heading">
     <div class="auth-brand">
       <app-brand-mark />
-      <span class="auth-brand-name"><span>Stasharr</span></span>
+      <span class="auth-brand-name"><span>Peeparr</span></span>
     </div>
 
     <div class="auth-heading">
       <h1 id="login-heading">Sign in</h1>
-      <p>to continue to Stasharr</p>
+      <p>to continue to Peeparr</p>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
@@ -24,9 +24,9 @@
       @if (resetState() === 'sent') {
         <div class="reset-notice" role="status">
           <p>
-            A temporary password was created. On the server running Stasharr, show it with:
+            A temporary password was created. On the server running Peeparr, show it with:
           </p>
-          <code>docker compose exec app stasharr-reset-password</code>
+          <code>docker compose exec app peeparr-reset-password</code>
           <p class="reset-hint">
             It works once and expires in 15 minutes. Your current password still works.
           </p>

@@ -12,12 +12,12 @@
 # something incompatible with the config-file edit below.
 #
 # After the community-scripts installer finishes, this script sets Eros'
-# metadata source to match the catalog Stasharr uses (scripts/configure-eros.sh
+# metadata source to match the catalog Peeparr uses (scripts/configure-eros.sh
 # does the actual edit; see docs/DEPLOYMENT.md):
 #
-#   CATALOG=tpdb     point Eros' WhisparrMetadata config entry at Stasharr's
+#   CATALOG=tpdb     point Eros' WhisparrMetadata config entry at Peeparr's
 #                    self-hosted, TPDB-backed proxy
-#                    (<stasharr>/api/whisparr-metadata/{route}). This is the
+#                    (<peeparr>/api/whisparr-metadata/{route}). This is the
 #                    change made to the original production instance.
 #   CATALOG=stashdb  leave Eros on its built-in metadata (api.whisparr.com,
 #                    StashDB ids).
@@ -27,7 +27,7 @@
 # search.
 #
 # Run this ON THE PROXMOX HOST as root:
-#   CATALOG=tpdb STASHARR_URL=http://10.50.50.201:3000 ./install-whisparr-eros-lxc.sh
+#   CATALOG=tpdb PEEPARR_URL=http://10.50.50.201:3000 ./install-whisparr-eros-lxc.sh
 #   CATALOG=stashdb ./install-whisparr-eros-lxc.sh
 #
 # The community-scripts installer is interactive by default (Default vs
@@ -36,23 +36,23 @@
 # `pct list` before/after and applies the metadata choice to it.
 #
 # To change the choice later (or if auto-detection fails):
-#   ../../scripts/configure-eros.sh --ctid <id> --catalog tpdb --stasharr-url http://host:3000
+#   ../../scripts/configure-eros.sh --ctid <id> --catalog tpdb --peeparr-url http://host:3000
 #   ../../scripts/configure-eros.sh --ctid <id> --catalog stashdb
 set -euo pipefail
 
 # ---- Configuration (override via env vars) ----
 CATALOG="${CATALOG:-}"                 # tpdb | stashdb (asked if unset)
-STASHARR_URL="${STASHARR_URL:-}"       # e.g. http://10.50.50.201:3000 (tpdb only)
+PEEPARR_URL="${PEEPARR_URL:-}"       # e.g. http://10.50.50.201:3000 (tpdb only)
 COMMUNITY_SCRIPT_URL="${COMMUNITY_SCRIPT_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/whisparr-eros.sh}"
-CONFIGURE_EROS_URL="${CONFIGURE_EROS_URL:-https://raw.githubusercontent.com/John-Butler3/Stasharr/main/scripts/configure-eros.sh}"
+CONFIGURE_EROS_URL="${CONFIGURE_EROS_URL:-https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/configure-eros.sh}"
 
 if [[ -z "$CATALOG" ]]; then
-  read -r -p "Which catalog does Stasharr use? [tpdb/stashdb]: " CATALOG
+  read -r -p "Which catalog does Peeparr use? [tpdb/stashdb]: " CATALOG
 fi
 case "$CATALOG" in
   tpdb)
-    if [[ -z "$STASHARR_URL" ]]; then
-      read -r -p "Stasharr URL as Eros will reach it (e.g. http://10.50.50.201:3000): " STASHARR_URL
+    if [[ -z "$PEEPARR_URL" ]]; then
+      read -r -p "Peeparr URL as Eros will reach it (e.g. http://10.50.50.201:3000): " PEEPARR_URL
     fi
     ;;
   stashdb) ;;
@@ -76,9 +76,9 @@ configure_eros() {
   done
 
   local args=(--ctid "$ctid" --catalog "$CATALOG")
-  [[ "$CATALOG" == tpdb ]] && args+=(--stasharr-url "$STASHARR_URL")
+  [[ "$CATALOG" == tpdb ]] && args+=(--peeparr-url "$PEEPARR_URL")
   if ! "$script" "${args[@]}"; then
-    echo "warning: couldn't apply the metadata setting yet. Once Stasharr (and its TPDB" >&2
+    echo "warning: couldn't apply the metadata setting yet. Once Peeparr (and its TPDB" >&2
     echo "         integration) is reachable from CT $ctid, re-run:" >&2
     echo "         $script ${args[*]}" >&2
   fi
@@ -110,7 +110,7 @@ if [[ -z "$NEW_CTID" ]]; then
 
 warning: couldn't auto-detect the new CTID from 'pct list'.
 Find it yourself (it'll be the newest entry), then run:
-  scripts/configure-eros.sh --ctid <id> --catalog $CATALOG ${STASHARR_URL:+--stasharr-url $STASHARR_URL}
+  scripts/configure-eros.sh --ctid <id> --catalog $CATALOG ${PEEPARR_URL:+--peeparr-url $PEEPARR_URL}
 MSG
   exit 0
 fi
@@ -125,10 +125,10 @@ cat <<SUMMARY
 ==> Done.
     Container:     CTID $NEW_CTID
     Service:       whisparr-eros (systemd) at /opt/Whisparr-Eros, data in /var/lib/whisparr-eros
-    Metadata:      ${CATALOG} $( [[ "$CATALOG" == tpdb ]] && echo "(via ${STASHARR_URL}/api/whisparr-metadata/{route})" || echo "(Eros built-in)")
+    Metadata:      ${CATALOG} $( [[ "$CATALOG" == tpdb ]] && echo "(via ${PEEPARR_URL}/api/whisparr-metadata/{route})" || echo "(Eros built-in)")
 
     Open http://${CT_IP}:6969 to finish setup (root folders, indexers,
-    connect it to Stasharr's Whisparr integration with a fresh API key from
+    connect it to Peeparr's Whisparr integration with a fresh API key from
     Settings > General -- the API key is per-install and won't match any
     old one you had saved).
 SUMMARY

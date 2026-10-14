@@ -472,7 +472,7 @@ def main() -> None:
         print("No scheduler memory telemetry lines were found.", file=sys.stderr)
         print(
             "Make sure the container was started with "
-            "STASHARR_INDEXING_MEMORY_LOG=1 and pass docker logs output to this script.",
+            "PEEPARR_INDEXING_MEMORY_LOG=1 and pass docker logs output to this script.",
             file=sys.stderr,
         )
         raise SystemExit(1)

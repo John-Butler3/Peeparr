@@ -831,7 +831,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
           system: 'Whisparr',
           title: 'Failed',
           detail:
-            'The last known acquisition attempt failed. Resolve or retry this download in Whisparr because Stasharr does not remediate failed Whisparr jobs.',
+            'The last known acquisition attempt failed. Resolve or retry this download in Whisparr because Peeparr does not remediate failed Whisparr jobs.',
           tone: 'active',
         };
       case 'NOT_REQUESTED':

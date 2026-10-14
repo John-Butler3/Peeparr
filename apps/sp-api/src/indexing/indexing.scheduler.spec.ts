@@ -44,14 +44,14 @@ async function flushPromises(): Promise<void> {
 
 describe('IndexingScheduler', () => {
   const trackedEnvKeys = [
-    'STASHARR_INDEXING_MEMORY_LOG',
-    'STASHARR_INDEXING_GC_LOG',
-    'STASHARR_INDEXING_GC_SAMPLE_INTERVAL_MS',
-    'STASHARR_INDEXING_HEAP_SNAPSHOT',
-    'STASHARR_INDEXING_HEAP_SNAPSHOT_MIN_HEAP_MB',
-    'STASHARR_INDEXING_HEAP_SNAPSHOT_MIN_INTERVAL_MS',
-    'STASHARR_INDEXING_HEAP_SNAPSHOT_MAX_COUNT',
-    'STASHARR_INDEXING_HEAP_SNAPSHOT_DIR',
+    'PEEPARR_INDEXING_MEMORY_LOG',
+    'PEEPARR_INDEXING_GC_LOG',
+    'PEEPARR_INDEXING_GC_SAMPLE_INTERVAL_MS',
+    'PEEPARR_INDEXING_HEAP_SNAPSHOT',
+    'PEEPARR_INDEXING_HEAP_SNAPSHOT_MIN_HEAP_MB',
+    'PEEPARR_INDEXING_HEAP_SNAPSHOT_MIN_INTERVAL_MS',
+    'PEEPARR_INDEXING_HEAP_SNAPSHOT_MAX_COUNT',
+    'PEEPARR_INDEXING_HEAP_SNAPSHOT_DIR',
   ] as const;
   const originalEnv = Object.fromEntries(
     trackedEnvKeys.map((key) => [key, process.env[key]]),
@@ -102,7 +102,7 @@ describe('IndexingScheduler', () => {
   });
 
   it('logs memory usage for scheduler jobs when enabled', async () => {
-    process.env.STASHARR_INDEXING_MEMORY_LOG = '1';
+    process.env.PEEPARR_INDEXING_MEMORY_LOG = '1';
     const logSpy = jest
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
@@ -165,7 +165,7 @@ describe('IndexingScheduler', () => {
   });
 
   it('logs failed outcome when a scheduler job rejects', async () => {
-    process.env.STASHARR_INDEXING_MEMORY_LOG = '1';
+    process.env.PEEPARR_INDEXING_MEMORY_LOG = '1';
     const logSpy = jest
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
@@ -194,8 +194,8 @@ describe('IndexingScheduler', () => {
   });
 
   it('logs GC-assisted memory samples when enabled and gc is exposed', async () => {
-    process.env.STASHARR_INDEXING_GC_LOG = '1';
-    process.env.STASHARR_INDEXING_GC_SAMPLE_INTERVAL_MS = '0';
+    process.env.PEEPARR_INDEXING_GC_LOG = '1';
+    process.env.PEEPARR_INDEXING_GC_SAMPLE_INTERVAL_MS = '0';
     const logSpy = jest
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);

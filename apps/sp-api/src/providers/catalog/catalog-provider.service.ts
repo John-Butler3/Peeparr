@@ -104,7 +104,7 @@ export class CatalogProviderService {
     const selectedType = await this.getInstanceCatalogProviderType();
     if (!selectedType) {
       throw new ConflictException(
-        'No catalog provider has been chosen for this Stasharr instance.',
+        'No catalog provider has been chosen for this Peeparr instance.',
       );
     }
 

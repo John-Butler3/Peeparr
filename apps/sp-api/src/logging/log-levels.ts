@@ -22,7 +22,7 @@ const DEVELOPMENT_LOG_LEVELS: LogLevel[] = [
 export function resolveNestLogLevels(
   env: NodeJS.ProcessEnv = process.env,
 ): LogLevel[] {
-  const configured = env.STASHARR_LOG_LEVELS?.trim();
+  const configured = env.PEEPARR_LOG_LEVELS?.trim();
   if (configured) {
     const levels = configured
       .split(',')

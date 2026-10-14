@@ -18,9 +18,9 @@ export class SettingsAboutPageComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly health = signal<HealthStatusResponse | null>(null);
-  protected readonly githubUrl = 'https://github.com/John-Butler3/Stasharr';
-  protected readonly docsUrl = 'https://github.com/John-Butler3/Stasharr#self-hosted-quick-start';
-  protected readonly releasesUrl = 'https://github.com/John-Butler3/Stasharr/releases';
+  protected readonly githubUrl = 'https://github.com/John-Butler3/Peeparr';
+  protected readonly docsUrl = 'https://github.com/John-Butler3/Peeparr#self-hosted-quick-start';
+  protected readonly releasesUrl = 'https://github.com/John-Butler3/Peeparr/releases';
 
   ngOnInit(): void {
     this.loading.set(true);

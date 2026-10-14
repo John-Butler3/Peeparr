@@ -487,7 +487,7 @@ export class HomeService {
       return {
         items: [],
         message:
-          'Configure the catalog provider for this Stasharr instance to populate this hybrid rail.',
+          'Configure the catalog provider for this Peeparr instance to populate this hybrid rail.',
       };
     }
 

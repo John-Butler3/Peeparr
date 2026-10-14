@@ -1325,7 +1325,7 @@ describe('HomeService', () => {
     await expect(service.getRailContent('custom-hybrid-4')).resolves.toEqual({
       items: [],
       message:
-        'Configure the catalog provider for this Stasharr instance to populate this hybrid rail.',
+        'Configure the catalog provider for this Peeparr instance to populate this hybrid rail.',
     });
 
     catalogProviderService.getConfiguredCatalogProvider = jest

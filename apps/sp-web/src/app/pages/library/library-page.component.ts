@@ -430,7 +430,7 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (this.latestSyncAt()) {
-      return 'Indexing has run, but Stasharr did not find local scenes for this view. Check Stash for imported scenes, then run Sync All after new imports.';
+      return 'Indexing has run, but Peeparr did not find local scenes for this view. Check Stash for imported scenes, then run Sync All after new imports.';
     }
 
     return firstUseEmptyStateCopy('library').message;

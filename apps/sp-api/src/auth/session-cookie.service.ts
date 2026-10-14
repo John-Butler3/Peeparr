@@ -4,7 +4,7 @@ import type { Response } from 'express';
 
 @Injectable()
 export class SessionCookieService {
-  readonly cookieName = 'stasharr_session';
+  readonly cookieName = 'peeparr_session';
   readonly sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
   private readonly sessionSecret: string;
   private readonly secureCookie: boolean;

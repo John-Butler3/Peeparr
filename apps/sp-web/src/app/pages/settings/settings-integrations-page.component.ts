@@ -203,7 +203,7 @@ export class SettingsIntegrationsPageComponent implements OnInit {
       case 'TEST_FAILED':
         return `${this.labelFor(type)} remains this instance's catalog provider even while unhealthy. Repair it here and Save & Test again. Reset catalog setup only if you need to switch providers.`;
       case 'READY':
-        return `${this.labelFor(type)} is the catalog provider configured for this Stasharr instance. Reset catalog setup before changing provider type.`;
+        return `${this.labelFor(type)} is the catalog provider configured for this Peeparr instance. Reset catalog setup before changing provider type.`;
     }
   }
 

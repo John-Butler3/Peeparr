@@ -53,7 +53,7 @@ describe('BootstrapPageComponent', () => {
       password: 'long-password-123',
     });
     expect(fixture.nativeElement.textContent).toContain(
-      'After this, Stasharr opens required integration setup',
+      'After this, Peeparr opens required integration setup',
     );
     expect(fixture.nativeElement.textContent).toContain(
       'Admin account created. Opening required integration setup next.',

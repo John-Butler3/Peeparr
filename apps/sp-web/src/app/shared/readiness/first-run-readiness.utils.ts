@@ -42,7 +42,7 @@ export function firstUseEmptyStateCopy(surface: ReadinessSurface): FirstUseEmpty
       return {
         title: 'No local scenes are indexed yet',
         message:
-          'Run Sync All from Indexing & Sync to project your Stash library into Stasharr. You can keep browsing Scenes while the local library catches up.',
+          'Run Sync All from Indexing & Sync to project your Stash library into Peeparr. You can keep browsing Scenes while the local library catches up.',
       };
     case 'acquisition':
       return {

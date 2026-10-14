@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-APP_DATA_DIR="${APP_DATA_DIR:-/var/lib/stasharr}"
+APP_DATA_DIR="${APP_DATA_DIR:-/var/lib/peeparr}"
 SESSION_SECRET_FILE="${SESSION_SECRET_FILE:-${APP_DATA_DIR%/}/session-secret}"
 
 if [ -z "${SESSION_SECRET:-}" ]; then
@@ -56,5 +56,5 @@ while ! /app/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema
   sleep "$retry_delay_seconds"
 done
 
-echo "Starting Stasharr"
+echo "Starting Peeparr"
 exec node /app/apps/sp-api/dist/main.js

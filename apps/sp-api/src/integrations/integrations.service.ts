@@ -397,13 +397,13 @@ export class IntegrationsService {
 
     if (configuredType !== type) {
       throw new ConflictException(
-        `This Stasharr instance is configured for ${getCatalogProviderLabel(configuredType)}. Reset catalog setup before configuring ${getCatalogProviderLabel(type)}.`,
+        `This Peeparr instance is configured for ${getCatalogProviderLabel(configuredType)}. Reset catalog setup before configuring ${getCatalogProviderLabel(type)}.`,
       );
     }
 
     if (!nextConfigured) {
       throw new ConflictException(
-        `This Stasharr instance is configured for ${getCatalogProviderLabel(type)}. Reset catalog setup before clearing or changing the catalog provider.`,
+        `This Peeparr instance is configured for ${getCatalogProviderLabel(type)}. Reset catalog setup before clearing or changing the catalog provider.`,
       );
     }
   }
@@ -419,7 +419,7 @@ export class IntegrationsService {
 
     if (configuredType !== type) {
       throw new ConflictException(
-        `This Stasharr instance is configured for ${getCatalogProviderLabel(configuredType)}. Reset catalog setup before configuring ${getCatalogProviderLabel(type)}.`,
+        `This Peeparr instance is configured for ${getCatalogProviderLabel(configuredType)}. Reset catalog setup before configuring ${getCatalogProviderLabel(type)}.`,
       );
     }
 

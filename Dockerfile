@@ -21,12 +21,12 @@ RUN pnpm --filter sp-web build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 RUN apk add --no-cache openssl
-RUN mkdir -p /var/lib/stasharr && chmod 700 /var/lib/stasharr
-ARG STASHARR_VERSION=0.0.0-dev
+RUN mkdir -p /var/lib/peeparr && chmod 700 /var/lib/peeparr
+ARG PEEPARR_VERSION=0.0.0-dev
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
-ENV STASHARR_VERSION=$STASHARR_VERSION
+ENV PEEPARR_VERSION=$PEEPARR_VERSION
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/node_modules ./node_modules
@@ -37,8 +37,8 @@ COPY --from=build /app/apps/sp-web/dist ./apps/sp-web/dist
 COPY --from=build /app/prisma ./prisma
 COPY infrastructure/docker/healthcheck.mjs /usr/local/bin/healthcheck.mjs
 COPY infrastructure/docker/start-app.sh /usr/local/bin/start-app
-COPY infrastructure/docker/reset-password.sh /usr/local/bin/stasharr-reset-password
-RUN chmod +x /usr/local/bin/start-app /usr/local/bin/stasharr-reset-password
+COPY infrastructure/docker/reset-password.sh /usr/local/bin/peeparr-reset-password
+RUN chmod +x /usr/local/bin/start-app /usr/local/bin/peeparr-reset-password
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 CMD ["node", "/usr/local/bin/healthcheck.mjs"]
 EXPOSE 3000
 CMD ["start-app"]

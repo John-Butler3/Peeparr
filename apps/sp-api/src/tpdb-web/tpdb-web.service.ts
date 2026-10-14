@@ -257,7 +257,7 @@ export class TpdbWebService {
 
     const location = response.headers.get('location') ?? response.headers.get('x-inertia-location') ?? '';
     if (/two-factor/i.test(location)) {
-      throw new Error('This TPDB account uses two-factor sign-in, which Stasharr can\'t complete.');
+      throw new Error('This TPDB account uses two-factor sign-in, which Peeparr can\'t complete.');
     }
     if (response.status === 429) {
       throw new Error('TPDB is rate-limiting sign-ins; will try again later.');

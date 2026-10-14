@@ -1,0 +1,52 @@
+{
+  "name": "Peeparr",
+  "slug": "peeparr",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-10-14",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/John-Butler3/Peeparr/blob/main/docs/DEPLOYMENT.md",
+  "website": "https://github.com/John-Butler3/Peeparr",
+  "logo": "https://raw.githubusercontent.com/John-Butler3/Peeparr/main/apps/sp-web/public/icons/icon-192.png",
+  "config_path": "/opt/peeparr/.env",
+  "description": "Peeparr is a self-hosted console that discovers scenes from a catalog (StashDB, FansDB or TPDB), sends requests to Whisparr and checks what's already in your Stash library, with a YouTube-style player and library browser.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/peeparr.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The admin account is created in the browser on first visit.",
+      "type": "info"
+    },
+    {
+      "text": "Forgot the password? Click 'Forgot password?' on the sign-in page, then run `peeparr-reset-password` in the container.",
+      "type": "info"
+    },
+    {
+      "text": "Using TPDB as the catalog? Whisparr-Eros must use Peeparr's TPDB metadata proxy: run scripts/configure-eros.sh --catalog tpdb --peeparr-url http://<peeparr-ip>:3000 (see docs/DEPLOYMENT.md).",
+      "type": "warning"
+    },
+    {
+      "text": "Building the app needs about 3 GB RAM; you can lower it after install.",
+      "type": "info"
+    }
+  ]
+}

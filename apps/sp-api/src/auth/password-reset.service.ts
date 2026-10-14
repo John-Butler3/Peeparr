@@ -22,7 +22,7 @@ const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
  * single-use temporary password and writes it to a root-only file inside the
  * app data volume, readable only from the host shell:
  *
- *   docker exec <app-container> stasharr-reset-password
+ *   docker exec <app-container> peeparr-reset-password
  *
  * Signing in with it makes it the account password (and signs out every other
  * session), after which the admin is sent to change it.
@@ -36,7 +36,7 @@ export class PasswordResetService implements OnModuleInit {
   private pending: PendingReset | null = null;
 
   filePath = join(
-    process.env.APP_DATA_DIR ?? '/var/lib/stasharr',
+    process.env.APP_DATA_DIR ?? '/var/lib/peeparr',
     'password-reset.txt',
   );
 
@@ -60,7 +60,7 @@ export class PasswordResetService implements OnModuleInit {
     await writeFile(
       this.filePath,
       [
-        'Stasharr temporary password',
+        'Peeparr temporary password',
         '',
         `Username: ${username}`,
         `Password: ${password}`,

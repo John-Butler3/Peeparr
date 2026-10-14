@@ -1,14 +1,14 @@
-# Stasharr compose file for installs built from this repository's source
-# (scripts/install.sh writes this to /opt/stasharr/compose.yaml).
+# Peeparr compose file for installs built from this repository's source
+# (scripts/install.sh writes this to /opt/peeparr/compose.yaml).
 #
 # The app image is built locally from the source checkout as
-# stasharr-portal:custom, so it's always the checked-out version. Secrets and
+# peeparr:custom, so it's always the checked-out version. Secrets and
 # per-install settings live in .env next to this file (written once by the
 # installer with a random database password; keep it private).
 
 x-db-env: &db-env
-  POSTGRES_DB: ${POSTGRES_DB:-stasharr}
-  POSTGRES_USER: ${POSTGRES_USER:-stasharr}
+  POSTGRES_DB: ${POSTGRES_DB:-peeparr}
+  POSTGRES_USER: ${POSTGRES_USER:-peeparr}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
 
 services:
@@ -27,13 +27,13 @@ services:
     restart: unless-stopped
 
   app:
-    image: ${STASHARR_IMAGE:-stasharr-portal:custom}
+    image: ${PEEPARR_IMAGE:-peeparr:custom}
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       # Generated session secret and "Forgot password?" temporary password.
-      - app_data:/var/lib/stasharr
+      - app_data:/var/lib/peeparr
     environment:
       <<: *db-env
       DATABASE_HOST: postgres
@@ -42,7 +42,7 @@ services:
       PORT: 3000
       DATABASE_MIGRATION_MAX_ATTEMPTS: 30
       DATABASE_MIGRATION_RETRY_DELAY_SECONDS: 2
-      # Set to "true" in .env once Stasharr is served over HTTPS.
+      # Set to "true" in .env once Peeparr is served over HTTPS.
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       # Uncomment in .env if catalog checks time out on IPv4-only networks:
       # NODE_OPTIONS=--no-network-family-autoselection
@@ -51,8 +51,8 @@ services:
       - "${APP_PORT:-3000}:3000"
     restart: unless-stopped
 
-# Named after the compose project (default "stasharr"), e.g.
-# stasharr_postgres_data and stasharr_app_data.
+# Named after the compose project (default "peeparr"), e.g.
+# peeparr_postgres_data and peeparr_app_data.
 volumes:
   postgres_data:
   app_data:

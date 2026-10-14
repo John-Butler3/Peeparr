@@ -25,7 +25,7 @@ describe('resolveNestLogLevels', () => {
     expect(
       resolveNestLogLevels({
         NODE_ENV: 'production',
-        STASHARR_LOG_LEVELS: 'error,warn,log,debug',
+        PEEPARR_LOG_LEVELS: 'error,warn,log,debug',
       }),
     ).toEqual(['error', 'warn', 'log', 'debug']);
   });

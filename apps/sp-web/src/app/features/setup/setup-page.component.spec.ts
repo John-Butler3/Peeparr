@@ -234,7 +234,7 @@ describe('SetupPageComponent', () => {
     const links = Array.from(panel?.querySelectorAll('a') ?? []) as HTMLAnchorElement[];
 
     expect(textContent(panel)).toContain('Setup complete');
-    expect(textContent(panel)).toContain('Stasharr is ready to open');
+    expect(textContent(panel)).toContain('Peeparr is ready to open');
     expect(textContent(panel)).toContain('Library, Acquisition, and status badges');
     expect(textContent(panel)).toContain('Sync All');
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
@@ -427,7 +427,7 @@ describe('SetupPageComponent', () => {
     expect(notifications.success).toHaveBeenCalledWith('Whisparr is ready.');
     expect(
       textContent(fixture.nativeElement.querySelector('[data-testid="setup-complete-panel"]')),
-    ).toContain('Stasharr is ready to open');
+    ).toContain('Peeparr is ready to open');
     expect(navigateByUrl).not.toHaveBeenCalled();
   });
 });

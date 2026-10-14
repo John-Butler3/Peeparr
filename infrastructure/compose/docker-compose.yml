@@ -16,14 +16,14 @@ services:
     restart: unless-stopped
 
   app:
-    image: ghcr.io/john-butler3/stasharr:${STASHARR_IMAGE_TAG:-latest}
+    image: ghcr.io/john-butler3/peeparr:${PEEPARR_IMAGE_TAG:-latest}
     env_file:
       - ../../.env
       - .env
     environment:
       DATABASE_URL: ""
     volumes:
-      - sp_app_data:/var/lib/stasharr
+      - sp_app_data:/var/lib/peeparr
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     depends_on:

@@ -149,15 +149,15 @@ export class IndexingScheduler implements OnApplicationBootstrap {
   }
 
   private isMemoryLoggingEnabled(): boolean {
-    return this.isEnvFlagEnabled('STASHARR_INDEXING_MEMORY_LOG');
+    return this.isEnvFlagEnabled('PEEPARR_INDEXING_MEMORY_LOG');
   }
 
   private isGcLoggingEnabled(): boolean {
-    return this.isEnvFlagEnabled('STASHARR_INDEXING_GC_LOG');
+    return this.isEnvFlagEnabled('PEEPARR_INDEXING_GC_LOG');
   }
 
   private isHeapSnapshotEnabled(): boolean {
-    return this.isEnvFlagEnabled('STASHARR_INDEXING_HEAP_SNAPSHOT');
+    return this.isEnvFlagEnabled('PEEPARR_INDEXING_HEAP_SNAPSHOT');
   }
 
   private isAnyMemoryDiagnosticEnabled(): boolean {
@@ -296,7 +296,7 @@ export class IndexingScheduler implements OnApplicationBootstrap {
 
     const now = Date.now();
     const sampleIntervalMs = this.readNonNegativeIntegerEnv(
-      'STASHARR_INDEXING_GC_SAMPLE_INTERVAL_MS',
+      'PEEPARR_INDEXING_GC_SAMPLE_INTERVAL_MS',
       15 * 60_000,
     );
     if (
@@ -312,7 +312,7 @@ export class IndexingScheduler implements OnApplicationBootstrap {
       if (!this.gcUnavailableLogged) {
         this.gcUnavailableLogged = true;
         this.logger.warn(
-          'STASHARR_INDEXING_GC_LOG is enabled, but global.gc is unavailable. Start Node with --expose-gc to collect GC-assisted telemetry.',
+          'PEEPARR_INDEXING_GC_LOG is enabled, but global.gc is unavailable. Start Node with --expose-gc to collect GC-assisted telemetry.',
         );
       }
       return;
@@ -352,7 +352,7 @@ export class IndexingScheduler implements OnApplicationBootstrap {
 
     const heapUsedMb = this.toMb(memory.heapUsed);
     const minHeapMb = this.readNonNegativeIntegerEnv(
-      'STASHARR_INDEXING_HEAP_SNAPSHOT_MIN_HEAP_MB',
+      'PEEPARR_INDEXING_HEAP_SNAPSHOT_MIN_HEAP_MB',
       512,
     );
     if (heapUsedMb < minHeapMb) {
@@ -360,7 +360,7 @@ export class IndexingScheduler implements OnApplicationBootstrap {
     }
 
     const maxSnapshots = this.readNonNegativeIntegerEnv(
-      'STASHARR_INDEXING_HEAP_SNAPSHOT_MAX_COUNT',
+      'PEEPARR_INDEXING_HEAP_SNAPSHOT_MAX_COUNT',
       4,
     );
     if (this.heapSnapshotsWritten >= maxSnapshots) {
@@ -369,7 +369,7 @@ export class IndexingScheduler implements OnApplicationBootstrap {
 
     const now = Date.now();
     const minIntervalMs = this.readNonNegativeIntegerEnv(
-      'STASHARR_INDEXING_HEAP_SNAPSHOT_MIN_INTERVAL_MS',
+      'PEEPARR_INDEXING_HEAP_SNAPSHOT_MIN_INTERVAL_MS',
       30 * 60_000,
     );
     if (
@@ -380,11 +380,11 @@ export class IndexingScheduler implements OnApplicationBootstrap {
     }
 
     const snapshotDir =
-      process.env.STASHARR_INDEXING_HEAP_SNAPSHOT_DIR?.trim() ||
-      '/tmp/stasharr-heap-snapshots';
+      process.env.PEEPARR_INDEXING_HEAP_SNAPSHOT_DIR?.trim() ||
+      '/tmp/peeparr-heap-snapshots';
     const safeJobName = jobName.replace(/[^a-zA-Z0-9._-]/g, '-');
     const timestamp = new Date(now).toISOString().replace(/[:.]/g, '-');
-    const fileName = `stasharr-${timestamp}-${safeJobName}-${heapUsedMb}MB.heapsnapshot`;
+    const fileName = `peeparr-${timestamp}-${safeJobName}-${heapUsedMb}MB.heapsnapshot`;
 
     try {
       mkdirSync(snapshotDir, {

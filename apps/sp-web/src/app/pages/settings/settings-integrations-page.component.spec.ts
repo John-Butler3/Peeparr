@@ -246,7 +246,7 @@ describe('SettingsIntegrationsPageComponent', () => {
       'StashDB chosen and ready.',
     );
     expect(component.catalogProviderHelp('STASHDB')).toBe(
-      'StashDB is the catalog provider configured for this Stasharr instance. Reset catalog setup before changing provider type.',
+      'StashDB is the catalog provider configured for this Peeparr instance. Reset catalog setup before changing provider type.',
     );
     expect(component.showEnabledToggle('STASHDB')).toBe(false);
   });

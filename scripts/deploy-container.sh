@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 #
-# Deploy script for the self-hosted stasharr-portal container.
+# Deploy script for the self-hosted peeparr container.
 #
-# Run this ON THE STASHARR HOST (not on your dev machine). It:
+# Run this ON THE PEEPARR HOST (not on your dev machine). It:
 #   1. Pulls the latest commits for the configured branch into the source clone
 #   2. Rebuilds the custom Docker image
 #   3. Restarts the compose stack with the new image
 #
-# Installs made with scripts/install.sh have this as `stasharr-update`.
+# Installs made with scripts/install.sh have this as `peeparr-update`.
 #
 # Usage:
 #   ./deploy-container.sh                  # deploy the branch currently checked out
 #   ./deploy-container.sh -b main           # deploy a specific branch
-#   SRC_DIR=/opt/stasharr-src COMPOSE_DIR=/opt/stasharr ./deploy-container.sh
+#   SRC_DIR=/opt/peeparr-src COMPOSE_DIR=/opt/peeparr ./deploy-container.sh
 #
 set -euo pipefail
 
-SRC_DIR="${SRC_DIR:-/opt/stasharr-src}"
-COMPOSE_DIR="${COMPOSE_DIR:-/opt/stasharr}"
-IMAGE_TAG="${IMAGE_TAG:-stasharr-portal:custom}"
+SRC_DIR="${SRC_DIR:-/opt/peeparr-src}"
+COMPOSE_DIR="${COMPOSE_DIR:-/opt/peeparr}"
+IMAGE_TAG="${IMAGE_TAG:-peeparr:custom}"
 BRANCH=""
 
 while [[ $# -gt 0 ]]; do
@@ -58,7 +58,7 @@ else
   fail "Neither 'docker compose' nor 'docker-compose' is available."
 fi
 
-[[ -d "$SRC_DIR/.git" ]] || fail "$SRC_DIR is not a git checkout. Set SRC_DIR to your stasharr-src clone."
+[[ -d "$SRC_DIR/.git" ]] || fail "$SRC_DIR is not a git checkout. Set SRC_DIR to your peeparr-src clone."
 [[ -f "$COMPOSE_DIR/compose.yaml" ]] || fail "$COMPOSE_DIR/compose.yaml not found. Set COMPOSE_DIR to your compose directory."
 
 cd "$SRC_DIR"

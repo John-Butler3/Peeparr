@@ -152,11 +152,11 @@ export class SetupPageComponent implements OnInit {
   protected setupSummary(): string {
     const catalogProvider = this.catalogProvider();
     if (this.isSetupComplete()) {
-      return `This Stasharr instance uses ${catalogProvider ? this.labelFor(catalogProvider) : 'its catalog provider'} with Stash and Whisparr ready.`;
+      return `This Peeparr instance uses ${catalogProvider ? this.labelFor(catalogProvider) : 'its catalog provider'} with Stash and Whisparr ready.`;
     }
 
     if (!catalogProvider) {
-      return 'Choose the catalog provider for this Stasharr instance, then continue through the remaining required services.';
+      return 'Choose the catalog provider for this Peeparr instance, then continue through the remaining required services.';
     }
 
     if (!this.catalogProviderReady()) {
@@ -194,7 +194,7 @@ export class SetupPageComponent implements OnInit {
       return `${this.labelFor(type)} is locked in as this instance's catalog provider. Repair it here if it later becomes unhealthy. Reset catalog setup only if you need to switch providers.`;
     }
 
-    return `Choose ${this.labelFor(type)} for this Stasharr instance. Save & Test will lock it in. Changing provider type later requires resetting catalog setup and running setup again.`;
+    return `Choose ${this.labelFor(type)} for this Peeparr instance. Save & Test will lock it in. Changing provider type later requires resetting catalog setup and running setup again.`;
   }
 
   protected sectionLabel(type: IntegrationType): string {

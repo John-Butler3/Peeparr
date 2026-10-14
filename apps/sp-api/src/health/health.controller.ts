@@ -24,7 +24,7 @@ export class HealthController {
 
 export function resolveAppVersion(): string {
   return (
-    normalizeVersion(process.env.STASHARR_VERSION) ??
+    normalizeVersion(process.env.PEEPARR_VERSION) ??
     normalizeVersion(process.env.npm_package_version) ??
     DEFAULT_APP_VERSION
   );
