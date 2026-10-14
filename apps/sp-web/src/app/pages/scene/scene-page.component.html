@@ -377,9 +377,9 @@
 
       <aside class="watch-secondary">
         <app-up-next-list
-          [items]="hasStashCopy(scene) ? upNext() : similarUpNext()"
-          [loading]="hasStashCopy(scene) && upNextLoading()"
-          [heading]="hasStashCopy(scene) ? 'Up next' : 'Similar scenes'"
+          [items]="hasStashCopy(scene) ? upNext() : catalogUpNext()"
+          [loading]="upNextLoading()"
+          heading="Up next"
         />
       </aside>
     </div>

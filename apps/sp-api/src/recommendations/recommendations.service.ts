@@ -26,6 +26,8 @@ export class RecommendationsService {
   static readonly DEFAULT_LIMIT = 20;
   private static readonly SHARED_PERFORMER_POOL = 40;
   private static readonly GENERAL_POOL = 100;
+  /** At most this many performers looked up for a catalog scene. */
+  private static readonly MAX_PERFORMERS = 6;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -73,6 +75,55 @@ export class RecommendationsService {
 
     // Library index projection (same shape as the library grid); scenes not
     // indexed yet are skipped.
+    const items = await this.librarySceneQueryService.getScenesByIds(ids);
+    return { items: items.slice(0, limit) };
+  }
+
+  /**
+   * "Up next" for a scene that isn't in the library: library scenes with the
+   * given performers (catalog ids -- Stash matches them through its
+   * performers' StashIDs, whichever catalog they're from). Scenes with more
+   * of them come first; all-female only, as above. Nothing else is added:
+   * with none of them in the library, the list is empty.
+   */
+  async getRecommendedForPerformers(
+    catalogPerformerIds: string[],
+    limit = RecommendationsService.DEFAULT_LIMIT,
+  ): Promise<{ items: LibrarySceneFeedItemDto[] }> {
+    const performerIds = [...new Set(catalogPerformerIds.map((id) => id.trim()).filter(Boolean))].slice(
+      0,
+      RecommendationsService.MAX_PERFORMERS,
+    );
+    if (performerIds.length === 0) {
+      return { items: [] };
+    }
+
+    const config = await this.getStashConfig();
+    const perPerformer = await Promise.all(
+      performerIds.map((stashId) =>
+        this.findCandidates(config, RecommendationsService.SHARED_PERFORMER_POOL, {
+          performers_filter: { stash_id_endpoint: { stash_id: stashId, modifier: 'EQUALS' } },
+        }).catch(() => [] as CandidateScene[]),
+      ),
+    );
+
+    // How many of these performers each scene has; first-seen order breaks ties.
+    const matches = new Map<string, { scene: CandidateScene; count: number; order: number }>();
+    for (const scenes of perPerformer) {
+      for (const scene of scenes) {
+        const entry = matches.get(scene.id);
+        if (entry) {
+          entry.count += 1;
+        } else {
+          matches.set(scene.id, { scene, count: 1, order: matches.size });
+        }
+      }
+    }
+    const ids = [...matches.values()]
+      .filter((entry) => this.isAllFemale(entry.scene))
+      .sort((a, b) => b.count - a.count || a.order - b.order)
+      .map((entry) => entry.scene.id);
+
     const items = await this.librarySceneQueryService.getScenesByIds(ids);
     return { items: items.slice(0, limit) };
   }

@@ -79,6 +79,18 @@ export class LibraryService {
   }
 
   /** Other library scenes with all-female performers ("Up next"). */
+  /** Library scenes with these performers (catalog ids), for a scene not in the library. */
+  getRecommendedForPerformers(
+    catalogPerformerIds: readonly string[],
+    limit = 20,
+  ): Observable<{ items: LibrarySceneItem[] }> {
+    return this.http.get<{ items: LibrarySceneItem[] }>('/api/library/recommended', {
+      params: new HttpParams()
+        .set('performers', catalogPerformerIds.join(','))
+        .set('limit', limit.toString()),
+    });
+  }
+
   getRecommended(sceneId: string, limit = 20): Observable<{ items: LibrarySceneItem[] }> {
     return this.http.get<{ items: LibrarySceneItem[] }>(
       `/api/library/scenes/${encodeURIComponent(sceneId)}/recommended`,

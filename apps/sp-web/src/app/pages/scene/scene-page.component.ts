@@ -721,25 +721,38 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       .subscribe((detail) => this.seriesUpNext.set(detail ? seriesUpNextItems(detail, copyId) : []));
   }
 
-  // Up next: library scenes with all-female performers when this scene is in
-  // the library; otherwise the catalog's similar scenes.
+  // Up next: library scenes with all-female performers. In the library, from
+  // this scene's own performers; otherwise from its female performers (by
+  // catalog id), ahead of the catalog's similar scenes.
   private loadUpNext(scene: SceneDetails): void {
     this.upNextSubscription?.unsubscribe();
     this.recommendedUpNext.set([]);
     const copyId = this.selectedStashCopyId(scene);
-    if (!copyId) {
+    const femalePerformerIds = scene.performers
+      .filter((performer) => performer.gender === 'FEMALE')
+      .map((performer) => performer.id);
+    const request = copyId
+      ? this.libraryService.getRecommended(copyId)
+      : femalePerformerIds.length > 0
+        ? this.libraryService.getRecommendedForPerformers(femalePerformerIds)
+        : null;
+    if (!request) {
       this.upNextLoading.set(false);
       return;
     }
 
     this.upNextLoading.set(true);
-    this.upNextSubscription = this.libraryService
-      .getRecommended(copyId)
+    this.upNextSubscription = request
       .pipe(catchError(() => of({ items: [] })))
       .subscribe((response) => {
         this.upNextLoading.set(false);
         this.recommendedUpNext.set(response.items.map((item) => libraryUpNextItem(item)));
       });
+  }
+
+  // Not in the library: its performers' library scenes, then similar ones.
+  protected catalogUpNext(): UpNextItem[] {
+    return mergeUpNext(this.recommendedUpNext(), this.similarUpNext());
   }
 
   protected similarUpNext(): UpNextItem[] {

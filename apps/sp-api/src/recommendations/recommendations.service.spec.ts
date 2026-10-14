@@ -88,4 +88,46 @@ describe('RecommendationsService', () => {
 
     await expect(service.getRecommended('404')).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  describe('for a scene not in the library', () => {
+    const scene = (id: string, genders: string[]) => ({
+      id,
+      performers: genders.map((gender) => ({ gender })),
+    });
+
+    it('finds library scenes with its performers by catalog id, most shared first, all-female only', async () => {
+      graphql.mockImplementation(async (_config, _query, variables) => {
+        const stashId = variables.sceneFilter.performers_filter.stash_id_endpoint.stash_id;
+        return {
+          findScenes: {
+            scenes:
+              stashId === 'cat-a'
+                ? [scene('20', ['FEMALE']), scene('21', ['FEMALE', 'FEMALE']), scene('22', ['FEMALE', 'MALE'])]
+                : [scene('21', ['FEMALE', 'FEMALE'])],
+          },
+        };
+      });
+
+      const result = await service.getRecommendedForPerformers(['cat-a', 'cat-b', 'cat-a', ' ']);
+
+      expect(graphql).toHaveBeenCalledTimes(2);
+      expect(graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(String),
+        expect.objectContaining({
+          sceneFilter: {
+            performers_filter: { stash_id_endpoint: { stash_id: 'cat-b', modifier: 'EQUALS' } },
+          },
+        }),
+      );
+      // 21 has both performers; 22 has a male performer.
+      expect(getScenesByIds).toHaveBeenCalledWith(['21', '20']);
+      expect(result.items.map((item) => item.id)).toEqual(['21', '20']);
+    });
+
+    it('returns nothing without asking Stash when there are no performers', async () => {
+      await expect(service.getRecommendedForPerformers([])).resolves.toEqual({ items: [] });
+      expect(graphql).not.toHaveBeenCalled();
+    });
+  });
 });

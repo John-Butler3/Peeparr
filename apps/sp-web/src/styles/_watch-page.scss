@@ -631,6 +631,12 @@ p {
   --dock-top: env(safe-area-inset-top, 0px);
 }
 
+// Always room to scroll the picture and title up into the bar, however
+// little there is below them.
+.is-catalog-only .watch-info {
+  min-height: 100dvh;
+}
+
 .is-catalog-only .watch-media {
   position: sticky;
   top: calc(var(--dock-top) + var(--dock-gap));
