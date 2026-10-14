@@ -21,11 +21,9 @@ import { AddToSeriesDialogComponent } from '../../shared/add-to-series-dialog/ad
 // Scene page for a library scene with no catalog match ("Local only"): built
 // from the local library index, with a link out to the scene in Stash.
 // Scenes that do match the catalog use the regular /scene/:stashId page.
-import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
-    LogoContrastDirective,
     RouterLink,
     Message,
     ProgressSpinner,

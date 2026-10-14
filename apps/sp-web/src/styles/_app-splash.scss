@@ -42,15 +42,15 @@
 
 .app-splash.is-revealing {
   pointer-events: none;
-  animation: splash-fade 300ms ease 1750ms both;
+  animation: splash-fade 260ms ease 1400ms both;
 }
 
 .app-splash.is-revealing .splash-almond {
-  animation: splash-open 1200ms cubic-bezier(0.65, 0, 0.35, 1) 700ms both;
+  animation: splash-open 960ms cubic-bezier(0.65, 0, 0.35, 1) 560ms both;
 }
 
 .app-splash.is-revealing .splash-band {
-  animation: splash-band-fade 1200ms ease-in 700ms both;
+  animation: splash-band-fade 960ms ease-in 560ms both;
 }
 
 .app-splash.is-revealing .splash-logo {
@@ -58,8 +58,8 @@
   // gentle at first and speeding up with the opening; it fades only at the
   // very end, once the shapes have taken over the screen.
   animation:
-    splash-logo-zoom 1900ms cubic-bezier(0.6, 0, 0.88, 0.45) both,
-    splash-logo-fade 1900ms linear both;
+    splash-logo-zoom 1520ms cubic-bezier(0.6, 0, 0.88, 0.45) both,
+    splash-logo-fade 1520ms linear both;
 }
 
 // Pages with their own intro (sign-in): just fade the waiting logo away.

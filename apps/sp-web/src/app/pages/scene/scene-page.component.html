@@ -111,8 +111,44 @@
             }
           </div>
 
+          <!-- Under the title, one compact line: status, the site (opens it,
+               with its favourite star), release date and length. -->
           <div class="watch-meta">
             <app-scene-status-badge [status]="scene.status" />
+            @if (scene.studio) {
+              <span class="watch-site">
+                @if (scene.studioId) {
+                  <a
+                    class="site-link"
+                    [routerLink]="['/studio', scene.studioId]"
+                    [queryParams]="{ returnTo: currentRouteUrl() }"
+                    [attr.aria-label]="studioLogoAriaLabel(scene)"
+                  >{{ scene.studio }}</a>
+                  <button
+                    type="button"
+                    class="site-favorite"
+                    [class.is-active]="scene.studioIsFavorite"
+                    [disabled]="!canToggleFavoriteStudio(scene)"
+                    [attr.aria-pressed]="scene.studioIsFavorite"
+                    [attr.aria-label]="studioFavoriteAriaLabel(scene)"
+                    [title]="studioFavoriteTitle(scene)"
+                    (click)="toggleFavoriteStudio(scene)"
+                  >
+                    <i [class]="scene.studioIsFavorite ? 'pi pi-star-fill' : 'pi pi-star'" aria-hidden="true"></i>
+                  </button>
+                } @else if (scene.studioUrl) {
+                  <a
+                    class="site-link"
+                    [href]="scene.studioUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="studioLogoAriaLabel(scene)"
+                  >{{ scene.studio }}</a>
+                } @else {
+                  <span>{{ scene.studio }}</span>
+                }
+              </span>
+            }
             @if (scene.releaseDate) {
               <span>{{ scene.releaseDate }}</span>
             }
@@ -121,71 +157,48 @@
             }
           </div>
 
-          <!-- Channel row: the studio's logo (whole, on a tile that suits it) and
-               name, with a Favorite star. -->
-          @if (scene.studio || scene.studioImageUrl) {
-            <div class="channel-row">
-              @if (scene.studioId) {
-                <a
-                  class="channel"
-                  [routerLink]="['/studio', scene.studioId]"
-                  [queryParams]="{ returnTo: currentRouteUrl() }"
-                  [attr.aria-label]="studioLogoAriaLabel(scene)"
-                >
-                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
-                    @if (scene.studioImageUrl) {
-                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
-                    } @else {
-                      {{ performerInitial(scene.studio ?? '?') }}
-                    }
-                  </span>
-                  <span class="channel-name">{{ scene.studio }}</span>
-                </a>
-              } @else if (scene.studioUrl) {
-                <a
-                  class="channel"
-                  [href]="scene.studioUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  [attr.aria-label]="studioLogoAriaLabel(scene)"
-                >
-                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
-                    @if (scene.studioImageUrl) {
-                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
-                    } @else {
-                      {{ performerInitial(scene.studio ?? '?') }}
-                    }
-                  </span>
-                  <span class="channel-name">{{ scene.studio }}</span>
-                </a>
-              } @else {
-                <span class="channel">
-                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
-                    @if (scene.studioImageUrl) {
-                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
-                    } @else {
-                      {{ performerInitial(scene.studio ?? '?') }}
-                    }
-                  </span>
-                  <span class="channel-name">{{ scene.studio }}</span>
-                </span>
-              }
-
-              @if (scene.studioId) {
-                <button
-                  type="button"
-                  class="favorite-star"
-                  [class.is-active]="scene.studioIsFavorite"
-                  [disabled]="!canToggleFavoriteStudio(scene)"
-                  [attr.aria-pressed]="scene.studioIsFavorite"
-                  [attr.aria-label]="studioFavoriteAriaLabel(scene)"
-                  [title]="studioFavoriteTitle(scene)"
-                  (click)="toggleFavoriteStudio(scene)"
-                >
-                  <i [class]="scene.studioIsFavorite ? 'pi pi-star-fill' : 'pi pi-star'" aria-hidden="true"></i>
-                </button>
-              }
-            </div>
+          @if (scene.performers.length > 0) {
+            <section class="performers" aria-label="Performers">
+              <div class="performer-row">
+                @for (performer of scene.performers; track performer.id) {
+                  <div class="performer">
+                    <a
+                      class="performer-link"
+                      [routerLink]="['/performer', performer.id]"
+                      [queryParams]="{ returnTo: currentRouteUrl() }"
+                      [attr.aria-label]="'View performer ' + performer.name"
+                    >
+                      @if (performer.cardImageUrl || performer.imageUrl) {
+                        <img
+                          class="performer-image"
+                          [src]="performer.cardImageUrl ?? performer.imageUrl"
+                          alt=""
+                          loading="lazy"
+                        />
+                      } @else {
+                        <span class="performer-image placeholder">{{ performerInitial(performer.name) }}</span>
+                      }
+                      <span class="performer-name">{{ performer.name }}</span>
+                    </a>
+                    <button
+                      type="button"
+                      class="performer-favorite"
+                      [class.is-favorite]="performer.isFavorite"
+                      [disabled]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      [title]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      (click)="toggleScenePerformerFavorite($event, performer)"
+                    >
+                      <i
+                        [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            </section>
           }
 
           <!-- YouTube's scrolling row of action pills. -->
@@ -316,50 +329,6 @@
             </section>
           }
 
-          @if (scene.performers.length > 0) {
-            <section class="performers" aria-labelledby="scene-performers-heading">
-              <h2 id="scene-performers-heading">Performers</h2>
-              <div class="performer-row">
-                @for (performer of scene.performers; track performer.id) {
-                  <div class="performer">
-                    <a
-                      class="performer-link"
-                      [routerLink]="['/performer', performer.id]"
-                      [queryParams]="{ returnTo: currentRouteUrl() }"
-                      [attr.aria-label]="'View performer ' + performer.name"
-                    >
-                      @if (performer.cardImageUrl || performer.imageUrl) {
-                        <img
-                          class="performer-image"
-                          [src]="performer.cardImageUrl ?? performer.imageUrl"
-                          alt=""
-                          loading="lazy"
-                        />
-                      } @else {
-                        <span class="performer-image placeholder">{{ performerInitial(performer.name) }}</span>
-                      }
-                      <span class="performer-name">{{ performer.name }}</span>
-                    </a>
-                    <button
-                      type="button"
-                      class="performer-favorite"
-                      [class.is-favorite]="performer.isFavorite"
-                      [disabled]="performerFavoriteToggleBusy(performer.id)"
-                      [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
-                      [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
-                      [title]="performerFavoriteToggleLabel(performer.isFavorite)"
-                      (click)="toggleScenePerformerFavorite($event, performer)"
-                    >
-                      <i
-                        [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-                        aria-hidden="true"
-                      ></i>
-                    </button>
-                  </div>
-                }
-              </div>
-            </section>
-          }
 
           <!-- In the library, Up next is library picks; the catalog's similar
                scenes (requestable) get their own shelf. -->

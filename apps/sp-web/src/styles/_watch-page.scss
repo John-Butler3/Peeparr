@@ -142,73 +142,84 @@ p {
   outline-offset: 2px;
 }
 
+// One compact line under the title: status · site ★ · date · length. It
+// stays one line; only the site name gives way (with "…") on narrow screens.
 .watch-meta {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 12px;
-  margin-top: -6px;
+  min-width: 0;
+  margin-top: -8px;
   color: var(--text-muted);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
-// ---- Channel row (studio + Favorite) ------------------------------------------
+.watch-meta > * {
+  flex: none;
+}
 
-.channel-row {
-  display: flex;
+.watch-meta > * + *::before {
+  content: '·';
+  margin: 0 7px;
+  color: var(--text-muted);
+}
+
+.watch-site {
+  display: inline-flex;
+  flex: 0 1 auto !important;
   align-items: center;
-  gap: 12px;
   min-width: 0;
 }
 
-.channel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  color: inherit;
-  text-decoration: none;
+.watch-meta ::ng-deep .badge {
+  padding: 1px 8px;
+  font-size: 0.75rem;
 }
 
-@import 'channel-logo';
-
-.channel-name {
+.site-link {
   overflow: hidden;
+  color: var(--text-primary);
   font-weight: 500;
+  text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-// Favorite: just a star.
-.favorite-star {
+.site-link:hover {
+  text-decoration: underline;
+}
+
+// The site's favourite star, small, right after its name.
+.site-favorite {
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
-  margin-left: 4px;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--button-bg);
-  color: var(--text-primary);
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: background-color 120ms var(--yt-ease, ease);
 }
 
-.favorite-star:not(:disabled):hover {
-  background: var(--yt-chip-hover);
+.site-favorite:not(:disabled):hover {
+  background: var(--yt-hover);
+  color: var(--text-primary);
 }
 
-.favorite-star i {
-  font-size: 1.05rem;
+.site-favorite i {
+  font-size: 0.875rem;
 }
 
-.favorite-star.is-active i {
+.site-favorite.is-active i {
   color: #ffcf4a;
 }
 
-.favorite-star:disabled {
+.site-favorite:disabled {
   opacity: 0.6;
   cursor: progress;
 }
@@ -411,7 +422,6 @@ p {
 .performers {
   display: grid;
   gap: 12px;
-  padding-top: 4px;
 }
 
 .performer-row {
@@ -425,7 +435,7 @@ p {
 .performer {
   position: relative;
   flex: none;
-  width: 96px;
+  width: 76px;
 }
 
 .performer-link {
@@ -440,8 +450,8 @@ p {
 .performer-image {
   display: grid;
   place-items: center;
-  width: 96px;
-  height: 96px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   object-fit: cover;
   object-position: center 20%;
@@ -533,7 +543,7 @@ p {
   min-width: 0;
 }
 
-:is(.watch-back, .channel, .favorite-star, .pill, .series-chip, .tag-link,
+:is(.watch-back, .site-link, .site-favorite, .pill, .series-chip, .tag-link,
   .description-toggle, .performer-link, .performer-favorite, .scroll-button):focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
@@ -589,11 +599,11 @@ p {
 
   .performer,
   .performer-image {
-    width: 80px;
+    width: 68px;
   }
 
   .performer-image {
-    height: 80px;
+    height: 68px;
   }
 
   .scroll-button {

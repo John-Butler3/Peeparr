@@ -131,13 +131,13 @@ describe('ScenePageComponent', () => {
     TestBed.resetTestingModule();
   });
 
-  it('links the studio logo to the internal studio page, not an external URL', async () => {
+  it('links the site name to the internal studio page, not an external URL', async () => {
     const scene = buildScene();
 
     const { fixture } = await renderScene(scene);
 
     const studioLink = fixture.nativeElement.querySelector(
-      'a.channel',
+      'a.site-link',
     ) as HTMLAnchorElement | null;
 
     expect(studioLink?.getAttribute('href')).toContain('/studio/studio-1');
@@ -150,7 +150,7 @@ describe('ScenePageComponent', () => {
     const { fixture } = await renderScene(scene);
 
     const studioLink = fixture.nativeElement.querySelector(
-      'a.channel',
+      'a.site-link',
     ) as HTMLAnchorElement | null;
 
     expect(studioLink?.getAttribute('href')).toBe('http://studio.local');

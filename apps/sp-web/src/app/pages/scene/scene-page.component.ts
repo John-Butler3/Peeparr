@@ -52,11 +52,9 @@ interface SceneLifecycleStep {
 
 import { WatchDockDirective } from './watch-dock.directive';
 
-import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
 @Component({
   selector: 'app-scene-page',
   imports: [
-    LogoContrastDirective,
     WatchDockDirective,
     RouterLink,
     FormsModule,

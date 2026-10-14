@@ -40,8 +40,23 @@
             <h1 class="watch-title">{{ scene.title }}</h1>
           </div>
 
+          <!-- Under the title, one compact line: local only, the site (opens
+               its library scenes), release date and length. -->
           <div class="watch-meta">
             <span class="local-badge">Local only</span>
+            @if (scene.studio) {
+              <span class="watch-site">
+                @if (scene.libraryStudioId) {
+                  <a
+                    class="site-link studio-link"
+                    [routerLink]="['/library']"
+                    [queryParams]="{ studios: scene.libraryStudioId, studioNames: scene.studio }"
+                  >{{ scene.studio }}</a>
+                } @else {
+                  <span>{{ scene.studio }}</span>
+                }
+              </span>
+            }
             @if (scene.releaseDate) {
               <span>{{ scene.releaseDate }}</span>
             }
@@ -50,30 +65,24 @@
             }
           </div>
 
-          @if (scene.studio) {
-            <div class="channel-row">
-              @if (scene.libraryStudioId) {
-                <a
-                  class="channel studio-link"
-                  [routerLink]="['/library']"
-                  [queryParams]="{ studios: scene.libraryStudioId, studioNames: scene.studio }"
-                >
-                  <span class="channel-logo" [class.is-letter]="!scene.studioImageUrl">
-                    @if (scene.studioImageUrl) {
-                      <img appLogoContrast [src]="scene.studioImageUrl" alt="" />
-                    } @else {
-                      {{ scene.studio.charAt(0).toUpperCase() }}
-                    }
-                  </span>
-                  <span class="channel-name">{{ scene.studio }}</span>
-                </a>
-              } @else {
-                <span class="channel">
-                  <span class="channel-logo is-letter">{{ scene.studio.charAt(0).toUpperCase() }}</span>
-                  <span class="channel-name">{{ scene.studio }}</span>
-                </span>
-              }
-            </div>
+          @if (scene.performers.length > 0) {
+            <section class="performers" aria-label="Performers">
+              <div class="performer-row">
+                @for (performer of scene.performers; track performer.id) {
+                  <div class="performer">
+                    <a
+                      class="performer-link"
+                      [routerLink]="['/library']"
+                      [queryParams]="{ performers: performer.id, performerNames: performer.name }"
+                      [attr.aria-label]="'Library scenes with ' + performer.name"
+                    >
+                      <img class="performer-image" [src]="performer.imageUrl" alt="" loading="lazy" />
+                      <span class="performer-name">{{ performer.name }}</span>
+                    </a>
+                  </div>
+                }
+              </div>
+            </section>
           }
 
           <div class="action-pills">
@@ -129,26 +138,6 @@
             </section>
           }
 
-          @if (scene.performers.length > 0) {
-            <section class="performers" aria-labelledby="local-performers-heading">
-              <h2 id="local-performers-heading">Performers</h2>
-              <div class="performer-row">
-                @for (performer of scene.performers; track performer.id) {
-                  <div class="performer">
-                    <a
-                      class="performer-link"
-                      [routerLink]="['/library']"
-                      [queryParams]="{ performers: performer.id, performerNames: performer.name }"
-                      [attr.aria-label]="'Library scenes with ' + performer.name"
-                    >
-                      <img class="performer-image" [src]="performer.imageUrl" alt="" loading="lazy" />
-                      <span class="performer-name">{{ performer.name }}</span>
-                    </a>
-                  </div>
-                }
-              </div>
-            </section>
-          }
         </div>
       </div>
 
