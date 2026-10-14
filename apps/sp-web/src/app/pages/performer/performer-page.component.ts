@@ -680,7 +680,10 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   // The banner: the main photo in the middle, the others either side of it
-  // (alternating, so it stays centred). One photo: just that.
+  // (alternating, so it stays centred). TPDB lists photos in runs of
+  // near-identical shots, so only every other photo is used -- counted from
+  // the main one, so its neighbours in the list are skipped too -- unless
+  // that leaves too few. One photo: just that.
   protected bannerPhotos(performer: PerformerDetails): Array<{ url: string; main: boolean }> {
     const urls = [...new Set(performer.images.map((image) => image.url).filter(Boolean))];
     const main = performer.imageUrl ?? urls[0] ?? null;
@@ -688,12 +691,20 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
       return [];
     }
 
-    const others = urls
-      .filter((url) => url !== main)
-      .slice(0, PerformerPageComponent.BANNER_PHOTOS - 1);
+    // Every other photo, counting from the main one (or the first).
+    const anchor = Math.max(urls.indexOf(main), 0);
+    const others = urls.filter((url) => url !== main);
+    const alternate = urls.filter(
+      (url, index) => url !== main && Math.abs(index - anchor) % 2 === 0,
+    );
+    const picked = (alternate.length >= 2 ? alternate : others).slice(
+      0,
+      PerformerPageComponent.BANNER_PHOTOS - 1,
+    );
+
     const left: string[] = [];
     const right: string[] = [];
-    others.forEach((url, index) => (index % 2 === 0 ? right : left).push(url));
+    picked.forEach((url, index) => (index % 2 === 0 ? right : left).push(url));
     return [
       ...left.reverse().map((url) => ({ url, main: false })),
       { url: main, main: true },

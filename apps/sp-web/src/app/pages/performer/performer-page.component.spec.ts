@@ -200,6 +200,29 @@ describe('PerformerPageComponent', () => {
     expect(button.textContent?.trim()).toBe('View more');
   });
 
+  it('fills the banner with every other photo, skipping the near-duplicates next to the main one', async () => {
+    const performer = buildPerformer({
+      imageUrl: 'http://cdn.local/image-0.jpg',
+      images: Array.from({ length: 7 }, (_, i) => ({
+        id: `image-${i}`,
+        url: `http://cdn.local/image-${i}.jpg`,
+        width: null,
+        height: null,
+      })),
+    });
+    const { fixture } = await renderPage({ performer });
+
+    const banner = fixture.nativeElement.querySelector('.channel-banner') as HTMLElement;
+    const shown = [...banner.querySelectorAll('.channel-collage img')].map((img) =>
+      img.getAttribute('src')?.replace('http://cdn.local/', ''),
+    );
+    // Main in the middle; 2, 4 and 6 either side; 1, 3 and 5 left out.
+    expect(shown).toContain('image-0.jpg');
+    expect(shown.filter((src) => ['image-1.jpg', 'image-3.jpg', 'image-5.jpg'].includes(src ?? ''))).toEqual([]);
+    expect(shown.sort()).toEqual(['image-0.jpg', 'image-2.jpg', 'image-4.jpg', 'image-6.jpg']);
+    expect(banner.querySelector('.channel-banner-photo')?.getAttribute('src')).toBe('http://cdn.local/image-0.jpg');
+  });
+
   it('opens the picker popup when the button is clicked', async () => {
     const performer = buildPerformer({
       images: [
