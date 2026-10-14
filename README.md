@@ -23,7 +23,7 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
   <img src="docs/assets/peeparr-ad.gif" alt="A 30-second ad: previews everywhere, one-click downloads and watching anywhere, on desktop and phone, ending on the Peeparr logo" width="100%" />
 </p>
 
-> The ad ([MP4](docs/assets/peeparr-ad.mp4)) and screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
+> The ad (full quality: [1280×720 GIF](https://github.com/John-Butler3/Peeparr/releases/download/v1.0.0/peeparr-ad-hq.gif), [MP4](docs/assets/peeparr-ad.mp4)) and screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
 
 ## Contents
 
