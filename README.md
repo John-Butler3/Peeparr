@@ -20,10 +20,10 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Peeparr's Home page: a banner of the newest scenes in the library, then Pick up where you left off" width="100%" />
+  <img src="docs/assets/peeparr-demo.gif" alt="A 30-second tour: the Home banner playing a preview, a card previewing on hover, requesting a scene, following it in Acquisition while it downloads, and playing a scene" width="100%" />
 </p>
 
-> The screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
+> The tour and screenshots use demo data: made-up scenes, sites and names, with blurred scenery photos from [Unsplash](https://unsplash.com) (via [Lorem Picsum](https://picsum.photos)) standing in for scene pictures.
 
 ## Contents
 
@@ -48,6 +48,8 @@ Every scene shows where it is in that journey: requested, downloading, importing
 ## Features
 
 ### Home
+
+<p align="center"><img src="docs/screenshots/home.png" alt="Peeparr's Home page: a banner of the newest scenes in the library, then Pick up where you left off" width="100%" /></p>
 
 - **A banner of the newest scenes in your library.** Each one plays its preview and moves on when the preview has played through. You can swipe between scenes, and a bar along the bottom shows when the next one is coming. On wide screens a soft glow of the preview spreads out behind the banner.
 - **Pick up where you left off**, **Fresh in your library** and **Popular right now** rows. For ThePornDB, Popular is the site's own popular list, read with your saved website login and cached.
