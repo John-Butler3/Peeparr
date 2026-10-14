@@ -6,11 +6,10 @@
 
 .miniplayer {
   // Floating just above the phone's glass navigation bar (62px tall, 10px up).
-  --mini-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   position: fixed;
   left: calc(12px + env(safe-area-inset-left, 0px));
   right: calc(12px + env(safe-area-inset-right, 0px));
-  bottom: var(--mini-bottom);
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   z-index: 1300;
   display: flex;
   align-items: center;
@@ -24,13 +23,16 @@
   box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
   color: var(--text-primary);
   font-family: var(--yt-font, inherit);
-  transition: bottom 220ms var(--yt-ease);
+  // Moves with the bar, on the same curve (a transform, not `bottom`, so
+  // nothing re-lays out while it moves).
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
   animation: mini-in 240ms var(--yt-ease-out, ease-out);
 }
 
 // The phone bottom bar slid away while scrolling down: drop into its place.
 :host-context(.shell-bars-hidden) .miniplayer {
-  --mini-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(70px);
 }
 
 @keyframes mini-in {

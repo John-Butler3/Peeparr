@@ -7,6 +7,10 @@
   // bottom edge (plus the home-indicator area).
   --shell-mobile-nav-height: 62px;
   --shell-mobile-nav-gap: 10px;
+  // The phone's bars (and what follows them) hide and show on one smooth,
+  // decelerating curve.
+  --bars-duration: 340ms;
+  --bars-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --shell-mobile-nav-offset: calc(
     var(--shell-mobile-nav-height) + var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px)
   );
@@ -42,7 +46,8 @@
   justify-content: space-between;
   gap: 16px;
   background: var(--app-bg);
-  transition: transform 220ms var(--yt-ease);
+  transition: transform var(--bars-duration) var(--bars-ease);
+  will-change: transform;
 }
 
 .masthead.is-hidden {
@@ -473,12 +478,17 @@
   box-shadow:
     0 10px 30px rgb(0 0 0 / 40%),
     inset 0 1px 0 color-mix(in srgb, var(--text-primary) 14%, transparent);
-  transition: transform 260ms var(--yt-ease);
+  transition:
+    transform var(--bars-duration) var(--bars-ease),
+    opacity var(--bars-duration) var(--bars-ease);
+  will-change: transform;
 }
 
-// Like the masthead: slides away while scrolling down, back on scrolling up.
+// Like the masthead: slides away while scrolling down (fading a little as it
+// goes), back on scrolling up.
 .mobile-bottom-nav.is-hidden {
   transform: translateY(calc(100% + var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px) + 12px));
+  opacity: 0.4;
 }
 
 // The lighter glass capsule behind the page you're on; it slides across
@@ -549,7 +559,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobile-nav-glass {
+  .mobile-nav-glass,
+  .masthead,
+  .mobile-bottom-nav {
     transition: none;
   }
 }

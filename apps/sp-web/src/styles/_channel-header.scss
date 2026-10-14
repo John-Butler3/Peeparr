@@ -97,7 +97,7 @@
   margin-inline: calc(-1 * var(--dock-gutter));
   margin-bottom: calc(var(--hero-shrink) * var(--c));
   padding: 8px var(--dock-gutter);
-  transition: top 220ms var(--yt-ease, ease);
+  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
   animation: yt-page-in 220ms var(--yt-ease-out, ease-out);
 }
 

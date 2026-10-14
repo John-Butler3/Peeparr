@@ -153,7 +153,12 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   // steps aside, as in the YouTube app.
   private static readonly IMMERSIVE_PREFIXES = ['/scene/', '/library/scene/'];
   // How far you scroll before the phone masthead hides/reappears.
-  private static readonly MASTHEAD_SCROLL_THRESHOLD = 8;
+  /** Scrolling down this far (in one go) hides the phone's bars... */
+  private static readonly BARS_HIDE_AFTER_PX = 24;
+  /** ...and scrolling back up this far shows them again. */
+  private static readonly BARS_SHOW_AFTER_PX = 16;
+  /** Near the top of the page the bars always show. */
+  private static readonly BARS_TOP_ZONE_PX = 56;
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
@@ -163,6 +168,9 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   private readonly notifications = inject(AppNotificationsService);
   private readonly themeService = inject(ThemeService);
   private lastScrollY = 0;
+  // Where the current run of scrolling in one direction started.
+  private scrollRunStartY = 0;
+  private scrollDirection: 1 | -1 | 0 = 0;
   private readonly phoneShellMediaQuery = this.createPhoneShellMediaQuery();
   private readonly phoneShellMediaChangeHandler = (event: MediaQueryListEvent) => {
     this.mobileShell.set(event.matches);
@@ -288,17 +296,37 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
     this.runtimeHealthService.stop();
   }
 
-  // Phone masthead: slides away while scrolling down, back on scroll up.
+  // Phone masthead and bottom bar: slide away after a steady scroll down,
+  // back after a little scroll up. Small wobbles and the bounce past either
+  // end of the page (iOS) don't count, so the bars don't flicker.
   @HostListener('window:scroll')
   protected onWindowScroll(): void {
-    const scrollY = Math.max(0, window.scrollY);
-    const delta = scrollY - this.lastScrollY;
-    if (Math.abs(delta) < AppShellLayoutComponent.MASTHEAD_SCROLL_THRESHOLD) {
+    const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const scrollY = Math.min(Math.max(0, window.scrollY), maxY);
+    if (!this.mobileShell() || scrollY <= AppShellLayoutComponent.BARS_TOP_ZONE_PX) {
+      this.lastScrollY = scrollY;
+      this.scrollRunStartY = scrollY;
+      this.scrollDirection = 0;
+      this.mastheadHidden.set(false);
       return;
     }
 
+    const direction = Math.sign(scrollY - this.lastScrollY) as 1 | -1 | 0;
+    if (direction === 0) {
+      return;
+    }
+    if (direction !== this.scrollDirection) {
+      this.scrollDirection = direction;
+      this.scrollRunStartY = this.lastScrollY;
+    }
     this.lastScrollY = scrollY;
-    this.mastheadHidden.set(this.mobileShell() && delta > 0 && scrollY > 56);
+
+    const travelled = Math.abs(scrollY - this.scrollRunStartY);
+    if (direction > 0 && travelled >= AppShellLayoutComponent.BARS_HIDE_AFTER_PX) {
+      this.mastheadHidden.set(true);
+    } else if (direction < 0 && travelled >= AppShellLayoutComponent.BARS_SHOW_AFTER_PX) {
+      this.mastheadHidden.set(false);
+    }
   }
 
   @HostListener('document:keydown.escape')

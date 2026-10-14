@@ -646,7 +646,7 @@ p {
   border-radius: calc(12px / (1 - (1 - var(--dock-scale)) * var(--dock)));
   transform-origin: top right;
   transform: scale(calc(1 - (1 - var(--dock-scale)) * var(--dock)));
-  transition: top 220ms var(--yt-ease, ease);
+  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .is-catalog-only.is-docked .watch-media {
@@ -697,7 +697,7 @@ p {
   margin-bottom: calc(-1 * var(--dock-bar-h));
   padding: 0 calc(var(--dock-thumb-w) + 12px + var(--dock-inset)) 0 var(--dock-inset);
   pointer-events: none;
-  transition: top 220ms var(--yt-ease, ease);
+  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .watch-dock::before {
