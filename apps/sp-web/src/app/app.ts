@@ -4,13 +4,13 @@ import { filter } from 'rxjs';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { Toast } from 'primeng/toast';
 import { ThemeToggleComponent } from './shared/theme-toggle/theme-toggle.component';
-import { VideoPlayerOverlayComponent } from './shared/video-player-overlay/video-player-overlay.component';
+import { MiniplayerComponent } from './shared/miniplayer/miniplayer.component';
 import { dismissBootSplash } from './shared/app-splash/boot-splash';
 import { ScrollMemoryService } from './core/navigation/scroll-memory.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ThemeToggleComponent, Toast, ConfirmDialog, VideoPlayerOverlayComponent],
+  imports: [RouterOutlet, ThemeToggleComponent, Toast, ConfirmDialog, MiniplayerComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

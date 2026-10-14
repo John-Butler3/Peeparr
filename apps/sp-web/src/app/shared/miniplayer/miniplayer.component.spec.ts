@@ -1,10 +1,10 @@
 import { Router } from '@angular/router';
-import { computed, signal } from '@angular/core';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { PlayerQueue, PlayerService, PlayerState } from '../../core/player/player.service';
-import { VideoPlayerOverlayComponent } from './video-player-overlay.component';
+import { MiniplayerState, PlayerDetails, PlayerService } from '../../core/player/player.service';
+import { MiniplayerComponent } from './miniplayer.component';
 
-describe('VideoPlayerOverlayComponent', () => {
+describe('MiniplayerComponent', () => {
   let playSpy: ReturnType<typeof vi.spyOn>;
   let mediaSessionStub: {
     metadata: unknown;
@@ -51,78 +51,35 @@ describe('VideoPlayerOverlayComponent', () => {
     globalThis.MediaMetadata = originalMediaMetadata as typeof globalThis.MediaMetadata;
   });
 
-  async function renderOverlay(
-    initialState: PlayerState | null = null,
-    initialQueue: PlayerQueue | null = null,
-  ) {
-    const state = signal<PlayerState | null>(initialState);
-    const queue = signal<PlayerQueue | null>(initialQueue);
-    const mode = signal<'full' | 'mini'>('full');
+  async function renderMiniplayer(initialState: MiniplayerState | null = null) {
+    const state = signal<MiniplayerState | null>(initialState);
     const playerService = {
       state,
-      queue,
-      hasNext: computed(() => {
-        const q = queue();
-        return !!q && q.index < q.items.length - 1;
-      }),
-      hasPrevious: computed(() => (queue()?.index ?? 0) > 0),
-      details: signal(null),
-      mode,
-      minimize: vi.fn(() => mode.set('mini')),
-      expand: vi.fn(() => mode.set('full')),
-      playQueueIndex: vi.fn(),
-      next: vi.fn(),
-      previous: vi.fn(),
+      details: signal<PlayerDetails | null>(null),
       close: vi.fn(),
       saveProgress: vi.fn(),
       handBack: vi.fn(),
-      openByCatalogSceneId: vi.fn(),
-      openByLocalSceneId: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
-      imports: [VideoPlayerOverlayComponent],
+      imports: [MiniplayerComponent],
       providers: [{ provide: PlayerService, useValue: playerService }],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(VideoPlayerOverlayComponent);
+    const fixture = TestBed.createComponent(MiniplayerComponent);
     fixture.detectChanges();
 
     return { fixture, playerService, state };
   }
 
   it('renders nothing when no scene is open', async () => {
-    const { fixture } = await renderOverlay(null);
+    const { fixture } = await renderMiniplayer(null);
 
-    expect(fixture.nativeElement.querySelector('.watch')).toBeNull();
-  });
-
-  it('shows a loading spinner with the scene title while resolving', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'loading',
-      title: 'A Scene',
-      imageUrl: null,
-    });
-
-    expect(fixture.nativeElement.textContent).toContain('A Scene');
-    expect(fixture.nativeElement.textContent).toContain('Loading stream');
-    expect(fixture.nativeElement.querySelector('video')).toBeNull();
-  });
-
-  it('shows the error message when the source failed to load', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'error',
-      title: 'A Scene',
-      imageUrl: null,
-      message: 'Failed to load stream from Stash.',
-    });
-
-    expect(fixture.nativeElement.textContent).toContain('Failed to load stream from Stash.');
+    expect(fixture.nativeElement.querySelector('.miniplayer')).toBeNull();
   });
 
   it('renders the video element with the resolved stream once ready', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: {
@@ -139,8 +96,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('seeks to the saved resume position once the video metadata loads', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: {
@@ -161,8 +117,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('sets the OS/browser now-playing info to the scene title and thumbnail once metadata loads', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: 'http://cdn.local/a-scene.jpg',
       source: {
@@ -193,8 +148,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('registers play/pause/seek action handlers once metadata loads', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: 'http://cdn.local/a-scene.jpg',
       source: {
@@ -218,8 +172,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('omits artwork when the scene has no thumbnail', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: {
@@ -238,8 +191,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('reflects pause/resume in the OS playback state', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: 'http://cdn.local/a-scene.jpg',
       source: {
@@ -263,8 +215,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('clears the now-playing info when the player is closed', async () => {
-    const { fixture, playerService } = await renderOverlay({
-      status: 'ready',
+    const { fixture, playerService } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: 'http://cdn.local/a-scene.jpg',
       source: {
@@ -298,8 +249,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('does not seek when there is no saved resume position', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: {
@@ -319,8 +269,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('saves progress when the video is paused', async () => {
-    const { fixture, playerService } = await renderOverlay({
-      status: 'ready',
+    const { fixture, playerService } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: {
@@ -341,8 +290,7 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('saves progress and closes the player when the close button is clicked', async () => {
-    const { fixture, playerService } = await renderOverlay({
-      status: 'ready',
+    const { fixture, playerService } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: {
@@ -366,65 +314,63 @@ describe('VideoPlayerOverlayComponent', () => {
     expect(playerService.close).toHaveBeenCalled();
   });
 
-  it('minimizes to the miniplayer (Escape), keeping the same video', async () => {
-    const { fixture, playerService } = await renderOverlay({
-      status: 'ready',
-      title: 'A Scene',
-      imageUrl: null,
-      source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
-    });
-    const element = fixture.nativeElement as HTMLElement;
-    const video = element.querySelector('video');
-    expect(element.querySelector('[aria-label="Minimize player"]')).toBeNull();
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    fixture.detectChanges();
-
-    expect(playerService.minimize).toHaveBeenCalled();
-    expect(element.querySelector('.watch.is-mini')).toBeTruthy();
-    expect(element.querySelector('video')).toBe(video);
-    expect(playerService.close).not.toHaveBeenCalled();
-
-    // No scene page to go back to: it stays the miniplayer (never the watch panel).
-    (element.querySelector('[aria-label="Expand player"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    expect(playerService.expand).not.toHaveBeenCalled();
-    expect(element.querySelector('.watch.is-mini')).toBeTruthy();
-    expect(element.querySelector('video')).toBe(video);
-  });
-
   it('goes back to the scene page from the miniplayer, handing over the position', async () => {
-    const { fixture, playerService } = await renderOverlay({
-      status: 'ready',
+    const { fixture, playerService } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
     });
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-    (playerService.details as ReturnType<typeof signal>).set({
+    playerService.details.set({
       detailsLink: { commands: ['/library/scene', '411'] },
     });
     const element = fixture.nativeElement as HTMLElement;
     const video = element.querySelector('video') as HTMLVideoElement;
     video.currentTime = 42;
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    fixture.detectChanges();
-    (element.querySelector('[aria-label="Expand player"]') as HTMLButtonElement).click();
+    (element.querySelector('[aria-label="Back to the scene"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(playerService.handBack).toHaveBeenCalledWith('411', 42);
     expect(navigate).toHaveBeenCalledWith(['/library/scene', '411'], {
       queryParams: { autoplay: '1' },
     });
-    expect(playerService.expand).not.toHaveBeenCalled();
+  });
+
+  it('closes on Escape, saving the position', async () => {
+    const { fixture, playerService } = await renderMiniplayer({
+      title: 'A Scene',
+      imageUrl: null,
+      source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
+    });
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+    video.currentTime = 20;
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(playerService.saveProgress).toHaveBeenCalledWith('411', 20, 600);
+    expect(playerService.close).toHaveBeenCalled();
+  });
+
+  it('stays put when there is no scene page to go back to', async () => {
+    const { fixture, playerService } = await renderMiniplayer({
+      title: 'A Scene',
+      imageUrl: null,
+      source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    (fixture.nativeElement.querySelector('[aria-label="Back to the scene"]') as HTMLButtonElement).click();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(playerService.handBack).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.miniplayer')).toBeTruthy();
   });
 
   it('draws a progress line along the miniplayer that follows playback', async () => {
-    const { fixture } = await renderOverlay({
-      status: 'ready',
+    const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
       source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
@@ -432,10 +378,6 @@ describe('VideoPlayerOverlayComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     const video = element.querySelector('video') as HTMLVideoElement;
     Object.defineProperty(video, 'duration', { value: 600, configurable: true });
-
-    expect(element.querySelector('.mini-progress')).toBeNull();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    fixture.detectChanges();
 
     video.currentTime = 150;
     video.dispatchEvent(new Event('timeupdate'));
@@ -446,62 +388,5 @@ describe('VideoPlayerOverlayComponent', () => {
     expect((bar.querySelector('.mini-progress-fill') as HTMLElement).style.transform).toBe(
       'scaleX(0.25)',
     );
-  });
-
-  describe('series queue', () => {
-    const readyState: PlayerState = {
-      status: 'ready',
-      title: 'Part Two',
-      imageUrl: null,
-      source: { streamUrl: '/api/media/stash/scenes/12/stream', stashSceneId: '12', resumeSeconds: 0, duration: 600 },
-    };
-    const queue: PlayerQueue = {
-      name: 'Trilogy',
-      items: [
-        { localSceneId: '11', title: 'Part One', imageUrl: null },
-        { localSceneId: '12', title: 'Part Two', imageUrl: null },
-        { localSceneId: '13', title: 'Part Three', imageUrl: null },
-      ],
-      index: 1,
-    };
-
-    it('shows the series and part number with previous/next controls', async () => {
-      const { fixture } = await renderOverlay(readyState, queue);
-      const element = fixture.nativeElement as HTMLElement;
-
-      expect(element.querySelector('[data-testid="player-queue-label"]')?.textContent).toContain(
-        'Trilogy · Part 2 of 3',
-      );
-      expect(
-        (element.querySelector('[aria-label="Previous part"]') as HTMLButtonElement).disabled,
-      ).toBe(false);
-      expect((element.querySelector('[aria-label="Next part"]') as HTMLButtonElement).disabled).toBe(
-        false,
-      );
-    });
-
-    it('moves on to the next part when one finishes', async () => {
-      const { fixture, playerService } = await renderOverlay(readyState, queue);
-
-      fixture.nativeElement.querySelector('video').dispatchEvent(new Event('ended'));
-
-      expect(playerService.next).toHaveBeenCalledTimes(1);
-    });
-
-    it('saves progress before skipping ahead', async () => {
-      const { fixture, playerService } = await renderOverlay(readyState, queue);
-
-      (fixture.nativeElement.querySelector('[aria-label="Next part"]') as HTMLButtonElement).click();
-
-      expect(playerService.saveProgress).toHaveBeenCalledWith('12', expect.any(Number), null);
-      expect(playerService.next).toHaveBeenCalledTimes(1);
-    });
-
-    it('has no queue controls for a single scene', async () => {
-      const { fixture } = await renderOverlay(readyState, null);
-
-      expect(fixture.nativeElement.querySelector('[aria-label="Next part"]')).toBeNull();
-      expect(fixture.nativeElement.querySelector('[data-testid="player-queue-label"]')).toBeNull();
-    });
   });
 });

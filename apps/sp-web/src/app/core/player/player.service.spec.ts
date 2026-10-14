@@ -74,7 +74,6 @@ describe('PlayerService', () => {
     expect(navigate).toHaveBeenCalledWith(['/library/scene', '12'], {
       queryParams: { autoplay: '1' },
     });
-    expect(service.queue()).toBeNull();
   });
 
   it('builds the stream URL directly and fetches resume info by local scene id', () => {

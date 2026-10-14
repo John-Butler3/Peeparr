@@ -1,0 +1,57 @@
+<!-- The miniplayer: a scene's video carrying on, docked at the bottom, after
+     leaving its page while it played. Tapping it goes back to that page,
+     where the page's player picks up from the same moment. -->
+@if (state(); as s) {
+  <div class="miniplayer" data-testid="miniplayer">
+    <div class="mini-video">
+      <video
+        #videoEl
+        [src]="s.source.streamUrl"
+        autoplay
+        playsinline
+        x-webkit-airplay="allow"
+        (loadedmetadata)="onVideoLoadedMetadata()"
+        (play)="onVideoPlay()"
+        (pause)="onVideoPause()"
+        (timeupdate)="onVideoTimeUpdate()"
+      ></video>
+      <button
+        type="button"
+        class="mini-open-hit"
+        aria-label="Back to the scene"
+        (click)="openScenePage()"
+      ></button>
+    </div>
+
+    <div
+      class="mini-progress"
+      role="progressbar"
+      aria-label="Playback progress"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-valuenow]="(progress() * 100).toFixed(0)"
+    >
+      <div class="mini-progress-fill" [style.transform]="'scaleX(' + progress() + ')'"></div>
+    </div>
+
+    <div class="mini-bar">
+      <button type="button" class="mini-text" (click)="openScenePage()">
+        <span class="mini-title">{{ s.title }}</span>
+        @if (subtitle(); as sub) {
+          <span class="mini-sub">{{ sub }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        class="mini-icon"
+        [attr.aria-label]="paused() ? 'Play' : 'Pause'"
+        (click)="togglePlayback()"
+      >
+        <i [class]="paused() ? 'pi pi-play' : 'pi pi-pause'" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="mini-icon" aria-label="Close player" (click)="closePlayer()">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+}

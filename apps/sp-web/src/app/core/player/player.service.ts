@@ -1,22 +1,19 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, map, of } from 'rxjs';
 import { DiscoverService } from '../api/discover.service';
 import { ScenePlaybackSource } from '../api/discover.types';
 import { WatchProgressService } from './watch-progress.service';
 
-export type PlayerState =
-  | { status: 'loading'; title: string; imageUrl: string | null }
-  | { status: 'error'; title: string; imageUrl: string | null; message: string }
-  | {
-      status: 'ready';
-      title: string;
-      imageUrl: string | null;
-      source: ScenePlaybackSource;
-    };
+/** What the miniplayer is playing (a video carried on from its scene page). */
+export interface MiniplayerState {
+  title: string;
+  imageUrl: string | null;
+  source: ScenePlaybackSource;
+}
 
-// What the watch panel shows under the video (YouTube-style watch page).
+// About the scene playing (the miniplayer's subtitle, the lock screen).
 // Everything is optional; callers pass what they already know.
 export interface PlayerDetails {
   studio?: string | null;
@@ -24,12 +21,12 @@ export interface PlayerDetails {
   releaseDate?: string | null;
   performers?: readonly string[];
   description?: string | null;
-  /** In-app page for the scene (opened from the watch panel). */
+  /** The scene's page in the app (where Play opens, and the miniplayer returns). */
   detailsLink?: { commands: readonly unknown[]; queryParams?: Record<string, string> | null } | null;
   stashUrl?: string | null;
 }
 
-// A list of Stash scenes played back-to-back (a series' "Play all").
+// A series' parts, in order ("Play all").
 export interface PlayerQueueItem {
   localSceneId: string;
   title: string;
@@ -37,62 +34,56 @@ export interface PlayerQueueItem {
   details?: PlayerDetails | null;
 }
 
-/** 'full': the watch panel; 'mini': the docked miniplayer. */
-export type PlayerMode = 'full' | 'mini';
-
-export interface PlayerQueue {
-  name: string;
-  items: readonly PlayerQueueItem[];
-  index: number;
-}
-
 interface ScenePlaybackInfo {
   resumeSeconds: number;
   duration: number | null;
 }
 
+/**
+ * Playback: always on the scene's own page, in its player. Play anywhere
+ * opens that page autoplaying. Leaving the page while it plays hands the
+ * video to the miniplayer, which carries on and returns to the page when
+ * tapped.
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class PlayerService {
-  private pendingHandBack: { stashSceneId: string; seconds: number } | null = null;
   private readonly http = inject(HttpClient);
   private readonly watchProgress = inject(WatchProgressService);
   private readonly discoverService = inject(DiscoverService);
   private readonly router = inject(Router);
+  private pendingHandBack: { stashSceneId: string; seconds: number } | null = null;
 
-  // Guards against a slow/late response from a previous open() overwriting
-  // state after the player was closed or a different scene was opened.
-  private requestToken = 0;
-
-  readonly state = signal<PlayerState | null>(null);
+  /** The miniplayer's video, while there is one. */
+  readonly state = signal<MiniplayerState | null>(null);
   readonly details = signal<PlayerDetails | null>(null);
-  readonly mode = signal<PlayerMode>('full');
-  readonly queue = signal<PlayerQueue | null>(null);
-  readonly hasNext = computed(() => {
-    const queue = this.queue();
-    return !!queue && queue.index < queue.items.length - 1;
-  });
-  readonly hasPrevious = computed(() => (this.queue()?.index ?? 0) > 0);
 
-  // Playing always happens on the scene's own page (its player, autoplaying
-  // there) -- never in a separate watch panel. A series plays from the part's
-  // page: its other parts are first in Up next and follow on automatically.
+  openByCatalogSceneId(params: {
+    title: string;
+    catalogStashId: string;
+    imageUrl?: string | null;
+    details?: PlayerDetails | null;
+  }): void {
+    this.openScenePage(params.details?.detailsLink, ['/scene', params.catalogStashId]);
+  }
+
+  openByLocalSceneId(params: {
+    title: string;
+    localSceneId: string;
+    imageUrl?: string | null;
+    details?: PlayerDetails | null;
+  }): void {
+    this.openScenePage(params.details?.detailsLink, ['/library/scene', params.localSceneId]);
+  }
+
+  // A series plays from the chosen part's page: its other parts head Up next
+  // there and follow on automatically.
   playQueue(name: string, items: readonly PlayerQueueItem[], startIndex = 0): void {
     const item = items[Math.min(Math.max(0, startIndex), items.length - 1)];
     if (item) {
       this.openScenePage(item.details?.detailsLink, ['/library/scene', item.localSceneId]);
     }
-  }
-
-  /** Jumps to a queued scene (the watch panel's "Up next" list). */
-  playQueueIndex(index: number): boolean {
-    const queue = this.queue();
-    if (!queue || index < 0 || index >= queue.items.length || index === queue.index) {
-      return false;
-    }
-
-    return this.moveQueue(index - queue.index);
   }
 
   /** Stream source for a Stash scene id (resume point included). */
@@ -114,99 +105,16 @@ export class PlayerService {
     return this.discoverService.getSceneStreamUrl(catalogStashId, copyId);
   }
 
-  // An inline (watch page) player handing its video over when you leave the
-  // page: carries on in the miniplayer from the same moment, YouTube-style.
+  // A scene page's player handing its video over as you leave the page: the
+  // miniplayer carries on from the same moment, YouTube-style.
   handOff(params: {
     title: string;
     imageUrl: string | null;
     source: ScenePlaybackSource;
     details?: PlayerDetails | null;
   }): void {
-    this.requestToken += 1;
-    this.queue.set(null);
     this.details.set(params.details ?? null);
-    this.mode.set('mini');
-    this.state.set({
-      status: 'ready',
-      title: params.title,
-      imageUrl: params.imageUrl,
-      source: params.source,
-    });
-  }
-
-  minimize(): void {
-    if (this.state()) {
-      this.mode.set('mini');
-    }
-  }
-
-  expand(): void {
-    if (this.state()) {
-      this.mode.set('full');
-    }
-  }
-
-  // Moves to the next queued scene. Returns false at the end of the queue.
-  next(): boolean {
-    return this.moveQueue(1);
-  }
-
-  previous(): boolean {
-    return this.moveQueue(-1);
-  }
-
-  openByCatalogSceneId(params: {
-    title: string;
-    catalogStashId: string;
-    imageUrl?: string | null;
-    details?: PlayerDetails | null;
-  }): void {
-    this.openScenePage(params.details?.detailsLink, ['/scene', params.catalogStashId]);
-  }
-
-  openByLocalSceneId(params: {
-    title: string;
-    localSceneId: string;
-    imageUrl?: string | null;
-    details?: PlayerDetails | null;
-  }): void {
-    this.openScenePage(params.details?.detailsLink, ['/library/scene', params.localSceneId]);
-  }
-
-  private openScenePage(
-    link: PlayerDetails['detailsLink'] | undefined,
-    fallback: readonly unknown[],
-  ): void {
-    void this.router.navigate([...(link?.commands ?? fallback)], {
-      queryParams: { ...(link?.queryParams ?? {}), autoplay: '1' },
-    });
-  }
-
-  private moveQueue(step: number): boolean {
-    const queue = this.queue();
-    const index = (queue?.index ?? 0) + step;
-    if (!queue || index < 0 || index >= queue.items.length) {
-      return false;
-    }
-
-    this.queue.set({ ...queue, index });
-    this.loadLocalScene(queue.items[index]);
-    return true;
-  }
-
-  private loadLocalScene(params: {
-    title: string;
-    localSceneId: string;
-    imageUrl?: string | null;
-    details?: PlayerDetails | null;
-  }): void {
-    this.details.set(params.details ?? null);
-    const imageUrl = params.imageUrl ?? null;
-    const token = this.beginLoad(params.title, imageUrl);
-
-    this.resolveLocalSource(params.localSceneId).subscribe((source) =>
-      this.applySource(token, params.title, imageUrl, source),
-    );
+    this.state.set({ title: params.title, imageUrl: params.imageUrl, source: params.source });
   }
 
   /**
@@ -227,11 +135,8 @@ export class PlayerService {
   }
 
   close(): void {
-    this.requestToken += 1;
     this.state.set(null);
-    this.queue.set(null);
     this.details.set(null);
-    this.mode.set('full');
   }
 
   saveProgress(
@@ -257,44 +162,18 @@ export class PlayerService {
       .subscribe();
   }
 
-  private getScenePlaybackInfo(
-    localSceneId: string,
-  ): Observable<ScenePlaybackInfo> {
+  private openScenePage(
+    link: PlayerDetails['detailsLink'] | undefined,
+    fallback: readonly unknown[],
+  ): void {
+    void this.router.navigate([...(link?.commands ?? fallback)], {
+      queryParams: { ...(link?.queryParams ?? {}), autoplay: '1' },
+    });
+  }
+
+  private getScenePlaybackInfo(localSceneId: string): Observable<ScenePlaybackInfo> {
     return this.http.get<ScenePlaybackInfo>(
       `/api/media/stash/scenes/${encodeURIComponent(localSceneId)}/playback-info`,
     );
-  }
-
-  private beginLoad(title: string, imageUrl: string | null): number {
-    this.requestToken += 1;
-    const token = this.requestToken;
-    this.state.set({ status: 'loading', title, imageUrl });
-    return token;
-  }
-
-  private applySource(
-    token: number,
-    title: string,
-    imageUrl: string | null,
-    source: ScenePlaybackSource,
-  ): void {
-    if (token !== this.requestToken) {
-      return;
-    }
-
-    this.state.set({ status: 'ready', title, imageUrl, source });
-  }
-
-  private applyError(
-    token: number,
-    title: string,
-    imageUrl: string | null,
-    message: string,
-  ): void {
-    if (token !== this.requestToken) {
-      return;
-    }
-
-    this.state.set({ status: 'error', title, imageUrl, message });
   }
 }

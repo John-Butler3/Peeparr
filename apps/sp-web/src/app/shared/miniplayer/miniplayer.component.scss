@@ -1,0 +1,183 @@
+// YouTube-style miniplayer: a bar above the phone's bottom navigation, a
+// floating card in the bottom-right corner on desktop.
+:host {
+  display: contents;
+}
+
+.miniplayer {
+  --mini-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--mini-bottom);
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--yt-menu-bg, var(--surface-elevated));
+  color: var(--text-primary);
+  font-family: var(--yt-font, inherit);
+  transition: bottom 220ms var(--yt-ease);
+  animation: mini-in 240ms var(--yt-ease-out, ease-out);
+}
+
+// The phone bottom bar slid away while scrolling down: drop into its place.
+:host-context(.shell-bars-hidden) .miniplayer {
+  --mini-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.mini-video {
+  position: relative;
+  flex: none;
+  width: 100px;
+  height: 56px;
+  overflow: hidden;
+  background: #000;
+}
+
+.mini-video video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+// The whole video area goes back to the scene page.
+.mini-open-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+// YouTube's red progress line along the bottom edge.
+.mini-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 2px;
+  background: rgb(255 255 255 / 20%);
+  pointer-events: none;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  background: var(--yt-red, #f00);
+  transform-origin: left center;
+  // timeupdate fires a few times a second; ease between ticks so it slides.
+  transition: transform 300ms linear;
+}
+
+.mini-bar {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.mini-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  align-content: center;
+  gap: 2px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mini-title,
+.mini-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.mini-sub {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mini-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.mini-icon:hover {
+  background: var(--yt-hover);
+}
+
+.mini-icon i {
+  font-size: 1.1rem;
+}
+
+.mini-open-hit:focus-visible,
+.mini-text:focus-visible,
+.mini-icon:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+// Desktop: a floating card in the bottom-right corner.
+@media (min-width: 721px) {
+  .miniplayer {
+    left: auto;
+    right: 16px;
+    bottom: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    width: 400px;
+    height: auto;
+    border: 0;
+    border-radius: var(--yt-radius, 12px);
+    overflow: hidden;
+    box-shadow: 0 4px 32px rgb(0 0 0 / 45%);
+  }
+
+  .mini-video {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .mini-bar {
+    height: 64px;
+    padding-right: 4px;
+  }
+}
