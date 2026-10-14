@@ -7,11 +7,11 @@
 //   white band: middle almond minus inner almond          -> through
 //
 // Waiting: the logo sits in the middle of the screen. Revealing (once the
-// page has loaded): it zooms gently into a point 16px below its centre, then
-// the almond shapes grow from that point -- the page through the outer one,
-// the white band, the page again through the inner one -- while the logo
-// zooms on; the band fades out through the second half of the opening and
-// the logo fades after the opening has started.
+// page has loaded): it starts zooming into a point 16px below its centre,
+// speeding up all the way, and the almond shapes grow from that point -- the
+// page through the outer one, the white band, the page again through the
+// inner one -- while the logo zooms on with them; the band fades out through
+// the second half of the opening and the logo right at the end.
 //
 // No blur on the shapes: its cost grows with the zoom, and at 40x it dropped
 // the frame rate badly.
@@ -54,7 +54,12 @@
 }
 
 .app-splash.is-revealing .splash-logo {
-  animation: splash-logo-zoom 1900ms cubic-bezier(0.45, 0, 0.55, 1) both;
+  // One continuous zoom (no in-between keyframes, so no pause partway),
+  // gentle at first and speeding up with the opening; it fades only at the
+  // very end, once the shapes have taken over the screen.
+  animation:
+    splash-logo-zoom 1900ms cubic-bezier(0.6, 0, 0.88, 0.45) both,
+    splash-logo-fade 1900ms linear both;
 }
 
 // Pages with their own intro (sign-in): just fade the waiting logo away.
@@ -63,26 +68,24 @@
   animation: splash-fade 250ms ease both;
 }
 
-// 0-0.7s gentle zoom, then (with the opening) faster, fading from 1.2s.
 @keyframes splash-logo-zoom {
-  0% {
-    opacity: 1;
+  from {
     transform: scale(1);
   }
 
-  37% {
-    opacity: 1;
-    transform: scale(1.35);
+  to {
+    transform: scale(16);
   }
+}
 
-  63% {
+@keyframes splash-logo-fade {
+  0%,
+  80% {
     opacity: 1;
-    transform: scale(2.6);
   }
 
   100% {
     opacity: 0;
-    transform: scale(7);
   }
 }
 
