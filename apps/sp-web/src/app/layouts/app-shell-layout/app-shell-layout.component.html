@@ -183,12 +183,17 @@
 @if (mobileShell()) {
   @if (moreMenuOpen()) {
     <button
+      #moreBackdrop
       type="button"
       class="mobile-more-backdrop"
       aria-label="Close more navigation"
       (click)="closeMoreMenu()"
     ></button>
+    <!-- Drag down to close. -->
     <section
+      appSwipeToClose
+      [swipeBackdrop]="moreBackdrop"
+      (swipeClose)="closeMoreMenu()"
       id="mobile-more-sheet"
       class="mobile-more-sheet"
       aria-label="More navigation"
