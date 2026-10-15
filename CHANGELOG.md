@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.3.0](https://github.com/John-Butler3/Peeparr/compare/v1.2.0...v1.3.0) (2026-10-15)
+
+
+### Features
+
+* **mobile:** new bottom bar with a Library tray ([d640aa5](https://github.com/John-Butler3/Peeparr/commit/d640aa593399efb858fdcc58e80c4be039cf3c25))
+* **navigation:** back buttons go back to where you actually came from ([5c72b62](https://github.com/John-Butler3/Peeparr/commit/5c72b6273c860bd49e559b09276836234585c83b))
+* **search:** live results drop down under the search boxes ([864410e](https://github.com/John-Butler3/Peeparr/commit/864410e5c7e696a6cc98416dc219675473968834))
+
+
+### Bug Fixes
+
+* **mobile:** swipe the menu sheet down to close it ([6699fb4](https://github.com/John-Butler3/Peeparr/commit/6699fb4f9f7bdc5dd443ad43727f0352193e2e37))
+
+
+### Performance Improvements
+
+* **thumbnails:** smaller card thumbnails, resized on the server ([8350b7c](https://github.com/John-Butler3/Peeparr/commit/8350b7c890855de9e960af0d08cbbe85f1901446))
+
 ## [1.2.0](https://github.com/John-Butler3/Peeparr/compare/v1.1.0...v1.2.0) (2026-10-15)
 
 
