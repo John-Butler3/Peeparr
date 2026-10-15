@@ -353,7 +353,7 @@ describe('HomePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Browse Scenes');
   });
 
-  it('searches scenes, performers, and studios together from the hero search bar', async () => {
+  it('shows live results under the search box while typing', async () => {
     const { fixture, discoverService } = await renderPage();
     discoverService.getPerformersFeed.mockReturnValue(
       of({
@@ -406,7 +406,7 @@ describe('HomePageComponent', () => {
 
     expect(discoverService.getScenesFeed).toHaveBeenLastCalledWith(
       1,
-      24,
+      5,
       'TITLE',
       'ASC',
       [],
@@ -415,16 +415,16 @@ describe('HomePageComponent', () => {
       [],
       'one',
     );
-    expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 24, { name: 'one' });
-    expect(discoverService.getStudiosFeed).toHaveBeenCalledWith(1, 24, { name: 'one' });
+    expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 4, { name: 'one' });
+    expect(discoverService.getStudiosFeed).toHaveBeenCalledWith(1, 3, { name: 'one' });
 
-    const panel = fixture.nativeElement.querySelector('.hero-search-panel') as HTMLElement;
+    const panel = fixture.nativeElement.querySelector('[data-testid="search-suggest"]') as HTMLElement;
     expect(panel).toBeTruthy();
     expect(panel.textContent).toContain('Performer One');
     expect(panel.textContent).toContain('Studio One');
     // Performers, then sites, then scenes.
     expect(
-      [...panel.querySelectorAll('.hero-search-group-label')].map((label) => label.textContent?.trim()),
+      [...panel.querySelectorAll('.group')].map((label) => label.textContent?.trim()),
     ).toEqual(['Performers', 'Sites', 'Scenes']);
 
     const performerLink = panel.querySelector(

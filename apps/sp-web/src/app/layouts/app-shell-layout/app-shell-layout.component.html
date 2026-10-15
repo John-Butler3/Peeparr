@@ -41,6 +41,7 @@
       @if (!mobileShell()) {
         <form class="masthead-search" role="search" (ngSubmit)="submitSearch()">
           <input
+            #mastheadSearchInput
             type="search"
             name="q"
             class="masthead-search-input"
@@ -53,6 +54,12 @@
           <button type="submit" class="masthead-search-button" aria-label="Search">
             <i class="pi pi-search" aria-hidden="true"></i>
           </button>
+          <!-- Live results, dropping down while you type. -->
+          <app-search-suggest
+            [input]="mastheadSearchInput"
+            [query]="searchQuery()"
+            (navigated)="searchQuery.set('')"
+          />
         </form>
       }
 

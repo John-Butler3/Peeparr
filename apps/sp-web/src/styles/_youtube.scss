@@ -492,6 +492,11 @@ textarea:focus {
 // (search lives in the masthead on desktop).
 app-home-page .hero-shell {
   margin-bottom: 8px !important;
+  // Its glow is off here, so nothing needs clipping -- and the search box's
+  // live results drop down out of it.
+  overflow: visible !important;
+  // Above the rows below, which the results drop down over.
+  z-index: 20;
   padding: 0 !important;
   border: 0 !important;
   background: none !important;

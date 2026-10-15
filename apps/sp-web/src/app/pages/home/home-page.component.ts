@@ -13,23 +13,17 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import {
-  Subject,
   Subscription,
   catchError,
-  debounceTime,
-  distinctUntilChanged,
   finalize,
-  forkJoin,
   of,
-  switchMap,
 } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
+import { SearchSuggestComponent } from '../../shared/search-suggest/search-suggest.component';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
-  PerformerFeedItem,
   SceneExplorerItem,
   SceneRequestContext,
-  StudioFeedItem,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
@@ -46,11 +40,10 @@ import {
 } from '../../shared/readiness/first-run-readiness.utils';
 
 import { HomeHeroComponent } from './home-hero/home-hero.component';
-import { Reveal } from '../../shared/show-more/reveal';
 
 @Component({
   selector: 'app-home-page',
-  imports: [
+  imports: [SearchSuggestComponent, 
     RouterLink,
     FormsModule,
     ProgressSpinner,
@@ -73,8 +66,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private continueWatchingSubscription: Subscription | null = null;
   private recentlyAddedSubscription: Subscription | null = null;
   private favoriteReleasesSubscription: Subscription | null = null;
-  private searchSubscription: Subscription | null = null;
-  private readonly searchTerms = new Subject<string>();
 
   @ViewChildren('railViewport')
   private railViewports?: QueryList<ElementRef<HTMLDivElement>>;
@@ -107,20 +98,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
       : 'Recently released scenes',
   );
 
+  // The phone's search box; live results drop down under it (SearchSuggest).
   protected readonly searchTerm = signal('');
-  protected readonly searchOpen = signal(false);
-  protected readonly searchLoading = signal(false);
-  protected readonly searchSceneResults = signal<SceneExplorerItem[]>([]);
-  protected readonly searchPerformerResults = signal<PerformerFeedItem[]>([]);
-  protected readonly searchStudioResults = signal<StudioFeedItem[]>([]);
-  // 4 performers, 4 sites and 5 scenes at first, then more on request.
-  protected readonly searchPerformersShown = new Reveal(4, 8);
-  protected readonly searchStudiosShown = new Reveal(4, 8);
-  protected readonly searchScenesShown = new Reveal(5, 10);
 
   ngOnInit(): void {
     this.runtimeHealthService.ensureStarted();
-    this.setupSearch();
     this.loadContinueWatching();
     this.loadRecentlyAdded();
     this.loadPopular();
@@ -137,18 +119,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.continueWatchingSubscription?.unsubscribe();
     this.recentlyAddedSubscription?.unsubscribe();
     this.favoriteReleasesSubscription?.unsubscribe();
-    this.searchSubscription?.unsubscribe();
   }
 
   protected onSearchInput(value: string): void {
-    const nextValue = value;
-    this.searchTerm.set(nextValue);
-    this.searchOpen.set(nextValue.trim().length > 0);
-    this.searchTerms.next(nextValue);
-  }
-
-  protected closeSearch(): void {
-    this.searchOpen.set(false);
+    this.searchTerm.set(value);
   }
 
   protected submitSearch(): void {
@@ -157,74 +131,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.closeSearch();
     void this.router.navigate(['/search'], { queryParams: { q: query } });
-  }
-
-  protected onSearchFocus(): void {
-    if (this.searchTerm().trim().length > 0) {
-      this.searchOpen.set(true);
-    }
   }
 
   protected clearSearch(): void {
     this.searchTerm.set('');
-    this.searchOpen.set(false);
-    this.searchSceneResults.set([]);
-    this.searchPerformerResults.set([]);
-    this.searchStudioResults.set([]);
-    this.searchTerms.next('');
-  }
-
-  protected hasSearchResults(): boolean {
-    return (
-      this.searchSceneResults().length > 0 ||
-      this.searchPerformerResults().length > 0 ||
-      this.searchStudioResults().length > 0
-    );
-  }
-
-  private setupSearch(): void {
-    this.searchSubscription = this.searchTerms
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((term) => {
-          const query = term.trim();
-          if (!query) {
-            this.searchLoading.set(false);
-            return of(null);
-          }
-
-          this.searchLoading.set(true);
-          return forkJoin({
-            scenes: this.discoverService
-              .getScenesFeed(1, 24, 'TITLE', 'ASC', [], undefined, undefined, [], query)
-              .pipe(catchError(() => of({ items: [] as SceneExplorerItem[] }))),
-            performers: this.discoverService
-              .getPerformersFeed(1, 24, { name: query })
-              .pipe(catchError(() => of({ items: [] as PerformerFeedItem[] }))),
-            studios: this.discoverService
-              .getStudiosFeed(1, 24, { name: query })
-              .pipe(catchError(() => of({ items: [] as StudioFeedItem[] }))),
-          }).pipe(finalize(() => this.searchLoading.set(false)));
-        }),
-      )
-      .subscribe((result) => {
-        this.searchPerformersShown.reset();
-        this.searchStudiosShown.reset();
-        this.searchScenesShown.reset();
-        if (!result) {
-          this.searchSceneResults.set([]);
-          this.searchPerformerResults.set([]);
-          this.searchStudioResults.set([]);
-          return;
-        }
-
-        this.searchSceneResults.set(result.scenes.items);
-        this.searchPerformerResults.set(result.performers.items);
-        this.searchStudioResults.set(result.studios.items);
-      });
   }
 
   protected loadContinueWatching(): void {

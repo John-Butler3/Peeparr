@@ -1,0 +1,101 @@
+@if (visible()) {
+  <div class="suggest" role="listbox" aria-label="Search results" data-testid="search-suggest">
+    <a
+      class="row all"
+      data-row="0"
+      [class.active]="activeIndex() === 0"
+      [routerLink]="['/search']"
+      [queryParams]="{ q: term() }"
+      (click)="opened()"
+    >
+      <i class="pi pi-search" aria-hidden="true"></i>
+      <span class="title">See all results for "{{ term() }}"</span>
+    </a>
+
+    @if (loading() && !hasResults()) {
+      <p class="state">Searching…</p>
+    } @else if (!loading() && !hasResults()) {
+      <p class="state">No matches for "{{ term() }}".</p>
+    }
+
+    @if (results().performers.length > 0) {
+      <p class="group">Performers</p>
+      @for (performer of results().performers; track performer.id; let i = $index) {
+        <a
+          class="row"
+          [attr.data-row]="performerOffset + i"
+          [class.active]="activeIndex() === performerOffset + i"
+          [routerLink]="['/performer', performer.id]"
+          (click)="opened()"
+        >
+          @if (imageOf(performer); as image) {
+            <img class="thumb round" [src]="image" alt="" loading="lazy" />
+          } @else {
+            <span class="thumb round placeholder" aria-hidden="true"><i class="pi pi-user"></i></span>
+          }
+          <span class="text">
+            <span class="title">{{ performer.name }}</span>
+            <span class="sub">{{ performer.sceneCount }} scenes</span>
+          </span>
+          @if (performer.isFavorite) {
+            <i class="pi pi-star-fill fav" aria-label="Favourite"></i>
+          }
+        </a>
+      }
+    }
+
+    @if (results().studios.length > 0) {
+      <p class="group">Sites</p>
+      @for (studio of results().studios; track studio.id; let i = $index) {
+        <a
+          class="row"
+          [attr.data-row]="studioOffset() + i"
+          [class.active]="activeIndex() === studioOffset() + i"
+          [routerLink]="['/studio', studio.id]"
+          (click)="opened()"
+        >
+          @if (studio.imageUrl) {
+            <span class="thumb logo"><img [src]="studio.imageUrl" alt="" loading="lazy" /></span>
+          } @else {
+            <span class="thumb logo placeholder" aria-hidden="true"><i class="pi pi-building"></i></span>
+          }
+          <span class="text">
+            <span class="title">{{ studio.name }}</span>
+            @if (studio.parentStudio) {
+              <span class="sub">{{ studio.parentStudio.name }}</span>
+            }
+          </span>
+          @if (studio.isFavorite) {
+            <i class="pi pi-star-fill fav" aria-label="Favourite"></i>
+          }
+        </a>
+      }
+    }
+
+    @if (results().scenes.length > 0) {
+      <p class="group">Scenes</p>
+      @for (scene of results().scenes; track scene.id; let i = $index) {
+        <a
+          class="row"
+          [attr.data-row]="sceneOffset() + i"
+          [class.active]="activeIndex() === sceneOffset() + i"
+          [routerLink]="['/scene', scene.id]"
+          (click)="opened()"
+        >
+          @if (scene.cardImageUrl ?? scene.imageUrl; as image) {
+            <img class="thumb wide" [src]="image" alt="" loading="lazy" />
+          } @else {
+            <span class="thumb wide placeholder" aria-hidden="true"><i class="pi pi-video"></i></span>
+          }
+          <span class="text">
+            <span class="title">{{ scene.title }}</span>
+            <span class="sub">{{ scene.studio }}@if (scene.releaseDate) { · {{ scene.releaseDate }} }</span>
+          </span>
+          @if (statusLabel(scene); as status) {
+            <span class="status" [class.in-library]="scene.status.state === 'AVAILABLE'">{{ status }}</span>
+          }
+        </a>
+      }
+    }
+  </div>
+}

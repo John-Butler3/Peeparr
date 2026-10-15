@@ -15,6 +15,7 @@
           <div class="hero-search-input-row">
             <i class="pi pi-search hero-search-icon" aria-hidden="true"></i>
             <input
+              #heroSearchInput
               type="search"
               inputmode="search"
               class="hero-search-input"
@@ -22,7 +23,6 @@
               aria-label="Search scenes, performers, or studios"
               [ngModel]="searchTerm()"
               (ngModelChange)="onSearchInput($event)"
-              (focus)="onSearchFocus()"
               (keydown.enter)="submitSearch()"
             />
             @if (searchTerm().trim().length > 0) {
@@ -37,146 +37,8 @@
             }
           </div>
 
-          @if (searchOpen() && searchTerm().trim().length > 0) {
-            <div class="hero-search-overlay" (click)="closeSearch()">
-              <div class="hero-search-overlay-inner" (click)="$event.stopPropagation()">
-                <div class="hero-search-overlay-head">
-                  <a
-                    class="hero-search-overlay-title"
-                    [routerLink]="['/search']"
-                    [queryParams]="{ q: searchTerm() }"
-                    (click)="closeSearch()"
-                  >
-                    See all results for "{{ searchTerm() }}"
-                  </a>
-                  <button
-                    type="button"
-                    class="hero-search-close"
-                    aria-label="Close search"
-                    (click)="closeSearch()"
-                  >
-                    <i class="pi pi-times" aria-hidden="true"></i>
-                  </button>
-                </div>
-
-                <div class="hero-search-panel" role="listbox" aria-label="Search results">
-                  @if (searchLoading()) {
-                    <p class="hero-search-state">Searching...</p>
-                  } @else if (!hasSearchResults()) {
-                    <p class="hero-search-state">No matches for "{{ searchTerm() }}".</p>
-                  } @else {
-                    @if (searchPerformerResults().length > 0) {
-                      <div class="hero-search-group">
-                        <p class="hero-search-group-label">Performers</p>
-                        @for (result of searchPerformersShown.slice(searchPerformerResults()); track result.id) {
-                          <a
-                            class="hero-search-result"
-                            [routerLink]="['/performer', result.id]"
-                            (click)="closeSearch()"
-                          >
-                            @if (result.cardImageUrl || result.imageUrl) {
-                              <img
-                                class="hero-search-result-image round"
-                                [src]="result.cardImageUrl ?? result.imageUrl"
-                                [alt]="result.name"
-                                loading="lazy"
-                              />
-                            } @else {
-                              <span
-                                class="hero-search-result-image round placeholder"
-                                aria-hidden="true"
-                              ></span>
-                            }
-                            <span class="hero-search-result-copy">
-                              <span class="hero-search-result-title">{{ result.name }}</span>
-                            </span>
-                          </a>
-                        }
-                        @if (searchPerformersShown.hasMore(searchPerformerResults().length)) {
-                          <button type="button" class="hero-search-more" (click)="searchPerformersShown.more()">
-                            Show more
-                          </button>
-                        }
-                      </div>
-                    }
-
-                    @if (searchStudioResults().length > 0) {
-                      <div class="hero-search-group">
-                        <p class="hero-search-group-label">Sites</p>
-                        @for (result of searchStudiosShown.slice(searchStudioResults()); track result.id) {
-                          <a
-                            class="hero-search-result"
-                            [routerLink]="['/studio', result.id]"
-                            (click)="closeSearch()"
-                          >
-                            @if (result.imageUrl) {
-                              <img
-                                class="hero-search-result-image"
-                                [src]="result.imageUrl"
-                                [alt]="result.name"
-                                loading="lazy"
-                              />
-                            } @else {
-                              <span
-                                class="hero-search-result-image placeholder"
-                                aria-hidden="true"
-                              ></span>
-                            }
-                            <span class="hero-search-result-copy">
-                              <span class="hero-search-result-title">{{ result.name }}</span>
-                            </span>
-                          </a>
-                        }
-                        @if (searchStudiosShown.hasMore(searchStudioResults().length)) {
-                          <button type="button" class="hero-search-more" (click)="searchStudiosShown.more()">
-                            Show more
-                          </button>
-                        }
-                      </div>
-                    }
-
-                    @if (searchSceneResults().length > 0) {
-                      <div class="hero-search-group">
-                        <p class="hero-search-group-label">Scenes</p>
-                        @for (result of searchScenesShown.slice(searchSceneResults()); track result.id) {
-                          <a
-                            class="hero-search-result"
-                            [routerLink]="['/scene', result.id]"
-                            (click)="closeSearch()"
-                          >
-                            @if (result.cardImageUrl || result.imageUrl) {
-                              <img
-                                class="hero-search-result-image"
-                                [src]="result.cardImageUrl ?? result.imageUrl"
-                                [alt]="result.title"
-                                loading="lazy"
-                              />
-                            } @else {
-                              <span
-                                class="hero-search-result-image placeholder"
-                                aria-hidden="true"
-                              ></span>
-                            }
-                            <span class="hero-search-result-copy">
-                              <span class="hero-search-result-title">{{ result.title }}</span>
-                              @if (result.studio) {
-                                <span class="hero-search-result-meta">{{ result.studio }}</span>
-                              }
-                            </span>
-                          </a>
-                        }
-                        @if (searchScenesShown.hasMore(searchSceneResults().length)) {
-                          <button type="button" class="hero-search-more" (click)="searchScenesShown.more()">
-                            Show more
-                          </button>
-                        }
-                      </div>
-                    }
-                  }
-                </div>
-              </div>
-            </div>
-          }
+          <!-- Live results, dropping down under the box while you type. -->
+          <app-search-suggest [input]="heroSearchInput" [query]="searchTerm()" (navigated)="clearSearch()" />
         </div>
 
       </div>
