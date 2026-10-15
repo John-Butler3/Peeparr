@@ -1,0 +1,323 @@
+:host {
+  display: block;
+  color: var(--text-primary);
+  font-family: var(--yt-font, inherit);
+}
+
+.upcoming-page {
+  padding: 16px 24px 48px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.page-head p {
+  margin: 4px 0 0;
+  max-width: 66ch;
+  color: var(--text-muted);
+}
+
+.status {
+  margin-top: 24px;
+  color: var(--text-muted);
+}
+
+.retry,
+.today-link {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: var(--yt-chip-bg, var(--surface-elevated));
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+// Nothing to show yet: how to get things here.
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 42ch;
+  margin: 48px auto 0;
+  text-align: center;
+}
+
+.empty > i {
+  font-size: 2.2rem;
+  color: var(--yt-red, #ff0033);
+}
+
+.empty h2 {
+  margin: 4px 0 0;
+  font-size: 1.15rem;
+}
+
+.empty p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.empty-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.empty-links a {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--yt-chip-bg, var(--surface-elevated));
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+// ---- Filters ---------------------------------------------------------------
+.filters {
+  display: flex;
+  gap: 8px;
+  margin: 16px -24px 0;
+  padding: 0 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.filter {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--yt-radius-sm, 8px);
+  background: var(--yt-chip-bg, var(--surface-elevated));
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter:hover:not(:disabled) {
+  background: var(--yt-chip-hover, var(--surface-elevated));
+}
+
+.filter.active {
+  background: var(--yt-chip-active-bg, #f1f1f1);
+  color: var(--yt-chip-active-text, #0f0f0f);
+}
+
+.filter:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.filter .count {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+// ---- The sliding calendar ----------------------------------------------------
+// Sticks under the top bar (and moves up with it when the phone hides it).
+.calendar {
+  position: sticky;
+  top: calc(var(--shell-masthead-h, 0px) + env(safe-area-inset-top, 0px));
+  z-index: 10;
+  margin: 12px -24px 0;
+  padding: 8px 24px 10px;
+  background: color-mix(in srgb, var(--app-bg, #0f0f0f) 92%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+:host-context(.shell-bars-hidden) .calendar {
+  top: env(safe-area-inset-top, 0px);
+}
+
+.calendar-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.month {
+  font-weight: 700;
+}
+
+.today-link {
+  padding: 3px 12px;
+  font-size: 0.8125rem;
+}
+
+.arrows {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.arrow {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.arrow:hover {
+  background: var(--yt-hover, rgb(255 255 255 / 10%));
+}
+
+.strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.day {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: 52px;
+  padding: 4px 0 6px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.day:hover {
+  background: var(--yt-hover, rgb(255 255 255 / 8%));
+}
+
+.day.past {
+  opacity: 0.55;
+}
+
+.day.has-releases {
+  color: var(--text-primary);
+}
+
+.day.today {
+  border-color: color-mix(in srgb, var(--yt-red, #ff0033) 70%, transparent);
+}
+
+.day.active {
+  background: var(--yt-chip-active-bg, #f1f1f1);
+  color: var(--yt-chip-active-text, #0f0f0f);
+  opacity: 1;
+}
+
+.month-tag {
+  height: 12px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yt-red, #ff0033);
+}
+
+.day.active .month-tag {
+  color: inherit;
+}
+
+.weekday {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.num {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+  height: 5px;
+}
+
+.dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--yt-red, #ff0033);
+}
+
+// ---- The list, a day at a time ----------------------------------------------
+.agenda {
+  margin-top: 8px;
+}
+
+.day-group {
+  // Lands below the sticky top bar and calendar when jumped to.
+  scroll-margin-top: calc(var(--shell-masthead-h, 0px) + var(--calendar-h, 128px));
+  padding-top: 16px;
+}
+
+.day-head {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  gap: 16px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+@media (max-width: 720px) {
+  .upcoming-page {
+    padding: 12px 12px 96px;
+  }
+
+  .day-group {
+    --calendar-h: 112px;
+  }
+
+  .filters,
+  .calendar {
+    margin-inline: -12px;
+    padding-inline: 12px;
+  }
+
+  .arrows {
+    display: none;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

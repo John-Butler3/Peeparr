@@ -13,6 +13,7 @@ import { BootstrapPageComponent } from './features/auth/bootstrap-page.component
 import { LoginPageComponent } from './features/auth/login-page.component';
 import { SetupPageComponent } from './features/setup/setup-page.component';
 import { AcquisitionPageComponent } from './pages/acquisition/acquisition-page.component';
+import { UpcomingPageComponent } from './pages/upcoming/upcoming-page.component';
 import { GalleriesPageComponent } from './pages/galleries/galleries-page.component';
 import { GalleryPageComponent } from './pages/gallery/gallery-page.component';
 import { LibraryPageComponent } from './pages/library/library-page.component';
@@ -72,6 +73,10 @@ export const routes: Routes = [
       {
         path: 'acquisition',
         component: AcquisitionPageComponent,
+      },
+      {
+        path: 'upcoming',
+        component: UpcomingPageComponent,
       },
       {
         path: 'library',

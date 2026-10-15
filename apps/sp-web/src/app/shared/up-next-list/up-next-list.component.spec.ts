@@ -44,7 +44,9 @@ describe('UpNextListComponent', () => {
     ) as HTMLElement[];
 
     libraryThumb.dispatchEvent(pointer('pointerenter', 'mouse'));
-    vi.advanceTimersByTime(200);
+    // Long enough for the wait after any recent scroll (up to ~160ms) plus
+    // the prefetch delay, whichever test ran before.
+    vi.advanceTimersByTime(400);
     fixture.detectChanges();
     expect(libraryThumb.querySelector('video.hover-preview')?.getAttribute('src')).toBe(
       '/api/media/stash/scenes/412/preview',

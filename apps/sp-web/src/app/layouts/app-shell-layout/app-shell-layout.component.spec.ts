@@ -224,6 +224,7 @@ describe('AppShellLayoutComponent', () => {
       'Home',
       'Scenes',
       'Acquisition',
+      'Upcoming',
       'Library',
       'Series',
       'Galleries',

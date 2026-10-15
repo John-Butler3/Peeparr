@@ -16,6 +16,7 @@ describe('app routes', () => {
       'scenes',
       'search',
       'acquisition',
+      'upcoming',
       'library',
       'galleries',
       'galleries/:galleryId',

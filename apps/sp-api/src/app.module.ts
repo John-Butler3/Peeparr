@@ -21,6 +21,7 @@ import { ScenesModule } from './scenes/scenes.module';
 import { SettingsModule } from './settings/settings.module';
 import { SetupModule } from './setup/setup.module';
 import { StudiosModule } from './studios/studios.module';
+import { UpcomingModule } from './upcoming/upcoming.module';
 import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.module';
 
 @Module({
@@ -50,6 +51,7 @@ import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.mo
     PerformersModule,
     PerformerMonitoringModule,
     StudiosModule,
+    UpcomingModule,
     WhisparrMetadataModule,
   ],
 })

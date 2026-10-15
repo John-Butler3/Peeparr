@@ -1,0 +1,113 @@
+<main class="upcoming-page">
+  <header class="page-head">
+    <h1>Upcoming</h1>
+    <p>New releases from scenes you've requested and your favourite performers and sites.</p>
+  </header>
+
+  @if (loading()) {
+    <p class="status" aria-live="polite">Loading what's coming up…</p>
+  } @else if (error(); as message) {
+    <div class="status">
+      <p>{{ message }}</p>
+      <button type="button" class="retry" (click)="load()">Retry</button>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty" data-testid="upcoming-empty">
+      <i class="pi pi-calendar" aria-hidden="true"></i>
+      <h2>Nothing coming up yet</h2>
+      <p>
+        Request a scene that's not out yet, or favourite performers and sites, and their new
+        releases appear here.
+      </p>
+      <div class="empty-links">
+        <a routerLink="/scenes">Browse scenes</a>
+        <a routerLink="/performers">Performers</a>
+        <a routerLink="/studios">Sites</a>
+      </div>
+    </div>
+  } @else {
+    <div class="filters" role="group" aria-label="Show">
+      @for (option of filterOptions; track option.value) {
+        <button
+          type="button"
+          class="filter"
+          [class.active]="filter() === option.value"
+          [attr.aria-pressed]="filter() === option.value"
+          [disabled]="counts()[option.value] === 0 && option.value !== 'ALL'"
+          (click)="setFilter(option.value)"
+        >
+          {{ option.label }} <span class="count">{{ counts()[option.value] }}</span>
+        </button>
+      }
+    </div>
+
+    <!-- The sliding calendar: one pill per day, dots for days with releases. -->
+    <div class="calendar" data-testid="upcoming-calendar">
+      <div class="calendar-head">
+        <span class="month">{{ activeMonth() }}</span>
+        <button type="button" class="today-link" (click)="jumpTo(today()!)">Today</button>
+        <span class="arrows">
+          <button type="button" class="arrow" aria-label="Earlier days" (click)="slide(-1)">
+            <i class="pi pi-chevron-left" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="arrow" aria-label="Later days" (click)="slide(1)">
+            <i class="pi pi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </span>
+      </div>
+      <div class="strip" #strip>
+        @for (day of days(); track day.date) {
+          <button
+            type="button"
+            class="day"
+            [attr.data-day]="day.date"
+            [class.today]="day.isToday"
+            [class.past]="day.isPast"
+            [class.active]="activeDate() === day.date"
+            [class.has-releases]="day.count > 0"
+            [attr.aria-label]="day.date + (day.count ? ', ' + day.count + ' releases' : '')"
+            (click)="jumpTo(day.date)"
+          >
+            <span class="month-tag">{{ day.month ?? '' }}</span>
+            <span class="weekday">{{ day.weekday }}</span>
+            <span class="num">{{ day.day }}</span>
+            <span class="dots" aria-hidden="true">
+              @for (dot of [1, 2, 3].slice(0, day.count); track dot) {
+                <i></i>
+              }
+            </span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="agenda">
+      @for (group of groups(); track group.date) {
+        <section class="day-group" [attr.data-date]="group.date">
+          <h2 class="day-head">{{ group.label }}</h2>
+          <div class="grid">
+            @for (item of group.items; track item.id) {
+              <app-scene-card
+                [item]="item"
+                [requestable]="item.requestable"
+                [topBadges]="badges(item)"
+                (request)="openRequestModal($event)"
+              />
+            }
+          </div>
+        </section>
+      } @empty {
+        <p class="status">Nothing here for this filter.</p>
+      }
+    </div>
+  }
+
+  <app-scene-request-modal
+    [open]="requestModalOpen()"
+    [sceneId]="requestContext()?.id ?? null"
+    [sceneTitle]="requestContext()?.title ?? null"
+    [sceneImageUrl]="requestContext()?.imageUrl ?? null"
+    (closed)="requestModalOpen.set(false)"
+    (submitted)="onRequestSubmitted($event)"
+  />
+</main>

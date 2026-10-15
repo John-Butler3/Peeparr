@@ -64,6 +64,13 @@ const ACQUISITION_NAV_ITEM: ShellNavItem = {
   exact: true,
 };
 
+const UPCOMING_NAV_ITEM: ShellNavItem = {
+  label: 'Upcoming',
+  route: '/upcoming',
+  icon: 'pi pi-calendar',
+  exact: true,
+};
+
 const LIBRARY_NAV_ITEM: ShellNavItem = {
   label: 'Library',
   route: '/library',
@@ -115,6 +122,7 @@ const DESKTOP_NAV_ITEMS: readonly ShellNavItem[] = [
   HOME_NAV_ITEM,
   SCENES_NAV_ITEM,
   ACQUISITION_NAV_ITEM,
+  UPCOMING_NAV_ITEM,
   LIBRARY_NAV_ITEM,
   SERIES_NAV_ITEM,
   GALLERIES_NAV_ITEM,
@@ -131,6 +139,7 @@ const MOBILE_PRIMARY_NAV_ITEMS: readonly ShellNavItem[] = [
 ];
 
 const MOBILE_SECONDARY_NAV_ITEMS: readonly ShellNavItem[] = [
+  UPCOMING_NAV_ITEM,
   SERIES_NAV_ITEM,
   GALLERIES_NAV_ITEM,
   PERFORMERS_NAV_ITEM,
