@@ -173,6 +173,11 @@ Things to know when Eros uses the proxy:
   key of its own.
 - The proxy routes have no login (Eros can't sign in), so keep Peeparr on a
   trusted network rather than exposed to the internet.
+- So those routes only answer **private-network** addresses: this machine,
+  home networks (10.x, 172.16–31.x, 192.168.x), Tailscale (100.64.x) and
+  Docker networks. If Eros reaches Peeparr from a public address, set
+  `PEEPARR_METADATA_ALLOW_ANY_NETWORK=true` in `/opt/peeparr/.env` (only
+  when that path is otherwise protected).
 - **Don't switch an existing Eros between the two.** Scenes already in Eros
   are stored with the old kind of id; after switching they won't match
   Peeparr's requests or refresh correctly. Pick one per Eros install (switch
