@@ -192,26 +192,6 @@ Keep:
 - `/opt/peeparr/.env` and `/opt/peeparr/compose.yaml`;
 - the Docker volumes `peeparr_postgres_data` and `peeparr_app_data` (the second holds the generated session secret).
 
-To take a database dump:
-
-```bash
-cd /opt/peeparr
-docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > peeparr-backup.sql
-```
-
-## Local development
-
-To run the repo locally for development:
-
-1. Install dependencies with `pnpm install`.
-2. Copy `.env.example` to `.env` and set `SESSION_SECRET`.
-3. Start Postgres with `pnpm run dev:db`.
-4. Run the backend with `pnpm run backend`.
-5. Run the frontend with `pnpm run web`.
-
-The app is an Angular front end and a NestJS back end, with Postgres through Prisma.
-
-If an older local database says migration `20260402142846` was modified after it was applied, run `pnpm run db:repair-runtime-health-migration` once, then rerun `pnpm prisma migrate dev`.
 
 ## Contributing
 
