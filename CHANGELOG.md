@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/John-Butler3/Peeparr/compare/v1.0.1...v1.1.0) (2026-10-15)
+
+
+### Features
+
+* **branding:** rings behind the logo's figure ([da2974b](https://github.com/John-Butler3/Peeparr/commit/da2974b86bae05d9d97f296988581d35e62ffe0a))
+
+
 ## [1.0.1](https://github.com/John-Butler3/Peeparr/compare/v1.0.0...v1.0.1) (2026-10-15)
 
 
