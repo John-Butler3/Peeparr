@@ -699,8 +699,7 @@ export class HomeService {
       title: item.title,
       description: item.description,
       imageUrl: screenshotUrl,
-      // Cards use a smaller copy (resized by MediaService).
-      cardImageUrl: screenshotUrl ? `${screenshotUrl}?w=640` : null,
+      cardImageUrl: screenshotUrl,
       // NOT item.studioId: see the identical comment in
       // library-scene-query.service.ts -- Stash's local id isn't safe to
       // pass to the catalog-backed /studio/:studioId route.

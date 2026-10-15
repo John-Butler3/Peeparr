@@ -257,7 +257,7 @@ export class GroupsService {
       title: this.sceneTitle(scene),
       description: scene.details?.trim() || null,
       imageUrl: screenshotUrl,
-      cardImageUrl: screenshotUrl ? `${screenshotUrl}?w=640` : null,
+      cardImageUrl: screenshotUrl,
       // Stash-local studio ids aren't catalog ids -- see
       // library-scene-query.service.ts.
       studioId: null,

@@ -5,8 +5,6 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { createHash } from 'node:crypto';
-import sharp from 'sharp';
 import { StashAdapter, type StashProtectedAssetResponse } from '../providers/stash/stash.adapter';
 import { fetchWithTimeout } from '../providers/fetch-with-timeout';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,80 +19,25 @@ export interface StashSceneStreamResponse {
 export class MediaService {
   /** How long a scene's resolved Stash video URL is reused. */
   private static readonly VIDEO_URL_TTL_MS = 10 * 60 * 1000;
-  /** Thumbnail widths on offer (cards ask for 640); anything else gets the original. */
-  static readonly THUMBNAIL_WIDTHS: readonly number[] = [320, 640, 960];
-  /** Resized thumbnails kept in memory (~30KB each). */
-  private static readonly THUMBNAIL_CACHE_SIZE = 400;
 
   private readonly logger = new Logger(MediaService.name);
   // A player makes many range requests per video (and previews more still);
   // resolving the Stash URL once per scene instead of per request.
   private readonly videoUrlCache = new Map<string, { url: string; expiresAt: number }>();
-  // Keyed by width and the original's hash, so a regenerated screenshot is
-  // resized afresh. A Map keeps insertion order: oldest first, for eviction.
-  private readonly thumbnailCache = new Map<string, Buffer>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly stashAdapter: StashAdapter,
   ) {}
 
-  /**
-   * A scene's screenshot. With a width (cards ask for 640), a smaller WebP
-   * copy instead of the full-size original -- a fraction of the bytes, which
-   * is what makes thumbnails quick away from home.
-   */
-  async getStashSceneScreenshot(
-    sceneId: string,
-    width?: number | null,
-  ): Promise<StashProtectedAssetResponse> {
+  async getStashSceneScreenshot(sceneId: string): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openSceneScreenshot(sceneId, config);
     if (!asset) {
       throw new NotFoundException('Stash media asset not found.');
     }
 
-    if (!width || !MediaService.THUMBNAIL_WIDTHS.includes(width)) {
-      return asset;
-    }
-    try {
-      const body = await this.thumbnail(asset.body, width);
-      return {
-        body,
-        contentType: 'image/webp',
-        contentLength: String(body.byteLength),
-        cacheControl: 'private, max-age=86400',
-      };
-    } catch (error) {
-      // Not an image sharp can read: the original still works.
-      this.logger.warn(`Couldn't resize screenshot for scene ${sceneId}: ${(error as Error)?.message}`);
-      return asset;
-    }
-  }
-
-  private async thumbnail(original: Buffer, width: number): Promise<Buffer> {
-    const key = `${width}:${createHash('sha1').update(original).digest('hex')}`;
-    const cached = this.thumbnailCache.get(key);
-    if (cached) {
-      // Most recently used goes to the back.
-      this.thumbnailCache.delete(key);
-      this.thumbnailCache.set(key, cached);
-      return cached;
-    }
-
-    const resized = await sharp(original)
-      .rotate()
-      .resize({ width, withoutEnlargement: true })
-      .webp({ quality: 72 })
-      .toBuffer();
-    this.thumbnailCache.set(key, resized);
-    if (this.thumbnailCache.size > MediaService.THUMBNAIL_CACHE_SIZE) {
-      const oldest = this.thumbnailCache.keys().next().value;
-      if (oldest !== undefined) {
-        this.thumbnailCache.delete(oldest);
-      }
-    }
-    return resized;
+    return asset;
   }
 
   async getStashStudioLogo(studioId: string): Promise<StashProtectedAssetResponse> {
