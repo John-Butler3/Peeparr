@@ -101,11 +101,51 @@ export class HomePageComponent implements OnInit, OnDestroy {
   // The phone's search box; live results drop down under it (SearchSuggest).
   protected readonly searchTerm = signal('');
 
+  /** While Home is open, it re-checks your library this often. */
+  static readonly REFRESH_MS = 60_000;
+  /** Coming back to the app re-checks too, if it's been at least this long. */
+  static readonly RESUME_REFRESH_AFTER_MS = 15_000;
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private lastRefreshAt = 0;
+  private readonly onVisibilityChange = (): void => {
+    if (
+      document.visibilityState === 'visible' &&
+      Date.now() - this.lastRefreshAt > HomePageComponent.RESUME_REFRESH_AFTER_MS
+    ) {
+      this.refreshLibraryRows();
+    }
+  };
+
   ngOnInit(): void {
     this.runtimeHealthService.ensureStarted();
+    this.refreshLibraryRows();
+    this.loadPopular();
+    // New scenes in Stash show up without reloading the page.
+    this.refreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.refreshLibraryRows();
+      }
+    }, HomePageComponent.REFRESH_MS);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+  }
+
+  private refreshLibraryRows(): void {
+    this.lastRefreshAt = Date.now();
     this.loadContinueWatching();
     this.loadRecentlyAdded();
-    this.loadPopular();
+  }
+
+  // Only replaces a row when it changed, so the banner's preview isn't
+  // restarted by a refresh that found nothing new.
+  private setIfChanged(
+    target: { (): HomeRailItem[]; set(items: HomeRailItem[]): void },
+    items: HomeRailItem[],
+  ): void {
+    const key = (list: HomeRailItem[]) =>
+      list.map((item) => `${item.id}|${item.cardImageUrl}|${item.progressPercent ?? ''}`).join(',');
+    if (key(target()) !== key(items)) {
+      target.set(items);
+    }
   }
 
   private loadPopular(): void {
@@ -116,6 +156,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+    }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.continueWatchingSubscription?.unsubscribe();
     this.recentlyAddedSubscription?.unsubscribe();
     this.favoriteReleasesSubscription?.unsubscribe();
@@ -143,9 +187,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.continueWatchingSubscription = this.homeService
       .getContinueWatching()
       .pipe(catchError(() => of<HomeRailContentResponse>({ items: [], message: null })))
-      .subscribe((response) => {
-        this.continueWatchingItems.set(response.items);
-      });
+      .subscribe((response) => this.setIfChanged(this.continueWatchingItems, response.items));
   }
 
   protected loadRecentlyAdded(): void {
@@ -153,9 +195,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.recentlyAddedSubscription = this.homeService
       .getRecentlyAdded()
       .pipe(catchError(() => of<HomeRailContentResponse>({ items: [], message: null })))
-      .subscribe((response) => {
-        this.recentlyAddedItems.set(response.items);
-      });
+      .subscribe((response) => this.setIfChanged(this.recentlyAddedItems, response.items));
   }
 
   protected loadFavoriteReleases(): void {

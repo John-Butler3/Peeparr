@@ -57,6 +57,14 @@ export class IndexingScheduler implements OnApplicationBootstrap {
     );
   }
 
+  // New scenes on Home within a minute, between the full scans above.
+  @Interval(60_000)
+  handleRecentLibrarySync(): void {
+    this.runInBackground('library-recent', () =>
+      this.indexingService.syncRecentLibraryScenes(),
+    );
+  }
+
   @Interval(10_000)
   handleMetadataBackfill(): void {
     this.runInBackground('metadata-backfill', () =>

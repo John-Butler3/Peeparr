@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { UpNextItem, UpNextListComponent } from './up-next-list.component';
+import { ScenePreviewDirective } from '../scene-preview/scene-preview.directive';
 
 function row(overrides: Partial<UpNextItem>): UpNextItem {
   return {
@@ -22,7 +23,12 @@ function pointer(type: string, pointerType: string): Event {
 }
 
 describe('UpNextListComponent', () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    // Previews wait for the page to stop scrolling; a scroll in an earlier
+    // test mustn't hold this one up.
+    (ScenePreviewDirective as unknown as { lastScrollAt: number }).lastScrollAt = 0;
+  });
   afterEach(() => {
     vi.useRealTimers();
     TestBed.resetTestingModule();

@@ -432,4 +432,31 @@ describe('HomePageComponent', () => {
     ) as HTMLAnchorElement | null;
     expect(performerLink).toBeTruthy();
   });
+
+  it('picks up new library scenes when you come back to it, without restarting unchanged rows', async () => {
+    const first = buildRailItem({ id: '411', title: 'Already Here' });
+    const { fixture, homeService } = await renderPage({ recentlyAdded: { items: [first], message: null } });
+    const component = fixture.componentInstance as unknown as {
+      lastRefreshAt: number;
+      recentlyAddedItems: () => unknown[];
+    };
+    const comeBack = () => {
+      component.lastRefreshAt = 0;
+      document.dispatchEvent(new Event('visibilitychange'));
+      fixture.detectChanges();
+    };
+
+    // Nothing new: the row keeps the same list (so the banner isn't restarted).
+    const before = component.recentlyAddedItems();
+    comeBack();
+    expect(homeService.getRecentlyAdded).toHaveBeenCalledTimes(2);
+    expect(component.recentlyAddedItems()).toBe(before);
+
+    // A scene added in Stash meanwhile shows up.
+    homeService.getRecentlyAdded.mockReturnValue(
+      of({ items: [buildRailItem({ id: '412', title: 'Just Added' }), first], message: null }),
+    );
+    comeBack();
+    expect(component.recentlyAddedItems().map((item) => (item as { id: string }).id)).toEqual(['412', '411']);
+  });
 });

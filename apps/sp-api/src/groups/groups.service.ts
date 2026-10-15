@@ -19,6 +19,7 @@ import {
   StashGroupSceneRecord,
   StashGroupsClient,
 } from './stash-groups.client';
+import { stashScreenshotUrl } from '../providers/stash/stash-screenshot-url.util';
 
 // "Series" in the UI: Stash Groups, i.e. ordered collections of scenes.
 @Injectable()
@@ -245,9 +246,7 @@ export class GroupsService {
     config: StashAdapterBaseConfig,
     scene: StashGroupSceneRecord,
   ): Omit<GroupSceneDto, 'sceneIndex'> {
-    const screenshotUrl = scene.paths?.screenshot
-      ? `/api/media/stash/scenes/${encodeURIComponent(scene.id)}/screenshot`
-      : null;
+    const screenshotUrl = stashScreenshotUrl(scene.id, scene.paths?.screenshot);
     const duration = scene.files?.[0]?.duration;
     const createdAt = scene.created_at ? new Date(scene.created_at) : null;
 

@@ -11,6 +11,7 @@ import {
   LibrarySortDirection,
   LibraryTagMatchMode,
 } from './dto/library-scenes-query.dto';
+import { stashScreenshotUrl } from '../providers/stash/stash-screenshot-url.util';
 
 const librarySceneListSelect =
   Prisma.validator<Prisma.LibrarySceneIndexSelect>()({
@@ -288,9 +289,7 @@ export class LibrarySceneQueryService {
   private toSceneFeedItem(
     row: LibrarySceneListRow,
   ): LibrarySceneFeedItemDto {
-    const screenshotUrl = row.imageUrl
-      ? `/api/media/stash/scenes/${encodeURIComponent(row.stashSceneId)}/screenshot`
-      : null;
+    const screenshotUrl = stashScreenshotUrl(row.stashSceneId, row.imageUrl);
     const studioLogoUrl =
       row.studioId && row.studioImageUrl
         ? `/api/media/stash/studios/${encodeURIComponent(row.studioId)}/logo`

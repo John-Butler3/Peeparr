@@ -65,6 +65,7 @@ import {
   type LegacyHomeRailHybridSceneConfig,
   type LegacyHomeRailLibraryAvailability,
 } from './home-rail-hybrid.internal';
+import { stashScreenshotUrl } from '../providers/stash/stash-screenshot-url.util';
 
 type HomeRailStoredSceneConfig =
   | HomeRailSceneConfigDto
@@ -685,9 +686,7 @@ export class HomeService {
   private toContinueWatchingRailItem(
     item: StashContinueWatchingItem,
   ): HomeRailItemDto {
-    const screenshotUrl = item.imageUrl
-      ? `/api/media/stash/scenes/${encodeURIComponent(item.id)}/screenshot`
-      : null;
+    const screenshotUrl = stashScreenshotUrl(item.id, item.imageUrl);
     const studioLogoUrl =
       item.studioId && item.studioImageUrl
         ? `/api/media/stash/studios/${encodeURIComponent(item.studioId)}/logo`

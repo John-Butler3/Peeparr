@@ -152,6 +152,8 @@ export class IndexingService {
   private static readonly STASH_LOOKUP_BATCH_SIZE = 6;
   private static readonly STASH_IDENTITY_PAGE_SIZE = 250;
   private static readonly LIBRARY_SYNC_PAGE_SIZE = 100;
+  /** How many of the most recently changed Stash scenes the quick check reads. */
+  static readonly LIBRARY_RECENT_PAGE_SIZE = 50;
   private static readonly METADATA_BATCH_SIZE = 24;
   private static readonly METADATA_QUERY_BATCH_SIZE = 8;
   private static readonly METADATA_ACCELERATED_INTERVAL_MS = 10_000;
@@ -328,6 +330,28 @@ export class IndexingService {
       },
       async () => this.performLibraryProjectionSync(reason),
     );
+  }
+
+  /**
+   * Between full library scans: the Stash scenes changed most recently
+   * (newly added, or with a new screenshot), so they show on Home within a
+   * minute. The full scan still handles everything else, deletions included.
+   */
+  async syncRecentLibraryScenes(): Promise<number> {
+    const [config, activeCatalogProviderKey] = await Promise.all([
+      this.getStashConfig(),
+      this.getActiveCatalogProviderKey(),
+    ]);
+    if (!config) {
+      return 0;
+    }
+
+    const page = await this.stashAdapter.getLocalLibraryScenePage(
+      config,
+      { page: 1, perPage: IndexingService.LIBRARY_RECENT_PAGE_SIZE },
+      activeCatalogProviderKey,
+    );
+    return this.upsertLibrarySceneProjectionPage(page.items, new Date());
   }
 
   async syncMetadataBackfill(
