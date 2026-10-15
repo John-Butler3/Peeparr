@@ -213,6 +213,10 @@ If an older local database says migration `20260402142846` was modified after it
 
 For the repo's structure, release automation, CI expectations, PR conventions and deployment notes for contributors, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Credits
+
+Peeparr is built on [Stasharr Portal](https://github.com/enymawse/stasharr-portal) by [enymawse](https://github.com/enymawse), also released under the GPL-3.0. Its releases are listed at the end of the [changelog](CHANGELOG.md#before-peeparr).
+
 ## License
 
 [GPL-3.0](LICENSE)
