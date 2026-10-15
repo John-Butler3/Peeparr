@@ -11,7 +11,7 @@
 
 ### Bug Fixes
 
-* **security:** harden against the issues found in Huntarr's review ([60e368f](https://github.com/John-Butler3/Peeparr/commit/60e368ff79920dc78261ce4e3af3dfcec9fb859b))
+* **security:** harden against common self-hosted app flaws ([60e368f](https://github.com/John-Butler3/Peeparr/commit/60e368ff79920dc78261ce4e3af3dfcec9fb859b))
 * **security:** pass the metadata network setting through compose ([0c9bf58](https://github.com/John-Butler3/Peeparr/commit/0c9bf585af1bf9ca557f6e8d28222b4f67882c9b))
 
 ## [1.0.0](https://github.com/John-Butler3/Peeparr/releases/tag/v1.0.0) (2026-10-15)
