@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.1](https://github.com/John-Butler3/Peeparr/compare/v1.0.0...v1.0.1) (2026-10-15)
+
+
+### Features
+
+* **branding:** discreet logo in the banner's style, also on the home screen ([270cdef](https://github.com/John-Butler3/Peeparr/commit/270cdefb7a60af357133193e7eaf97f7b19dd604))
+* **scenes:** mark a library scene as unwatched ([0b772cc](https://github.com/John-Butler3/Peeparr/commit/0b772cc7f6e092f36bb9412c8f6715d30336ff3b))
+
+
+### Bug Fixes
+
+* **security:** harden against common self-hosted app flaws ([60e368f](https://github.com/John-Butler3/Peeparr/commit/60e368ff79920dc78261ce4e3af3dfcec9fb859b))
+* **security:** pass the metadata network setting through compose ([0c9bf58](https://github.com/John-Butler3/Peeparr/commit/0c9bf585af1bf9ca557f6e8d28222b4f67882c9b))
+
 ## [1.0.0](https://github.com/John-Butler3/Peeparr/releases/tag/v1.0.0) (2026-10-15)
 
 The first release as **Peeparr**: a self-hosted central hub for your adult library.
