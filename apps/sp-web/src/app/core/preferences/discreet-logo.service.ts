@@ -2,10 +2,11 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal } from '@angular/core';
 
 /**
- * Discreet logo: the red tile with just an almond outline instead of the
- * figure, in the masthead, sign-in pages, launch splash and browser tab.
- * Kept per device (localStorage); index.html applies it before the splash
- * paints, this keeps it in step afterwards.
+ * Discreet logo: a dark tile with glowing almond rings instead of the
+ * figure, in the masthead, sign-in pages, launch splash and browser tab, and
+ * as the icon when the app is added to a home screen. Kept per device
+ * (localStorage); index.html applies it before the splash paints, this keeps
+ * it in step afterwards.
  */
 @Injectable({
   providedIn: 'root',
@@ -50,6 +51,16 @@ export class DiscreetLogoService {
     const icon = this.document.querySelector<HTMLLinkElement>('link[rel="icon"][type="image/svg+xml"]');
     if (icon) {
       icon.href = enabled ? 'favicon-discreet.svg' : 'favicon.svg';
+    }
+    // Read when the app is added to a home screen; an icon already there
+    // keeps whichever it was added with.
+    const manifest = this.document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (manifest) {
+      manifest.href = enabled ? 'manifest-discreet.webmanifest' : 'manifest.webmanifest';
+    }
+    const touchIcon = this.document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+    if (touchIcon) {
+      touchIcon.href = enabled ? 'icons/apple-touch-icon-discreet.png' : 'icons/apple-touch-icon.png';
     }
   }
 }

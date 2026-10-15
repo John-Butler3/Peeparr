@@ -1,7 +1,7 @@
 {
   "name": "Peeparr",
   "short_name": "Peeparr",
-  "description": "Self-hosted media acquisition console for Stash, Whisparr, and StashDB.",
+  "description": "A self-hosted central hub for your adult library.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
