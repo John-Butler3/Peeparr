@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/John-Butler3/Peeparr/compare/v1.1.0...v1.2.0) (2026-10-15)
+
+
+### Features
+
+* **upcoming:** a calendar of what's coming up ([9731ba7](https://github.com/John-Butler3/Peeparr/commit/9731ba776d948e7b95c8e8012958477c518575a9))
+
 ## [1.1.0](https://github.com/John-Butler3/Peeparr/compare/v1.0.1...v1.1.0) (2026-10-15)
 
 
