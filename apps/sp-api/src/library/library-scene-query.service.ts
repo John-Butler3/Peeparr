@@ -302,7 +302,8 @@ export class LibrarySceneQueryService {
       title: row.title,
       description: row.description,
       imageUrl: screenshotUrl,
-      cardImageUrl: screenshotUrl,
+      // Cards use a smaller copy (resized by MediaService).
+      cardImageUrl: screenshotUrl ? `${screenshotUrl}?w=640` : null,
       // NOT row.studioId: that's Stash's own local numeric primary key, a
       // different id space than the active catalog provider's studio ids.
       // SceneCardComponent links a non-null studioId straight to

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, Param, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Req, Res, Query } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
@@ -11,12 +11,15 @@ export class MediaController {
 
   constructor(private readonly mediaService: MediaService) {}
 
+  /** `?w=640`: a smaller copy for cards (see MediaService.THUMBNAIL_WIDTHS). */
   @Get('stash/scenes/:sceneId/screenshot')
   async getStashSceneScreenshot(
     @Param('sceneId') sceneId: string,
+    @Query('w') width: string | undefined,
     @Res() response: Response,
   ): Promise<void> {
-    const asset = await this.mediaService.getStashSceneScreenshot(sceneId);
+    const parsedWidth = width && /^\d+$/.test(width) ? Number(width) : null;
+    const asset = await this.mediaService.getStashSceneScreenshot(sceneId, parsedWidth);
     this.writeAssetResponse(asset, response);
   }
 

@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import {
   BadGatewayException,
   NotFoundException,
@@ -88,6 +89,71 @@ describe('MediaService', () => {
       contentType: 'image/jpeg',
       contentLength: '128',
       cacheControl: 'public, max-age=300',
+    });
+  });
+
+  describe('screenshot thumbnails', () => {
+    const stash = {
+      type: 'STASH',
+      enabled: true,
+      status: 'CONFIGURED',
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    };
+
+    async function jpeg(width: number, height: number): Promise<Buffer> {
+      return sharp({ create: { width, height, channels: 3, background: '#336699' } })
+        .jpeg({ quality: 95 })
+        .toBuffer();
+    }
+
+    it('sends a smaller WebP copy when a card asks for a width', async () => {
+      const original = await jpeg(1920, 1080);
+      integrationFindUniqueMock.mockResolvedValue(stash);
+      openSceneScreenshotMock.mockResolvedValue({
+        body: original,
+        contentType: 'image/jpeg',
+        contentLength: String(original.byteLength),
+        cacheControl: 'private, max-age=31536000, immutable',
+      });
+
+      const result = await service.getStashSceneScreenshot('411', 640);
+
+      expect(result.contentType).toBe('image/webp');
+      expect(result.cacheControl).toBe('private, max-age=86400');
+      const meta = await sharp(result.body).metadata();
+      expect(meta).toMatchObject({ format: 'webp', width: 640, height: 360 });
+      expect(result.contentLength).toBe(String(result.body.byteLength));
+    });
+
+    it('reuses a resized copy instead of resizing again', async () => {
+      const original = await jpeg(1280, 720);
+      integrationFindUniqueMock.mockResolvedValue(stash);
+      openSceneScreenshotMock.mockResolvedValue({
+        body: original,
+        contentType: 'image/jpeg',
+        contentLength: null,
+        cacheControl: null,
+      });
+
+      const first = await service.getStashSceneScreenshot('411', 320);
+      const second = await service.getStashSceneScreenshot('411', 320);
+
+      expect(second.body).toBe(first.body);
+    });
+
+    it('sends the original for widths not on offer, or anything it cannot read', async () => {
+      const body = Buffer.from('not an image');
+      integrationFindUniqueMock.mockResolvedValue(stash);
+      openSceneScreenshotMock.mockResolvedValue({
+        body,
+        contentType: 'image/jpeg',
+        contentLength: '12',
+        cacheControl: null,
+      });
+
+      expect((await service.getStashSceneScreenshot('411', 500)).body).toBe(body);
+      expect((await service.getStashSceneScreenshot('411', 640)).body).toBe(body);
     });
   });
 
