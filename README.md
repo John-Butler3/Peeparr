@@ -25,6 +25,8 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
 
 > (full quality: [1280×720 GIF](https://github.com/John-Butler3/Peeparr/releases/download/v1.0.0/peeparr-ad-hq.gif), [MP4](docs/assets/peeparr-ad.mp4)) video and screenshots use demo data
 
+Already using Plex, Jellyfin, Stash or Whisparr? See **[Why Peeparr?](docs/COMPARISON.md)**: it works alongside all of them.
+
 ## Contents
 
 - [How it fits together](#how-it-fits-together)
