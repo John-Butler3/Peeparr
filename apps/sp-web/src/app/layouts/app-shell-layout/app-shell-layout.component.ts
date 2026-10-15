@@ -416,19 +416,17 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
     this.moreMenuOpen.update((value) => !value);
   }
 
-  // Library: slides Series and Galleries out beside it (going to the
-  // Library page unless already on one of the three); tapped again, tucks
-  // them away.
+  // Library: goes to the Library page (from anywhere, Series and Galleries
+  // included) with Series and Galleries slid out beside it. On the Library
+  // page itself, it slides them out or tucks them away.
   protected onLibraryTap(): void {
     this.moreMenuOpen.set(false);
-    if (this.libraryTrayOpen()) {
-      this.libraryTrayOpen.set(false);
+    if (this.matchesNavItem(this.libraryNavItem, this.currentUrl())) {
+      this.libraryTrayOpen.update((open) => !open);
       return;
     }
     this.libraryTrayOpen.set(true);
-    if (!this.libraryGroupActive()) {
-      void this.router.navigateByUrl(this.libraryNavItem.route);
-    }
+    void this.router.navigateByUrl(this.libraryNavItem.route);
   }
 
   protected closeLibraryTray(): void {

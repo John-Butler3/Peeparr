@@ -308,11 +308,34 @@ describe('AppShellLayoutComponent', () => {
       Array.from(element.querySelectorAll('.slot-out')).map((el) => el.getAttribute('aria-hidden')),
     ).toEqual(['true', 'true']);
 
+    // On the Library page, tapping Library again tucks them away.
+    const shell = fixture.componentInstance as unknown as { currentUrl: { set(url: string): void } };
+    shell.currentUrl.set('/library');
     library.click();
     fixture.detectChanges();
 
     expect(bar.classList).not.toContain('library-open');
     expect(navigateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes back to Library from Series or Galleries', async () => {
+    const { fixture, router } = await renderComponent({ isPhone: true });
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const element = fixture.nativeElement as HTMLElement;
+    const shell = fixture.componentInstance as unknown as { currentUrl: { set(url: string): void } };
+    const library = element.querySelector('[data-testid="mobile-library-trigger"]') as HTMLButtonElement;
+
+    library.click();
+    fixture.detectChanges();
+    shell.currentUrl.set('/series');
+    fixture.detectChanges();
+
+    library.click();
+    fixture.detectChanges();
+
+    expect(navigateSpy).toHaveBeenLastCalledWith('/library');
+    expect(navigateSpy).toHaveBeenCalledTimes(2);
+    expect(element.querySelector('[data-testid="mobile-bottom-nav"]')?.classList).toContain('library-open');
   });
 
   it('keeps repair visibility available from the phone shell', async () => {
