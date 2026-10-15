@@ -31,6 +31,7 @@ import { SceneCardComponent } from '../../shared/scene-card/scene-card.component
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 import { SceneStatusBadgeComponent } from '../../shared/scene-status-badge/scene-status-badge.component';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
+import { WatchProgressService } from '../../core/player/watch-progress.service';
 import {
   libraryUpNextItem,
   mergeUpNext,
@@ -83,6 +84,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly groupsService = inject(GroupsService);
   private readonly libraryService = inject(LibraryService);
+  protected readonly watchProgress = inject(WatchProgressService);
   private seriesSubscription: Subscription | null = null;
   private upNextSubscription: Subscription | null = null;
   private previousFocusedElement: HTMLElement | null = null;
@@ -96,6 +98,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly scene = signal<SceneDetails | null>(null);
   protected readonly descriptionExpanded = signal(false);
   protected readonly selectedStashCopyUrl = signal<string | null>(null);
+  protected readonly markingUnwatched = signal(false);
   // Series (Stash Groups) the selected Stash copy belongs to.
   protected readonly sceneSeries = signal<SceneSeriesMembership[]>([]);
   protected readonly seriesDialogOpen = signal(false);
@@ -213,6 +216,29 @@ export class ScenePageComponent implements OnInit, OnDestroy {
 
   protected hasStashCopy(scene: SceneDetails): boolean {
     return scene.stash?.exists === true && scene.stash.copies.length > 0;
+  }
+
+  /** Every copy of this scene in the library. */
+  protected stashCopyIds(scene: SceneDetails): string[] {
+    return scene.stash?.copies.map((copy) => copy.id) ?? [];
+  }
+
+  // "Mark as unwatched": clears the watch history in Stash.
+  protected markUnwatched(stashSceneIds: readonly string[]): void {
+    if (this.markingUnwatched() || stashSceneIds.length === 0) {
+      return;
+    }
+    this.markingUnwatched.set(true);
+    this.watchProgress.markUnwatched(stashSceneIds).subscribe({
+      next: () => {
+        this.markingUnwatched.set(false);
+        this.notifications.success('Marked as unwatched');
+      },
+      error: () => {
+        this.markingUnwatched.set(false);
+        this.notifications.error("Couldn't mark as unwatched. Please try again.");
+      },
+    });
   }
 
   protected hasMultipleStashCopies(scene: SceneDetails): boolean {

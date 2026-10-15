@@ -14,6 +14,8 @@ import {
   seriesUpNextItems,
 } from '../../core/player/player-details.util';
 import { PlayerDetails } from '../../core/player/player.service';
+import { WatchProgressService } from '../../core/player/watch-progress.service';
+import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { InlinePlayerComponent } from '../../shared/inline-player/inline-player.component';
 import { UpNextItem, UpNextListComponent } from '../../shared/up-next-list/up-next-list.component';
 import { AddToSeriesDialogComponent } from '../../shared/add-to-series-dialog/add-to-series-dialog.component';
@@ -41,6 +43,9 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   private readonly groupsService = inject(GroupsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly notifications = inject(AppNotificationsService);
+  protected readonly watchProgress = inject(WatchProgressService);
+  protected readonly markingUnwatched = signal(false);
   private paramSubscription: Subscription | null = null;
   private loadSubscription: Subscription | null = null;
   private seriesSubscription: Subscription | null = null;
@@ -114,6 +119,24 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     if (next) {
       void this.router.navigate([...next.commands], { queryParams: { autoplay: '1' } });
     }
+  }
+
+  // "Mark as unwatched": clears the watch history in Stash.
+  protected markUnwatched(stashSceneId: string): void {
+    if (this.markingUnwatched()) {
+      return;
+    }
+    this.markingUnwatched.set(true);
+    this.watchProgress.markUnwatched([stashSceneId]).subscribe({
+      next: () => {
+        this.markingUnwatched.set(false);
+        this.notifications.success('Marked as unwatched');
+      },
+      error: () => {
+        this.markingUnwatched.set(false);
+        this.notifications.error("Couldn't mark as unwatched. Please try again.");
+      },
+    });
   }
 
   protected openSeriesDialog(): void {

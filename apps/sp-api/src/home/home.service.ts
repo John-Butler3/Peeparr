@@ -220,6 +220,16 @@ export class HomeService {
     await this.stashAdapter.resetSceneProgress(normalizedSceneId, config);
   }
 
+  async markSceneUnwatched(sceneId: string): Promise<void> {
+    const normalizedSceneId = sceneId.trim();
+    if (!/^\d+$/.test(normalizedSceneId)) {
+      throw new BadRequestException('A Stash scene id is required.');
+    }
+
+    const config = await this.getRequiredStashConfig();
+    await this.stashAdapter.markSceneUnwatched(normalizedSceneId, config);
+  }
+
   async getRecentlyAdded(): Promise<HomeRailContentDto> {
     try {
       const items = await this.libraryService.getScenesPreview(

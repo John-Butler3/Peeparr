@@ -135,6 +135,7 @@ describe('HomeService', () => {
 
   const stashGetContinueWatchingScenesMock = jest.fn();
   const stashResetSceneProgressMock = jest.fn();
+  const stashMarkSceneUnwatchedMock = jest.fn();
 
   const stashAdapter = {
     getLocalSceneFeed: stashGetLocalSceneFeedMock,
@@ -143,6 +144,7 @@ describe('HomeService', () => {
     findScenesByStashId: stashFindScenesByStashIdMock,
     getContinueWatchingScenes: stashGetContinueWatchingScenesMock,
     resetSceneProgress: stashResetSceneProgressMock,
+    markSceneUnwatched: stashMarkSceneUnwatchedMock,
   } as unknown as StashAdapter;
 
   const stashdbAdapter = {
@@ -1470,6 +1472,36 @@ describe('HomeService', () => {
       ).rejects.toThrow();
       expect(stashResetSceneProgressMock).not.toHaveBeenCalled();
     });
+  });
+
+  describe('markSceneUnwatched', () => {
+    it('clears the scene\'s watch history in Stash', async () => {
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-secret',
+      });
+      stashMarkSceneUnwatchedMock.mockResolvedValue(undefined);
+
+      await service.markSceneUnwatched('411');
+
+      expect(stashMarkSceneUnwatchedMock).toHaveBeenCalledWith('411', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-secret',
+      });
+    });
+
+    it.each(['', 'abc', '41 1', '../411', '411; drop'])(
+      'refuses %p as a scene id',
+      async (sceneId) => {
+        await expect(service.markSceneUnwatched(sceneId)).rejects.toThrow(
+          'A Stash scene id is required.',
+        );
+        expect(stashMarkSceneUnwatchedMock).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('getRecentlyAdded', () => {

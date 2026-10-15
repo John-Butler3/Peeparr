@@ -643,6 +643,27 @@ describe('StashAdapter', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('marks a scene unwatched by clearing its resume point, play time and play count', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { sceneResetActivity: true, sceneResetPlayCount: 0 },
+        }),
+    } as Response);
+
+    await adapter.markSceneUnwatched('411', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(String(body.query)).toContain('sceneResetActivity(id: $id, reset_resume: true, reset_duration: true)');
+    expect(String(body.query)).toContain('sceneResetPlayCount(id: $id)');
+    expect(body.variables).toEqual({ id: '411' });
+  });
+
   it('saves playback progress via sceneSaveActivity', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

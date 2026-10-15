@@ -7,6 +7,7 @@ import { LibraryService } from '../../core/api/library.service';
 import { LibrarySceneDetail } from '../../core/api/library.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { PlayerService } from '../../core/player/player.service';
+import { WatchProgressService } from '../../core/player/watch-progress.service';
 import { LocalScenePageComponent } from './local-scene-page.component';
 
 function buildScene(overrides: Partial<LibrarySceneDetail> = {}): LibrarySceneDetail {
@@ -37,7 +38,9 @@ function buildScene(overrides: Partial<LibrarySceneDetail> = {}): LibrarySceneDe
 describe('LocalScenePageComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
 
-  async function render(options: { scene?: LibrarySceneDetail | Error; returnTo?: string } = {}) {
+  async function render(
+    options: { scene?: LibrarySceneDetail | Error; returnTo?: string; watched?: boolean } = {},
+  ) {
     const scene = options.scene ?? buildScene();
     const libraryService = {
       getScene: vi
@@ -77,6 +80,18 @@ describe('LocalScenePageComponent', () => {
       ),
     };
     const queryParams = options.returnTo ? { returnTo: options.returnTo } : {};
+    let watched = options.watched ?? false;
+    const watchProgress = {
+      percentFor: vi.fn(() => null),
+      record: vi.fn(),
+      refresh: vi.fn(),
+      isWatched: vi.fn(() => watched),
+      markUnwatched: vi.fn(() => {
+        watched = false;
+        return of(undefined);
+      }),
+    };
+    const notifications = { success: vi.fn(), error: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [LocalScenePageComponent],
@@ -86,7 +101,8 @@ describe('LocalScenePageComponent', () => {
         { provide: LibraryService, useValue: libraryService },
         { provide: GroupsService, useValue: groupsService },
         { provide: PlayerService, useValue: playerService },
-        { provide: AppNotificationsService, useValue: { success: vi.fn(), error: vi.fn() } },
+        { provide: AppNotificationsService, useValue: notifications },
+        { provide: WatchProgressService, useValue: watchProgress },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -108,9 +124,28 @@ describe('LocalScenePageComponent', () => {
       router,
       libraryService,
       playerService,
+      watchProgress,
+      notifications,
       element: fixture.nativeElement as HTMLElement,
     };
   }
+
+  it('offers Mark as unwatched only for a watched scene, and clears it', async () => {
+    const unwatched = await render();
+    expect(unwatched.element.querySelector('[data-testid="local-scene-mark-unwatched"]')).toBeNull();
+    TestBed.resetTestingModule();
+
+    const { element, fixture, watchProgress, notifications } = await render({ watched: true });
+    const button = element.querySelector<HTMLButtonElement>('[data-testid="local-scene-mark-unwatched"]');
+    expect(button?.textContent).toContain('Mark as unwatched');
+
+    button!.click();
+    fixture.detectChanges();
+
+    expect(watchProgress.markUnwatched).toHaveBeenCalledWith(['412']);
+    expect(notifications.success).toHaveBeenCalledWith('Marked as unwatched');
+    expect(element.querySelector('[data-testid="local-scene-mark-unwatched"]')).toBeNull();
+  });
 
   it('shows the scene from the library index with a link out to Stash', async () => {
     const { element, libraryService } = await render();

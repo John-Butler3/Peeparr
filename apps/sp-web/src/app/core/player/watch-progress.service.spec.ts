@@ -49,4 +49,43 @@ describe('WatchProgressService', () => {
     service.record('500', 590, 600);
     expect(service.percentFor('500')).toBe(100);
   });
+
+  it('marks scenes unwatched and drops their progress straight away', () => {
+    service.percentFor('411');
+    http.expectOne('/api/home/watch-progress').flush({
+      items: [
+        { id: '411', activeCatalogSceneId: 'catalog-1', progressPercent: 100 },
+        { id: '412', activeCatalogSceneId: null, progressPercent: 30 },
+      ],
+    });
+    expect(service.isWatched(['411'])).toBe(true);
+
+    let done = false;
+    service.markUnwatched(['411']).subscribe(() => (done = true));
+    const request = http.expectOne('/api/home/watch-progress/411/unwatched');
+    expect(request.request.method).toBe('POST');
+    expect(service.percentFor('411')).toBe(100);
+    request.flush(null);
+
+    expect(done).toBe(true);
+    expect(service.isWatched(['411'])).toBe(false);
+    expect(service.percentFor('catalog-1')).toBeNull();
+    expect(service.percentFor('412')).toBe(30);
+  });
+
+  it('keeps the progress when marking unwatched fails', () => {
+    service.percentFor('411');
+    http.expectOne('/api/home/watch-progress').flush({
+      items: [{ id: '411', activeCatalogSceneId: null, progressPercent: 60 }],
+    });
+
+    let failed = false;
+    service.markUnwatched(['411']).subscribe({ error: () => (failed = true) });
+    http
+      .expectOne('/api/home/watch-progress/411/unwatched')
+      .flush('Stash is down', { status: 502, statusText: 'Bad Gateway' });
+
+    expect(failed).toBe(true);
+    expect(service.percentFor('411')).toBe(60);
+  });
 });

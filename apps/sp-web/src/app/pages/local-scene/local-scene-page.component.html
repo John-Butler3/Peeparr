@@ -89,6 +89,18 @@
             <button type="button" class="pill" (click)="openSeriesDialog()">
               <i class="pi pi-list" aria-hidden="true"></i> Save to series
             </button>
+            @if (watchProgress.isWatched([scene.id])) {
+              <button
+                type="button"
+                class="pill"
+                data-testid="local-scene-mark-unwatched"
+                [disabled]="markingUnwatched()"
+                [attr.aria-busy]="markingUnwatched()"
+                (click)="markUnwatched(scene.id)"
+              >
+                <i class="pi pi-eye-slash" aria-hidden="true"></i> Mark as unwatched
+              </button>
+            }
             <a
               class="pill"
               data-testid="local-scene-open-in-stash"

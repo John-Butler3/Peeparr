@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { catchError, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 
 interface WatchProgressResponse {
   items: Array<{ id: string; activeCatalogSceneId: string | null; progressPercent: number }>;
@@ -44,6 +44,31 @@ export class WatchProgressService {
 
     const index = this.index();
     return index.local.get(sceneId) ?? index.catalog.get(sceneId) ?? null;
+  }
+
+  /** Whether any of these Stash scenes has watch history. */
+  isWatched(stashSceneIds: readonly string[]): boolean {
+    return stashSceneIds.some((id) => this.percentFor(id) !== null);
+  }
+
+  /**
+   * Clears these Stash scenes' watch history (resume point and play count)
+   * and drops their progress lines straight away.
+   */
+  markUnwatched(stashSceneIds: readonly string[]): Observable<void> {
+    const http = this.http;
+    if (!http || stashSceneIds.length === 0) {
+      return of(undefined);
+    }
+
+    return forkJoin(
+      stashSceneIds.map((id) =>
+        http.post<void>(`/api/home/watch-progress/${encodeURIComponent(id)}/unwatched`, {}),
+      ),
+    ).pipe(
+      tap(() => this.forget(stashSceneIds)),
+      map(() => undefined),
+    );
   }
 
   /** Playback just saved a position for this Stash scene. */
@@ -92,6 +117,20 @@ export class WatchProgressService {
         }
         this.index.set({ local, catalog, catalogIdByLocal });
       });
+  }
+
+  private forget(stashSceneIds: readonly string[]): void {
+    const current = this.index();
+    const local = new Map(current.local);
+    const catalog = new Map(current.catalog);
+    for (const id of stashSceneIds) {
+      local.delete(id);
+      const catalogId = current.catalogIdByLocal.get(id);
+      if (catalogId) {
+        catalog.delete(catalogId);
+      }
+    }
+    this.index.set({ ...current, local, catalog });
   }
 
   private refreshIfStale(): void {

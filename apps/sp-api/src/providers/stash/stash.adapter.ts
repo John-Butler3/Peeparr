@@ -724,6 +724,31 @@ export class StashAdapter {
     });
   }
 
+  /**
+   * Back to unwatched: clears the resume point, the time played and the
+   * play count, the history that makes a scene count as watched.
+   */
+  async markSceneUnwatched(
+    sceneId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<void> {
+    const normalizedSceneId = this.normalizeEntityId(sceneId);
+    if (!normalizedSceneId) {
+      return;
+    }
+
+    const mutation = `
+      mutation SceneMarkUnwatched($id: ID!) {
+        sceneResetActivity(id: $id, reset_resume: true, reset_duration: true)
+        sceneResetPlayCount(id: $id)
+      }
+    `;
+
+    await this.executeQuery(config, mutation, {
+      id: normalizedSceneId,
+    });
+  }
+
   async findPerformerByStashId(
     stashId: string,
     config: StashAdapterBaseConfig,

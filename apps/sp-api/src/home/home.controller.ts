@@ -1,5 +1,17 @@
 import { WatchProgressResponseDto } from './dto/watch-progress.dto';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { CreateHomeRailDto, UpdateHomeRailDto } from './dto/create-home-rail.dto';
 import { HomeRailContentDto } from './dto/home-rail-content.dto';
 import { HomeRailDto } from './dto/home-rail.dto';
@@ -30,6 +42,13 @@ export class HomeController {
   @Get('recently-added')
   getRecentlyAdded(): Promise<HomeRailContentDto> {
     return this.homeService.getRecentlyAdded();
+  }
+
+  /** Clears a library scene's watch history in Stash. */
+  @Post('watch-progress/:sceneId/unwatched')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async markSceneUnwatched(@Param('sceneId') sceneId: string): Promise<void> {
+    await this.homeService.markSceneUnwatched(sceneId);
   }
 
   @Post('continue-watching/:sceneId/reset')
