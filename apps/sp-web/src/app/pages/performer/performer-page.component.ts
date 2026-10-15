@@ -1,14 +1,4 @@
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  NgZone,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  inject,
-  signal,
-} from '@angular/core';
+import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import {
@@ -51,6 +41,8 @@ import {
 import { observeHeroCollapse } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
+import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
+import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
 interface SelectedStudioChip {
   id: string;
@@ -69,7 +61,7 @@ interface MultiSelectGroup {
 
 @Component({
   selector: 'app-performer-page',
-  imports: [
+  imports: [BackLinkDirective, 
     RouterLink,
     FormsModule,
     Select,
@@ -153,6 +145,9 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
 
   protected readonly performerId = signal<string | null>(null);
   protected readonly performer = signal<PerformerDetails | null>(null);
+  protected readonly navigationHistory = inject(NavigationHistoryService);
+  // Names this screen for the next one's "Back to ..." button.
+  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.performer()?.name));
   protected readonly loadingPerformer = signal(false);
   protected readonly performerError = signal<string | null>(null);
   protected readonly favoritingPerformer = signal(false);

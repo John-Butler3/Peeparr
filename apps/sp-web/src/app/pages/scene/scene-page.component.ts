@@ -1,13 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Subscription, catchError, combineLatest, finalize, of } from 'rxjs';
@@ -52,10 +43,12 @@ interface SceneLifecycleStep {
 }
 
 import { WatchDockDirective } from './watch-dock.directive';
+import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
+import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
 @Component({
   selector: 'app-scene-page',
-  imports: [
+  imports: [BackLinkDirective, 
     WatchDockDirective,
     RouterLink,
     FormsModule,
@@ -96,6 +89,9 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly scene = signal<SceneDetails | null>(null);
+  protected readonly navigationHistory = inject(NavigationHistoryService);
+  // Names this screen for the next one's "Back to ..." button.
+  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.scene()?.title));
   protected readonly descriptionExpanded = signal(false);
   protected readonly selectedStashCopyUrl = signal<string | null>(null);
   protected readonly markingUnwatched = signal(false);
@@ -178,7 +174,9 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   // Swiped down on the playing video: back to where the page came from, the
   // video carrying on in the miniplayer (the player hands it over).
   protected leaveToMiniplayer(): void {
-    void this.router.navigate([this.backLinkPath()], { queryParams: this.backLinkQueryParams() });
+    if (!this.navigationHistory.back()) {
+      void this.router.navigate([this.backLinkPath()], { queryParams: this.backLinkQueryParams() });
+    }
   }
 
   // Tapping the docked picture goes back to the top.

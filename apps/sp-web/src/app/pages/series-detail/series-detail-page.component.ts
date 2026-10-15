@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
@@ -16,10 +16,12 @@ import {
   ScenePreviewDirective,
   ScenePreviewLoader,
 } from '../../shared/scene-preview/scene-preview.directive';
+import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
+import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
 @Component({
   selector: 'app-series-detail-page',
-  imports: [FormsModule, RouterLink, Message, ProgressSpinner, ScenePreviewDirective],
+  imports: [BackLinkDirective, FormsModule, RouterLink, Message, ProgressSpinner, ScenePreviewDirective],
   templateUrl: './series-detail-page.component.html',
   styleUrl: './series-detail-page.component.scss',
 })
@@ -37,6 +39,9 @@ export class SeriesDetailPageComponent implements OnInit, OnDestroy {
   private loadSubscription: Subscription | null = null;
 
   protected readonly series = signal<SeriesDetail | null>(null);
+  protected readonly navigationHistory = inject(NavigationHistoryService);
+  // Names this screen for the next one's "Back to ..." button.
+  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.series()?.name));
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   // Any write in flight (reorder/remove/edit/delete): disables the controls.

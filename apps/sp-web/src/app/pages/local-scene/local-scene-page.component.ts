@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -19,6 +19,7 @@ import { AppNotificationsService } from '../../core/notifications/app-notificati
 import { InlinePlayerComponent } from '../../shared/inline-player/inline-player.component';
 import { UpNextItem, UpNextListComponent } from '../../shared/up-next-list/up-next-list.component';
 import { AddToSeriesDialogComponent } from '../../shared/add-to-series-dialog/add-to-series-dialog.component';
+import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 
 // Scene page for a library scene with no catalog match ("Local only"): built
 // from the local library index, with a link out to the scene in Stash.
@@ -52,6 +53,9 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   private upNextSubscription: Subscription | null = null;
 
   protected readonly scene = signal<LibrarySceneDetail | null>(null);
+  protected readonly navigationHistory = inject(NavigationHistoryService);
+  // Names this screen for the next one's "Back to ..." button.
+  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.scene()?.title));
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly series = signal<SceneSeriesMembership[]>([]);
@@ -94,17 +98,22 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   }
 
   protected backLinkLabel(): string {
-    return this.backLink() === '/library' ? 'Library' : 'Back';
+    return this.navigationHistory.backLabel(this.backLink() === '/library' ? 'Back to Library' : 'Back');
   }
 
   // Swiped down on the playing video: back to where the page came from, the
   // video carrying on in the miniplayer (the player hands it over).
   protected leaveToMiniplayer(): void {
-    void this.router.navigateByUrl(this.backLink());
+    if (!this.navigationHistory.back()) {
+      void this.router.navigateByUrl(this.backLink());
+    }
   }
 
   protected goBack(event: MouseEvent): void {
     event.preventDefault();
+    if (this.navigationHistory.back()) {
+      return;
+    }
     void this.router.navigateByUrl(this.backLink());
   }
 

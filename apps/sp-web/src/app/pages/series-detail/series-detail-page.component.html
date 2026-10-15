@@ -1,6 +1,6 @@
 <main class="app-page-shell app-page-shell--wide">
-  <a class="app-back-link" [routerLink]="['/series']">
-    <i class="pi pi-arrow-left" aria-hidden="true"></i> Series
+  <a class="app-back-link" appBackLink="/series">
+    <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ navigationHistory.backLabel('Series') }}
   </a>
 
   @if (loading()) {

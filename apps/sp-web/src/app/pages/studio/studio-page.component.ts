@@ -1,14 +1,4 @@
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  NgZone,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  inject,
-  signal,
-} from '@angular/core';
+import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import {
@@ -58,9 +48,11 @@ interface MultiSelectOption {
 }
 
 import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
+import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
+import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 @Component({
   selector: 'app-studio-page',
-  imports: [
+  imports: [BackLinkDirective, 
     LogoContrastDirective,
     RouterLink,
     FormsModule,
@@ -152,6 +144,9 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly studioId = signal<string | null>(null);
   protected readonly studio = signal<StudioDetails | null>(null);
+  protected readonly navigationHistory = inject(NavigationHistoryService);
+  // Names this screen for the next one's "Back to ..." button.
+  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.studio()?.name));
   protected readonly loadingStudio = signal(false);
   protected readonly studioError = signal<string | null>(null);
   protected readonly activeImageIndex = signal(0);

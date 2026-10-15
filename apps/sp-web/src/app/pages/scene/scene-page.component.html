@@ -79,10 +79,11 @@
         <div class="watch-info">
           <a
             class="watch-back"
-            [routerLink]="backLinkPath()"
-            [queryParams]="backLinkQueryParams()"
+            [appBackLink]="backLinkPath()"
+            [backQueryParams]="backLinkQueryParams()"
           >
-            <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ backLinkLabel() }}
+            <i class="pi pi-arrow-left" aria-hidden="true"></i>
+            {{ navigationHistory.backLabel(backLinkLabel()) }}
           </a>
 
           <!-- Title (wrapping) with the Request / status button on its right. -->

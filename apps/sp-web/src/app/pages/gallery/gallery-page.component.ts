@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject, signal, effect } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
 import { ButtonDirective } from 'primeng/button';
@@ -7,10 +7,12 @@ import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { GalleriesService } from '../../core/api/galleries.service';
 import { GalleryFeedItem, GalleryImage } from '../../core/api/galleries.types';
+import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
+import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
 @Component({
   selector: 'app-gallery-page',
-  imports: [RouterLink, Message, ProgressSpinner, ButtonDirective],
+  imports: [BackLinkDirective, RouterLink, Message, ProgressSpinner, ButtonDirective],
   templateUrl: './gallery-page.component.html',
   styleUrl: './gallery-page.component.scss',
 })
@@ -24,6 +26,9 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly gallery = signal<GalleryFeedItem | null>(null);
+  protected readonly navigationHistory = inject(NavigationHistoryService);
+  // Names this screen for the next one's "Back to ..." button.
+  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.gallery()?.title));
 
   protected readonly images = signal<GalleryImage[]>([]);
   protected readonly imagesTotal = signal(0);

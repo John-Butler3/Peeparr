@@ -1,5 +1,7 @@
 <main class="app-page-shell">
-  <a class="back-link app-back-link" routerLink="/galleries">Back to Galleries</a>
+  <a class="back-link app-back-link" appBackLink="/galleries">
+    {{ navigationHistory.backLabel('Back to Galleries') }}
+  </a>
 
   @if (loading()) {
     <div class="app-blocking-loader" role="status" aria-live="polite">

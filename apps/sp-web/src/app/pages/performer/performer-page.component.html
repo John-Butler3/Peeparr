@@ -1,10 +1,10 @@
 <main class="app-page-shell app-page-shell--xl">
   <a
     class="back-link app-back-link app-back-link--media"
-    [routerLink]="backLinkPath()"
-    [queryParams]="backLinkQueryParams()"
+    [appBackLink]="backLinkPath()"
+    [backQueryParams]="backLinkQueryParams()"
   >
-    {{ backLinkLabel() }}
+    {{ navigationHistory.backLabel(backLinkLabel()) }}
   </a>
 
   @if (loadingPerformer()) {

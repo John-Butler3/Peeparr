@@ -7,6 +7,7 @@ import { ThemeToggleComponent } from './shared/theme-toggle/theme-toggle.compone
 import { MiniplayerComponent } from './shared/miniplayer/miniplayer.component';
 import { dismissBootSplash } from './shared/app-splash/boot-splash';
 import { ScrollMemoryService } from './core/navigation/scroll-memory.service';
+import { NavigationHistoryService } from './core/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +22,8 @@ export class App {
 
   constructor() {
     inject(ScrollMemoryService).start();
+    // Tracks in-app history for the "Back to ..." buttons.
+    inject(NavigationHistoryService);
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.isHomeRoute.set(this.router.url.startsWith('/home'));
       // The first page isn't the app shell (e.g. sign-in, which has its own
