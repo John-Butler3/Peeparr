@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/John-Butler3/Peeparr/compare/v1.0.1...v1.1.0) (2026-10-15)
+
+
+### Features
+
+* **branding:** rings and a soft glow behind the logo's figure ([da2974b](https://github.com/John-Butler3/Peeparr/commit/da2974b86bae05d9d97f296988581d35e62ffe0a))
+
+
+### Bug Fixes
+
+* **branding:** drop the glow behind the logo's figure ([ed5529e](https://github.com/John-Butler3/Peeparr/commit/ed5529ea0d22261b6abeccefbeefda019b0209ea))
+
 ## [1.0.1](https://github.com/John-Butler3/Peeparr/compare/v1.0.0...v1.0.1) (2026-10-15)
 
 
