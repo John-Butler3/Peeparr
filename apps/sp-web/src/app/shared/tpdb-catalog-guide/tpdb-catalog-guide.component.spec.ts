@@ -13,7 +13,7 @@ describe('TpdbCatalogGuideComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.textContent).toContain('ThePornDB API token');
-    expect(element.textContent).toContain('Point Whisparr-Eros at Peeparr');
+    expect(element.textContent).toContain('Using Whisparr-Eros? Point it at Peeparr.');
     const command = element.querySelector('pre')?.textContent ?? '';
     expect(command).toContain('scripts/configure-eros.sh');
     expect(command).toContain(`--catalog tpdb --peeparr-url ${window.location.origin}`);

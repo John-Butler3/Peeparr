@@ -1,7 +1,14 @@
-import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { RuntimeHealthServiceKey } from '@prisma/client';
 import { RuntimeHealthService } from '../../runtime-health/runtime-health.service';
 import { fetchWithTimeout } from '../fetch-with-timeout';
+import { WhisparrV2Client } from './whisparr-v2.client';
 
 export interface WhisparrAdapterBaseConfig {
   baseUrl: string;
@@ -76,9 +83,41 @@ export interface WhisparrCreateMovieResult {
 export class WhisparrAdapter {
   private static readonly DEFAULT_QUEUE_PAGE_SIZE = 50;
   private static readonly MAX_QUEUE_PAGES = 200;
+  /** How long a detected Whisparr version is trusted before checking again. */
+  private static readonly VERSION_TTL_MS = 5 * 60_000;
   private readonly logger = new Logger(WhisparrAdapter.name);
+  // Major version by base URL: 2 is Whisparr v2 (Sonarr-based), 3+ is Eros.
+  private readonly versions = new Map<string, { major: number; checkedAt: number }>();
 
-  constructor(private readonly runtimeHealthService: RuntimeHealthService) {}
+  constructor(
+    private readonly runtimeHealthService: RuntimeHealthService,
+    // Whisparr v2 support; everything below is Eros unless the instance
+    // reports a 2.x version.
+    @Optional() private readonly v2?: WhisparrV2Client,
+  ) {}
+
+  /** Whether this instance is Whisparr v2 rather than Eros. */
+  async isV2(config: WhisparrAdapterBaseConfig): Promise<boolean> {
+    if (!this.v2) {
+      return false;
+    }
+    const cached = this.versions.get(config.baseUrl);
+    if (cached && Date.now() - cached.checkedAt < WhisparrAdapter.VERSION_TTL_MS) {
+      return cached.major === 2;
+    }
+    const status = await this.fetchJsonPayload(
+      this.resolveSystemStatusEndpoint(config.baseUrl),
+      config,
+    );
+    return this.rememberVersion(config.baseUrl, status) === 2;
+  }
+
+  private rememberVersion(baseUrl: string, status: unknown): number {
+    const version = this.readString((status as Record<string, unknown> | null)?.version);
+    const major = Number(version?.split('.')[0]) || 3;
+    this.versions.set(baseUrl, { major, checkedAt: Date.now() });
+    return major;
+  }
 
   async testConnection(config: WhisparrAdapterBaseConfig): Promise<void> {
     await this.checkConnection(config, false);
@@ -92,7 +131,7 @@ export class WhisparrAdapter {
     config: WhisparrAdapterBaseConfig,
     trackRuntimeHealth: boolean,
   ): Promise<void> {
-    await this.trackRuntimeHealth(
+    const status = await this.trackRuntimeHealth(
       () =>
         this.fetchJsonPayload(
           this.resolveSystemStatusEndpoint(config.baseUrl),
@@ -100,6 +139,7 @@ export class WhisparrAdapter {
         ),
       trackRuntimeHealth,
     );
+    this.rememberVersion(config.baseUrl, status);
   }
 
   async findMovieByStashId(
@@ -112,6 +152,10 @@ export class WhisparrAdapter {
         'findMovieByStashId called with empty stashId after normalization.',
       );
       return null;
+    }
+
+    if (this.v2 && (await this.isV2(config))) {
+      return this.trackRuntimeHealth(() => this.v2!.findByStashId(normalizedStashId, config));
     }
 
     return this.trackRuntimeHealth(async () => {
@@ -174,6 +218,10 @@ export class WhisparrAdapter {
         })}`,
       );
       return null;
+    }
+
+    if (this.v2 && (await this.isV2(config))) {
+      return this.trackRuntimeHealth(() => this.v2!.findById(movieId, config));
     }
 
     return this.trackRuntimeHealth(async () => {
@@ -267,6 +315,10 @@ export class WhisparrAdapter {
   async getMovieSnapshot(
     config: WhisparrAdapterBaseConfig,
   ): Promise<WhisparrMovieLookupResult[]> {
+    if (this.v2 && (await this.isV2(config))) {
+      return this.trackRuntimeHealth(() => this.v2!.snapshot(config));
+    }
+
     return this.trackRuntimeHealth(async () => {
       this.logger.debug(
         `Fetching Whisparr movie snapshot: ${this.safeJson({
@@ -351,6 +403,11 @@ export class WhisparrAdapter {
       return;
     }
 
+    if (this.v2 && (await this.isV2(config))) {
+      await this.trackRuntimeHealth(() => this.v2!.remove(movieId, config, options));
+      return;
+    }
+
     await this.trackRuntimeHealth(async () => {
       this.logger.debug(
         `Deleting Whisparr movie: ${this.safeJson({
@@ -375,6 +432,10 @@ export class WhisparrAdapter {
     input: WhisparrCreateMovieInput,
     config: WhisparrAdapterBaseConfig,
   ): Promise<WhisparrCreateMovieResult> {
+    if (this.v2 && (await this.isV2(config))) {
+      return this.trackRuntimeHealth(() => this.v2!.create(input, config));
+    }
+
     return this.trackRuntimeHealth(async () => {
       const payload = await this.fetchJsonPayload(
         this.resolveMovieCollectionEndpoint(config.baseUrl),
@@ -413,7 +474,9 @@ export class WhisparrAdapter {
       }
       return result;
     } catch (error) {
-      if (trackRuntimeHealth) {
+      // A request Whisparr can't take (e.g. v2 and a non-ThePornDB scene)
+      // isn't Whisparr being down.
+      if (trackRuntimeHealth && !(error instanceof BadRequestException)) {
         await this.reportRuntimeFailure(error);
       }
       throw error;
@@ -525,7 +588,10 @@ export class WhisparrAdapter {
   buildSceneViewUrl(baseUrl: string, movieId: number): string {
     const parsed = new URL(baseUrl);
     const cleanPath = parsed.pathname.replace(/\/+$/, '');
-    parsed.pathname = `${cleanPath}/movie/${encodeURIComponent(String(movieId))}`;
+    parsed.pathname =
+      this.v2 && this.versions.get(baseUrl)?.major === 2
+        ? `${cleanPath}/${this.v2.viewPath(movieId)}`
+        : `${cleanPath}/movie/${encodeURIComponent(String(movieId))}`;
     parsed.search = '';
     return parsed.toString();
   }
@@ -744,12 +810,14 @@ export class WhisparrAdapter {
       return null;
     }
 
+    // Eros queues a movieId; Whisparr v2 an episodeId (its scene).
     const movieId =
       this.readNumber((entry as Record<string, unknown>).movieId) ??
       this.readNumber(
         ((entry as Record<string, unknown>).movie as Record<string, unknown>)
           ?.id,
-      );
+      ) ??
+      this.readNumber((entry as Record<string, unknown>).episodeId);
     if (movieId === null) {
       return null;
     }

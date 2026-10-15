@@ -41,7 +41,7 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
 | --- | --- |
 | **Stash** | Your library. Peeparr plays your scenes, shows what you have, and keeps up with what's new in it. |
 | **StashDB, FansDB or ThePornDB** | The catalog, chosen at setup. Peeparr discovers scenes, performers and studios there. |
-| **Whisparr (Eros)** | Downloads. Peeparr sends your requests there and follows each one into Stash. |
+| **Whisparr (v2 or Eros)** | Downloads. Peeparr sends your requests there and follows each one into Stash. |
 
 Every scene shows where it is in that journey: requested, downloading, importing, failed, or in your library and ready to play.
 
@@ -128,7 +128,7 @@ Add it to your home screen and it opens like an app.
 
 - A Linux machine (or Proxmox LXC) with Docker, or a Debian/Ubuntu machine the installer can put Docker on
 - An existing Stash instance that Peeparr can reach
-- An existing Whisparr (Eros) instance that Peeparr can reach
+- An existing Whisparr instance that Peeparr can reach: Eros (v3), or v2 with ThePornDB as the catalog
 - A catalog to configure during setup: StashDB, FansDB or ThePornDB
 
 ## Self-hosted quick start
@@ -162,6 +162,8 @@ bash configure-eros.sh --catalog tpdb --peeparr-url http://<host>:3000
 ```
 
 With StashDB, a stock Eros works as-is.
+
+**Using Whisparr v2?** Peeparr detects it and works with it as it is: no command needed. v2 only knows ThePornDB's scenes, so choose ThePornDB as the catalog. Requesting a scene adds its site to v2 with nothing else monitored, then monitors and searches just that scene.
 
 See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for all the options: Proxmox, updating, backups, password reset and the full Whisparr-Eros explanation.
 

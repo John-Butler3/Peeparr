@@ -116,6 +116,23 @@ cd /opt/peeparr
 docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > peeparr-backup.sql
 ```
 
+## Whisparr v2
+
+Peeparr works with Whisparr v2 as well as Eros (v3). It checks the version
+when it connects, so there's nothing to choose:
+
+- **Use ThePornDB as the catalog.** v2 looks scenes up on ThePornDB only, so
+  StashDB and FansDB scenes can't be requested through it.
+- **No metadata change.** v2 already uses ThePornDB through Whisparr's own
+  metadata service; `configure-eros.sh` is for Eros only.
+- **How requests land.** In v2 each site is a series and each scene an
+  episode. Requesting a scene adds its site (if it isn't there yet) with every
+  episode unmonitored and new ones left unmonitored, then monitors and
+  searches just that scene. Removing a request unmonitors the scene, and
+  deletes its file if you ask.
+- A scene counts as requested once it's monitored or downloaded in v2. Other
+  scenes of a site you've added aren't.
+
 ## Whisparr-Eros and the catalog choice
 
 ### What we changed
