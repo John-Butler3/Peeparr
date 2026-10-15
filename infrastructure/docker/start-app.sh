@@ -2,6 +2,15 @@
 set -eu
 
 APP_DATA_DIR="${APP_DATA_DIR:-/var/lib/peeparr}"
+
+# Run as the unprivileged node user. Started as root, only make sure the
+# data folder (owned by root on installs from before this change) belongs
+# to node, then start again as node.
+if [ "$(id -u)" = "0" ]; then
+  mkdir -p "$APP_DATA_DIR"
+  chown -R node:node "$APP_DATA_DIR"
+  exec su-exec node:node "$0" "$@"
+fi
 SESSION_SECRET_FILE="${SESSION_SECRET_FILE:-${APP_DATA_DIR%/}/session-secret}"
 
 if [ -z "${SESSION_SECRET:-}" ]; then

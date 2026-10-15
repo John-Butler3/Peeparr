@@ -20,8 +20,9 @@ RUN pnpm --filter sp-web build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
-RUN apk add --no-cache openssl
-RUN mkdir -p /var/lib/peeparr && chmod 700 /var/lib/peeparr
+# su-exec: start-app drops from root to the unprivileged node user.
+RUN apk add --no-cache openssl su-exec
+RUN mkdir -p /var/lib/peeparr && chown node:node /var/lib/peeparr && chmod 700 /var/lib/peeparr
 ARG PEEPARR_VERSION=0.0.0-dev
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0

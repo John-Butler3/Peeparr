@@ -64,6 +64,18 @@ function update_script() {
     chmod +x /usr/local/bin/peeparr-reset-password
     msg_ok "Built Peeparr"
 
+    msg_info "Securing Service"
+    # Installs from before this ran Peeparr as root: give it its own user.
+    useradd --system --home-dir /var/lib/peeparr --shell /usr/sbin/nologin peeparr 2>/dev/null || true
+    mkdir -p /var/lib/peeparr
+    chown -R peeparr:peeparr /var/lib/peeparr
+    chmod 700 /var/lib/peeparr
+    if ! grep -q '^User=peeparr' /etc/systemd/system/peeparr.service; then
+      sed -i 's|^Type=simple$|Type=simple\nUser=peeparr\nGroup=peeparr|; s|^RestartSec=5$|RestartSec=5\nNoNewPrivileges=true\nPrivateTmp=true\nProtectSystem=full\nProtectHome=true\nReadWritePaths=/var/lib/peeparr|' /etc/systemd/system/peeparr.service
+      systemctl daemon-reload
+    fi
+    msg_ok "Secured Service"
+
     msg_info "Starting Service"
     systemctl start peeparr
     msg_ok "Started Service"

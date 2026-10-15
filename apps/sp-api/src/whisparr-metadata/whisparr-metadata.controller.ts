@@ -1,5 +1,6 @@
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
+import { PrivateNetworkGuard } from './private-network.guard';
 import { WhisparrMetadataService } from './whisparr-metadata.service';
 
 /**
@@ -15,10 +16,12 @@ import { WhisparrMetadataService } from './whisparr-metadata.service';
  * @Public(): Whisparr calls these routes directly with no session cookie, so
  * they must bypass the app's global AdminSessionGuard. Keep this reachable
  * only from trusted networks (e.g. not exposed past your firewall) — it has
- * no auth of its own beyond that.
+ * no auth of its own beyond that. PrivateNetworkGuard enforces this: callers
+ * outside private networks are refused.
  */
 @Controller('api/whisparr-metadata')
 @Public()
+@UseGuards(PrivateNetworkGuard)
 export class WhisparrMetadataController {
   constructor(private readonly whisparrMetadataService: WhisparrMetadataService) {}
 

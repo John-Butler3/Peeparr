@@ -24,7 +24,10 @@ PG_DB_NAME="peeparr" PG_DB_USER="peeparr" setup_postgresql_db
 fetch_and_deploy_gh_branch "peeparr" "John-Butler3/Peeparr" "main" "/opt/peeparr"
 
 msg_info "Configuring Peeparr"
+# Peeparr runs as its own unprivileged user.
+useradd --system --home-dir /var/lib/peeparr --shell /usr/sbin/nologin peeparr 2>/dev/null || true
 mkdir -p /var/lib/peeparr
+chown peeparr:peeparr /var/lib/peeparr
 chmod 700 /var/lib/peeparr
 cat <<EOF >/opt/peeparr/.env
 NODE_ENV=production
@@ -62,12 +65,19 @@ Requires=postgresql.service
 
 [Service]
 Type=simple
+User=peeparr
+Group=peeparr
 WorkingDirectory=/opt/peeparr
 EnvironmentFile=/opt/peeparr/.env
 ExecStartPre=/opt/peeparr/node_modules/.bin/prisma migrate deploy --schema /opt/peeparr/prisma/schema.prisma
 ExecStart=/usr/bin/node /opt/peeparr/apps/sp-api/dist/main.js
 Restart=on-failure
 RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/peeparr
 
 [Install]
 WantedBy=multi-user.target
