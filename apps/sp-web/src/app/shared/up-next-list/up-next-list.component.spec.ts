@@ -45,12 +45,14 @@ describe('UpNextListComponent', () => {
 
     libraryThumb.dispatchEvent(pointer('pointerenter', 'mouse'));
     vi.advanceTimersByTime(200);
+    fixture.detectChanges();
     expect(libraryThumb.querySelector('video.hover-preview')?.getAttribute('src')).toBe(
       '/api/media/stash/scenes/412/preview',
     );
 
     otherThumb.dispatchEvent(pointer('pointerenter', 'mouse'));
     vi.advanceTimersByTime(1000);
+    fixture.detectChanges();
     expect(otherThumb.querySelector('video')).toBeNull();
   });
 });

@@ -35,7 +35,6 @@ Questions about how it fits with your setup? See **[Common questions](docs/FAQ.m
 - [What you need](#what-you-need)
 - [Self-hosted quick start](#self-hosted-quick-start)
 - [Updating, rollback and backups](#updating)
-- [Local development](#local-development)
 
 ## How it fits together
 
@@ -155,6 +154,8 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/mai
 ```
 
 Open `http://<host>:3000`. On the first visit you create the single local admin account; after that, signing in is required.
+
+**Keep Peeparr on your own network.** Don't expose it straight to the internet. To use it away from home, connect through a VPN (such as WireGuard or Tailscale), or put it behind a reverse proxy with its own login and HTTPS (then set `SESSION_COOKIE_SECURE=true` in `/opt/peeparr/.env`). The ThePornDB metadata address that Whisparr-Eros uses has no login of its own, since Whisparr can't sign in. Anyone who can reach it can use your ThePornDB key.
 
 **Using ThePornDB as the catalog?** Whisparr-Eros must then use Peeparr's ThePornDB metadata proxy instead of its built-in StashDB metadata. Setup shows you how, with the command ready to copy. On the Whisparr-Eros machine:
 

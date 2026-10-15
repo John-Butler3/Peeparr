@@ -51,6 +51,15 @@ a {
   margin: 8px 0;
 }
 
+// Grid items size to their content by default, so the long command would
+// widen the whole page on a phone. Let everything shrink to the screen.
+.tpdb-guide,
+.steps,
+.steps li,
+.command {
+  min-width: 0;
+}
+
 pre {
   margin: 0;
   padding: 12px 84px 12px 12px;
@@ -59,6 +68,14 @@ pre {
   background: var(--app-bg);
   font-size: 0.8125rem;
   line-height: 1.6;
+}
+
+// On a phone, wrap the command rather than scroll it (Copy copies it whole).
+@media (max-width: 720px) {
+  pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
 }
 
 code {

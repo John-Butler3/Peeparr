@@ -116,7 +116,7 @@ describe('SettingsIntegrationsPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SettingsIntegrationsPageComponent],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: 'setup', children: [] }]),
         {
           provide: IntegrationsService,
           useValue: integrationsService,
