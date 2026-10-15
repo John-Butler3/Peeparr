@@ -1,0 +1,319 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0a0a0a;font-family:'Noto Sans',sans-serif;color:#f5f5f5}
+.layer{position:absolute;inset:0}
+#bg{background:radial-gradient(ellipse 60% 70% at 50% 55%,rgba(255,0,51,.15),transparent 70%),#0a0a0a}
+#rings{width:1280px;height:720px}
+.stage{perspective:1800px}
+/* Desktop: one big browser window, centred. */
+#desk{position:absolute;left:130px;top:96px;width:1020px;border-radius:16px;overflow:hidden;background:#111;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.12);transform-origin:50% 60%;will-change:transform,opacity}
+#desk .bar{height:24px;background:#1c1c1c;display:flex;align-items:center;gap:7px;padding-left:13px}
+#desk .bar i{width:10px;height:10px;border-radius:50%;background:#3d3d3d;display:block}
+#deskView{position:relative;width:1020px;height:574px;overflow:hidden}
+#deskImg{position:absolute;left:0;top:0;width:1020px;height:574px;will-change:transform}
+/* Phone: large, slightly angled, beside a headline. */
+#phone{position:absolute;left:770px;top:52px;width:290px;border-radius:46px;padding:10px;background:#050505;box-shadow:0 40px 90px rgba(0,0,0,.75),0 0 0 1.5px rgba(255,255,255,.18);will-change:transform,opacity}
+#phone img{display:block;width:100%;border-radius:36px}
+#label{position:absolute;left:0;right:0;top:26px;text-align:center;font-size:17px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#ff3355}
+#line{position:absolute;left:0;right:0;top:50px;text-align:center;font-size:26px;font-weight:700;color:#eee}
+#phoneText{position:absolute;left:150px;top:220px;width:520px}
+#phoneText b{display:block;font-size:17px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#ff3355;margin-bottom:14px}
+#phoneText span{display:block;font-size:52px;font-weight:900;line-height:1.08;letter-spacing:-1.5px}
+/* Callouts: a click ripple where something's used, with a short-lived label. */
+#deskZoom{position:absolute;inset:0;will-change:transform}
+.callout{position:absolute;pointer-events:none}
+.callout .ring{position:absolute;border:4px solid #ff0033;border-radius:999px;box-shadow:0 0 24px rgba(255,0,51,.6)}
+.callout .dot{position:absolute;left:-11px;top:-11px;width:22px;height:22px;border-radius:50%;background:rgba(255,0,51,.85);box-shadow:0 0 18px rgba(255,0,51,.8)}
+.callout .glow{position:absolute;border:4px solid #ff0033;border-radius:14px;box-shadow:0 0 30px rgba(255,0,51,.55)}
+.callout .tag{position:absolute;white-space:nowrap;padding:8px 16px;border-radius:999px;background:#ff0033;color:#fff;font-size:22px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+/* Which view is showing: both are always on offer. */
+#devices{position:absolute;right:56px;top:28px;display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+#devices span{display:flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;font-size:17px;font-weight:700;color:#bbb}
+#devices span.on{background:#fff;color:#0a0a0a}
+#devices svg{width:18px;height:18px}
+#heroSub{font-size:26px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ff3355;white-space:nowrap}
+#band{background:#ff0033;will-change:transform}
+#band2{background:#ffffff;will-change:transform}
+#band,#band2{top:-80px;bottom:-80px;left:-10%;right:-10%}
+#title{display:flex;align-items:center;justify-content:center;font-size:118px;font-weight:900;letter-spacing:-4px;color:#fff;white-space:nowrap}
+#hero{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px}
+#heroBrand{display:flex;align-items:center}
+#heroLogo{width:210px;flex:none;filter:drop-shadow(0 18px 46px rgba(255,0,51,.5))}
+#heroLogo svg{display:block;width:100%;height:auto}
+#heroNameWrap{overflow:hidden}
+#heroName{padding-left:32px;font-size:140px;font-weight:900;letter-spacing:-4px;line-height:1;white-space:nowrap}
+#heroTag{font-size:38px;font-weight:600;color:#d4d4d4;white-space:nowrap}
+</style></head><body>
+<div id="bg" class="layer"></div>
+<svg id="rings" class="layer" viewBox="0 0 1280 720"><g id="ringGroup" transform="translate(640 380)"></g></svg>
+<div id="scene" class="layer stage">
+  <div id="devices"><span id="devDesk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Desktop</span><span id="devPhone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone</span></div>
+  <div id="label"></div>
+  <div id="line"></div>
+  <div id="desk"><div class="bar"><i></i><i></i><i></i></div><div id="deskView"><div id="deskZoom"><img id="deskImg"><div id="callouts"></div></div></div></div>
+  <div id="phoneText"><b></b><span></span></div>
+  <div id="phone"><img id="phoneImg"></div>
+</div>
+<div id="hero" class="layer"><div id="heroBrand"><div id="heroLogo"></div><div id="heroNameWrap"><div id="heroName">Peeparr</div></div></div><div id="heroTag"></div><div id="heroSub"></div></div>
+<div id="band2" class="layer"></div>
+<div id="band" class="layer"></div>
+<div id="title" class="layer"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, x) => a + (b - a) * x;
+const outC = (x) => 1 - Math.pow(1 - x, 3);
+const outQ = (x) => 1 - Math.pow(1 - x, 5);
+const inC = (x) => x * x * x;
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const inOutS = (x) => -(Math.cos(Math.PI * x) - 1) / 2;
+const outBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+// The splash's almond shape, as rippling outlines (like the README logo).
+const ALMOND = 'M0 -100C38 -70 50 -5 0 60C-50 -5 -38 -70 0 -100Z';
+const NS = 'http://www.w3.org/2000/svg';
+const rings = [];
+for (let i = 0; i < 4; i++) {
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', ALMOND); p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#ff0033');
+  p.setAttribute('stroke-width', '3'); p.setAttribute('vector-effect', 'non-scaling-stroke');
+  $('ringGroup').appendChild(p); rings.push(p);
+}
+
+const INTRO_END = 3.4;
+const SWEEP_IN = 0.45, SWEEP_HOLD = 0.75, SWEEP_OUT = 0.45;
+const FEATURE_LEN = 7.8;
+const DESK_SCALE = 1020 / 1280;
+// Each feature: on the desktop (callouts on what's being used, captions
+// for each step, a slow push-in), then the same on the phone.
+const FEATURES = [
+  {
+    title: 'Previews everywhere',
+    desk: { clip: 'a2-desk-hover', a: 88, b: 230, zoom: 1.12, focus: [0.43, 0.3] },
+    steps: [{ f: 88, text: 'Your library, front and centre.' }, { f: 138, text: 'Rest on any scene and its preview plays.' }],
+    callouts: [{ f: 142, at: [662, 214], label: 'Hover' }],
+    phone: { clip: 'b-phone-previews', a: 40, b: 219 },
+    phoneHead: 'Stop scrolling. It starts playing.',
+  },
+  {
+    title: 'One-click downloads',
+    desk: { clip: 'c2-desk-request', a: 12, b: 155, zoom: 1.3, focus: [0.66, 0.67] },
+    steps: [{ f: 12, text: 'See a scene you want?' }, { f: 66, text: 'One click sends it to Whisparr.' }, { f: 100, text: 'Its button now shows where it is.' }],
+    callouts: [{ f: 70, at: [848, 482], label: 'Request' }],
+    phone: { clip: 'd-phone-downloads', a: 1, b: 121 },
+    phoneHead: 'Follow every download, all the way in.',
+  },
+  {
+    title: 'Search everything',
+    desk: { clip: 'g-desk-search', a: 1, b: 245, zoom: 1.06, focus: [0.5, 0.2] },
+    steps: [{ f: 1, text: 'One search box for it all.' }, { f: 122, text: 'Type a name...' }, { f: 146, text: 'Performers, sites and scenes, together.' }],
+    callouts: [{ f: 124, at: [686, 32], label: 'Search' }],
+    phone: { clip: 'h-phone-search', a: 1, b: 177 },
+    phoneHead: 'Find anything, from anywhere.',
+  },
+  {
+    title: 'Watch anywhere',
+    desk: { clip: 'e2-desk-play', a: 80, b: 290, zoom: 1.04, focus: [0.5, 0.5] },
+    steps: [{ f: 80, text: 'Press play on anything in your library.' }, { f: 124, text: 'It opens and plays, right where you left off.' }, { f: 192, text: 'Keep browsing: it plays on in the miniplayer.' }],
+    callouts: [
+      { f: 120, at: [168, 406], label: 'Play', life: 0.5 },
+      { f: 198, at: [36, 94], label: 'Home', life: 0.7 },
+      { f: 210, box: [1064, 570, 400, 269], label: 'Miniplayer' },
+    ],
+    phone: { clip: 'f-phone-play', a: 1, b: 136 },
+    phoneHead: 'Your library, in your pocket.',
+  },
+  {
+    title: 'Performers & studios',
+    desk: { clip: 'i-desk-performer', a: 1, b: 194, zoom: 1.06, focus: [0.5, 0.35] },
+    steps: [{ f: 1, text: 'A page for every performer and studio.' }, { f: 70, text: 'Monitor one: new scenes get requested.' }],
+    callouts: [],
+    phone: { clip: 'j-phone-performer', a: 1, b: 172 },
+    phoneHead: 'Every performer, one tap away.',
+  },
+];
+let start = INTRO_END + 0.15;
+for (const f of FEATURES) { f.from = start; f.sweep = start - 0.45; start += FEATURE_LEN; }
+const END_FROM = start;
+const SWEEPS = [...FEATURES.map((f) => ({ t: f.sweep, title: f.title })), { t: END_FROM - 0.45, title: '' }];
+window.TOTAL = END_FROM + 5.3;
+
+// Feature timing (local seconds).
+// The desktop rises in under the sweep but only starts playing once it's
+// clear, so nothing happens unseen.
+const DESK_RISE = 0.25, DESK_ON = 1.05, DESK_PLAY_END = 4.8, SWITCH_FROM = 4.5, SWITCH_TO = 5.4, PHONE_PLAY_FROM = 4.8;
+const deskL = (f, frame) => DESK_ON + ((frame - f.desk.a) / (f.desk.b - f.desk.a)) * (DESK_PLAY_END - DESK_ON);
+
+function frameSrc(clip, a, b, x) {
+  return clip + '/' + String(Math.round(a + clamp(x) * (b - a))).padStart(4, '0') + '.jpg';
+}
+
+async function setImg(img, src) {
+  if (img.getAttribute('src') === src) return;
+  img.src = src;
+  try { await img.decode(); } catch (e) {}
+}
+
+window.render = async function render(t) {
+  const strength = t < INTRO_END || t >= END_FROM ? 0.95 : 0.12;
+  rings.forEach((p, i) => {
+    const ph = ((t / 2.6) + i / rings.length) % 1;
+    const fade = ph < 0.12 ? ph / 0.12 : 1 - (ph - 0.12) / 0.88;
+    p.setAttribute('transform', 'scale(' + (0.55 + ph * 3.2).toFixed(4) + ')');
+    p.setAttribute('opacity', (fade * strength).toFixed(3));
+  });
+
+  // Intro and end card.
+  const intro = t < INTRO_END + 0.4;
+  const end = t >= END_FROM - 0.2;
+  $('hero').style.display = intro || end ? 'flex' : 'none';
+  if (intro || end) {
+    const base = intro ? 0.15 : END_FROM + 0.15;
+    const pop = outBack(prog(t, base, base + 0.55));
+    $('heroLogo').style.transform = 'scale(' + (0.55 + 0.45 * pop).toFixed(4) + ')';
+    $('heroLogo').style.opacity = prog(t, base, base + 0.3).toFixed(3);
+    const slide = inOut(prog(t, base + 0.8, base + 1.6));
+    $('heroNameWrap').style.maxWidth = (slide * 640).toFixed(1) + 'px';
+    $('heroName').style.transform = 'translateX(' + ((1 - slide) * -60).toFixed(2) + '%)';
+    $('heroName').style.opacity = slide.toFixed(3);
+    $('heroTag').textContent = intro ? 'Your adult library, all in one place.' : 'A self-hosted central hub for your adult library';
+    $('heroSub').textContent = 'On your desktop and your phone';
+    $('heroSub').style.display = intro ? 'block' : 'none';
+    const sub = outC(prog(t, base + 2.4, base + 2.9));
+    $('heroSub').style.opacity = sub.toFixed(3);
+    $('heroSub').style.transform = 'translateY(' + ((1 - sub) * 12).toFixed(1) + 'px)';
+    const tag = outC(prog(t, base + 1.7, base + 2.2));
+    $('heroTag').style.opacity = tag.toFixed(3);
+    $('heroTag').style.transform = 'translateY(' + ((1 - tag) * 14).toFixed(1) + 'px)';
+  }
+
+  // Features.
+  const f = FEATURES.find((x) => t >= x.from && t < x.from + FEATURE_LEN);
+  $('scene').style.display = f ? 'block' : 'none';
+  if (f) {
+    const L = t - f.from;
+    // Desktop: settles from a tilt, then pushes in slowly; then steps back and fades.
+    const rise = outQ(prog(L, DESK_RISE, DESK_RISE + 1.0));
+    const away = inOutS(prog(L, SWITCH_FROM, SWITCH_TO));
+    const rx = lerp(16, 0, rise) + away * 6;
+    const ry = away * 18;
+    const s = lerp(0.86, 1, rise) * lerp(1, 0.78, away);
+    const tx = away * -330, ty = lerp(70, 0, rise) + away * 20;
+    $('desk').style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg) scale(' + s.toFixed(4) + ')';
+    $('desk').style.opacity = (prog(L, DESK_RISE, DESK_RISE + 0.4) * (1 - prog(L, SWITCH_FROM + 0.25, SWITCH_TO))).toFixed(3);
+    $('desk').style.display = L < SWITCH_TO + 0.05 ? 'block' : 'none';
+    const push = inOutS(prog(L, DESK_ON + 0.6, DESK_PLAY_END));
+    const z = lerp(1, f.desk.zoom, push);
+    const [fx, fy] = f.desk.focus;
+    $('deskZoom').style.transformOrigin = (fx * 100) + '% ' + (fy * 100) + '%';
+    $('deskZoom').style.transform = 'scale(' + z.toFixed(4) + ')';
+
+    // Callouts: a ripple at the moment of each click, and a label that
+    // pops up beside it and goes again. A box (the miniplayer) glows once.
+    const co = $('callouts');
+    co.innerHTML = '';
+    for (const c of f.callouts) {
+      const u = L - deskL(f, c.f);
+      const life = c.life ?? 0.9;
+      if (u < -0.1 || u > Math.max(life + 0.35, 0.95)) continue;
+      const tagIn = outBack(prog(u, -0.05, 0.25)), tagOut = prog(u, life, life + 0.3);
+      const [cx, cy] = (c.at ?? c.box).map((v) => v * DESK_SCALE);
+      const el = document.createElement('div');
+      el.className = 'callout';
+      el.style.left = cx + 'px'; el.style.top = cy + 'px';
+      let half = 14;
+      if (c.box) {
+        const w = c.box[2] * DESK_SCALE + 16, h = c.box[3] * DESK_SCALE + 16;
+        const g = document.createElement('div');
+        g.className = 'glow';
+        const on = outC(prog(u, -0.1, 0.25)) * (1 - prog(u, 1.2, 1.6));
+        g.style.cssText += 'left:' + (-w / 2) + 'px;top:' + (-h / 2) + 'px;width:' + w + 'px;height:' + h + 'px;opacity:' + on.toFixed(3) + ';transform:scale(' + lerp(1.06, 1, outC(prog(u, -0.1, 0.35))).toFixed(4) + ')';
+        el.appendChild(g);
+        half = h / 2;
+      } else {
+        const press = prog(u, 0, 0.12);
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.opacity = (prog(u, -0.1, 0) * (1 - prog(u, 0.25, 0.6))).toFixed(3);
+        dot.style.transform = 'scale(' + lerp(1.2, 0.8, press).toFixed(3) + ')';
+        el.appendChild(dot);
+        for (const delay of [0, 0.14]) {
+          const r = prog(u, delay, delay + 0.7);
+          if (r <= 0 || r >= 1) continue;
+          const d = lerp(22, 110, outC(r));
+          const ring = document.createElement('div');
+          ring.className = 'ring';
+          ring.style.cssText += 'left:' + (-d / 2) + 'px;top:' + (-d / 2) + 'px;width:' + d + 'px;height:' + d + 'px;opacity:' + (1 - r).toFixed(3);
+          el.appendChild(ring);
+        }
+      }
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = c.label;
+      const below = cy < 120;
+      const left = cx > 820;
+      const gap = half + 16;
+      tag.style.cssText += (below ? 'top:' + gap : 'bottom:' + gap) + 'px;' + (c.box ? (left ? 'right:' + (-c.box[2] * DESK_SCALE / 2 - 8) : 'left:' + (-c.box[2] * DESK_SCALE / 2 - 8)) : (cx < 80 ? 'left:4' : left ? 'right:-30' : 'left:-30')) + 'px;opacity:' + (prog(u, -0.05, 0.1) * (1 - tagOut)).toFixed(3) + ';transform:translateY(' + ((1 - tagIn) * (below ? -8 : 8) + tagOut * (below ? -6 : 6)).toFixed(1) + 'px) scale(' + lerp(0.85, 1, tagIn).toFixed(3) + ')';
+      el.appendChild(tag);
+      co.appendChild(el);
+    }
+
+    // Desktop caption above, then the phone headline beside the phone.
+    const lab = outC(prog(L, DESK_ON + 0.5, DESK_ON + 1.0)) * (1 - prog(L, SWITCH_FROM - 0.1, SWITCH_FROM + 0.3));
+    $('label').textContent = 'On your desktop';
+    const step = [...f.steps].reverse().find((st) => L >= deskL(f, st.f) - 0.1) ?? f.steps[0];
+    $('line').textContent = step.text;
+    $('label').style.opacity = lab.toFixed(3);
+    $('line').style.opacity = lab.toFixed(3);
+    $('line').style.transform = 'translateY(' + ((1 - outC(prog(L, DESK_ON + 0.5, DESK_ON + 1.0))) * 10).toFixed(1) + 'px)';
+
+    // Desktop and phone: both offered, the one showing lit.
+    const onPhone = L >= (SWITCH_FROM + SWITCH_TO) / 2;
+    $('devDesk').className = onPhone ? '' : 'on';
+    $('devPhone').className = onPhone ? 'on' : '';
+    $('devices').style.opacity = outC(prog(L, 0.3, 0.8)).toFixed(3);
+
+    // Phone: rises from below, turning to face you, then floats.
+    const up = outQ(prog(L, SWITCH_FROM + 0.15, SWITCH_TO + 0.5));
+    const float = Math.sin((L - SWITCH_TO) * 1.6) * 6 * prog(L, SWITCH_TO, SWITCH_TO + 0.6);
+    $('phone').style.display = L > SWITCH_FROM ? 'block' : 'none';
+    $('phone').style.transform = 'translateY(' + (lerp(560, 0, up) + float).toFixed(1) + 'px) rotateY(' + lerp(-38, -10, up).toFixed(2) + 'deg) rotateZ(' + lerp(6, 0, up).toFixed(2) + 'deg)';
+    $('phone').style.opacity = prog(L, SWITCH_FROM + 0.15, SWITCH_FROM + 0.5).toFixed(3);
+    const head = outC(prog(L, SWITCH_TO - 0.1, SWITCH_TO + 0.5));
+    $('phoneText').querySelector('b').textContent = 'On your phone';
+    $('phoneText').querySelector('span').textContent = f.phoneHead;
+    $('phoneText').style.opacity = head.toFixed(3);
+    $('phoneText').style.transform = 'translateX(' + ((1 - head) * -40).toFixed(1) + 'px)';
+
+    await Promise.all([
+      setImg($('deskImg'), frameSrc(f.desk.clip, f.desk.a, f.desk.b, prog(L, DESK_ON, DESK_PLAY_END))),
+      setImg($('phoneImg'), frameSrc(f.phone.clip, f.phone.a, f.phone.b, prog(L, PHONE_PLAY_FROM, FEATURE_LEN - 0.2))),
+    ]);
+  }
+
+  // Sweeps: a white edge then a big red band carry the title across, hold, and wipe on.
+  let bandX = 2, band2X = 2, title = '', titleOpacity = 0, titleX = 0;
+  for (const sw of SWEEPS) {
+    const u = t - sw.t;
+    if (u < -0.2 || u > SWEEP_IN + SWEEP_HOLD + SWEEP_OUT + 0.2) continue;
+    const pin = outC(prog(u, 0, SWEEP_IN));
+    const pout = inC(prog(u, SWEEP_IN + SWEEP_HOLD, SWEEP_IN + SWEEP_HOLD + SWEEP_OUT));
+    bandX = -1.3 + 1.3 * pin + 1.3 * pout;
+    const pin2 = outC(prog(u, -0.1, SWEEP_IN - 0.1));
+    const pout2 = inC(prog(u, SWEEP_IN + SWEEP_HOLD - 0.08, SWEEP_IN + SWEEP_HOLD + SWEEP_OUT - 0.08));
+    band2X = -1.3 + 1.3 * pin2 + 1.3 * pout2;
+    title = sw.title;
+    titleOpacity = outC(prog(u, SWEEP_IN * 0.4, SWEEP_IN)) * (1 - inC(prog(u, SWEEP_IN + SWEEP_HOLD - 0.1, SWEEP_IN + SWEEP_HOLD + SWEEP_OUT * 0.6)));
+    titleX = (1 - pin) * -320 + pout * 320 + (u - SWEEP_IN) * 26;
+  }
+  $('band').style.transform = 'translateX(' + (bandX * 100).toFixed(2) + '%) skewX(-12deg)';
+  $('band2').style.transform = 'translateX(' + (band2X * 100).toFixed(2) + '%) skewX(-12deg)';
+  $('title').textContent = title;
+  $('title').style.opacity = titleOpacity.toFixed(3);
+  $('title').style.transform = 'translateX(' + titleX.toFixed(1) + 'px)';
+};
+
+fetch('logo.svg').then((r) => r.text()).then((svg) => { $('heroLogo').innerHTML = svg; window.ready = true; });
+</script>
+</body></html>
