@@ -12,10 +12,11 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0a0a0a;
 #deskView{position:relative;width:1020px;height:574px;overflow:hidden}
 #deskImg{position:absolute;left:0;top:0;width:1020px;height:574px;will-change:transform}
 /* Phone: large, slightly angled, beside a headline. */
-#phone{position:absolute;left:770px;top:52px;width:290px;border-radius:46px;padding:10px;background:#050505;box-shadow:0 40px 90px rgba(0,0,0,.75),0 0 0 1.5px rgba(255,255,255,.18);will-change:transform,opacity}
+#phone{position:absolute;left:770px;top:70px;width:290px;border-radius:46px;padding:10px;background:#050505;box-shadow:0 40px 90px rgba(0,0,0,.75),0 0 0 1.5px rgba(255,255,255,.18);will-change:transform,opacity}
 #phone img{display:block;width:100%;border-radius:36px}
+#phoneTaps{position:absolute;left:10px;top:10px;width:270px;height:585px;overflow:hidden;border-radius:36px}
 #label{position:absolute;left:0;right:0;top:26px;text-align:center;font-size:17px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#ff3355}
-#line{position:absolute;left:0;right:0;top:50px;text-align:center;font-size:26px;font-weight:700;color:#eee}
+#line{position:absolute;left:0;right:0;top:58px;text-align:center;font-size:26px;font-weight:700;color:#eee}
 #phoneText{position:absolute;left:150px;top:220px;width:520px}
 #phoneText b{display:block;font-size:17px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#ff3355;margin-bottom:14px}
 #phoneText span{display:block;font-size:52px;font-weight:900;line-height:1.08;letter-spacing:-1.5px}
@@ -27,34 +28,45 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0a0a0a;
 .callout .glow{position:absolute;border:4px solid #ff0033;border-radius:14px;box-shadow:0 0 30px rgba(255,0,51,.55)}
 .callout .tag{position:absolute;white-space:nowrap;padding:8px 16px;border-radius:999px;background:#ff0033;color:#fff;font-size:22px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 /* Which view is showing: both are always on offer. */
-#devices{position:absolute;left:56px;top:28px;display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
-#devices span{display:flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;font-size:17px;font-weight:700;color:#bbb}
+#devices{position:absolute;left:40px;top:14px;display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+#devices span{display:flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;font-size:16px;font-weight:700;color:#bbb}
 #devices span.on{background:#fff;color:#0a0a0a}
 #devices svg{width:18px;height:18px}
+/* The workflow, always in view: where this step sits. */
+#steps{position:absolute;left:0;right:0;top:14px;display:flex;justify-content:center;align-items:center;gap:6px;font-size:16px;font-weight:800}
+#steps .st{display:flex;align-items:center;gap:7px;padding:5px 13px 5px 6px;border-radius:999px;color:#777;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+#steps .st b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.12);font-size:13px}
+#steps .st.done{color:#ddd}
+#steps .st.done b{background:#fff;color:#0a0a0a}
+#steps .st.on{color:#fff;background:#ff0033;border-color:#ff0033}
+#steps .st.on b{background:#fff;color:#ff0033}
+#steps i{width:18px;height:2px;background:rgba(255,255,255,.18)}
+#heroSub2{font-size:22px;font-weight:600;color:#aaa;white-space:nowrap;margin-top:-14px}
 #heroSub{font-size:26px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ff3355;white-space:nowrap}
 #band{background:#ff0033;will-change:transform}
 #band2{background:#ffffff;will-change:transform}
 #band,#band2{top:-80px;bottom:-80px;left:-10%;right:-10%}
-#title{display:flex;align-items:center;justify-content:center;font-size:118px;font-weight:900;letter-spacing:-4px;color:#fff;white-space:nowrap}
+#title{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:118px;font-weight:900;letter-spacing:-4px;color:#fff;white-space:nowrap}
 #hero{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px}
 #heroBrand{display:flex;align-items:center}
 #heroLogo{width:210px;flex:none;filter:drop-shadow(0 18px 46px rgba(255,0,51,.5))}
 #heroLogo svg{display:block;width:100%;height:auto}
 #heroNameWrap{overflow:hidden}
 #heroName{padding-left:32px;font-size:140px;font-weight:900;letter-spacing:-4px;line-height:1;white-space:nowrap}
+#title small{display:block;font-size:26px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.8);margin-bottom:6px}
 #heroTag{font-size:38px;font-weight:600;color:#d4d4d4;white-space:nowrap}
 </style></head><body>
 <div id="bg" class="layer"></div>
 <svg id="rings" class="layer" viewBox="0 0 1280 720"><g id="ringGroup" transform="translate(640 380)"></g></svg>
 <div id="scene" class="layer stage">
   <div id="devices"><span id="devDesk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Desktop</span><span id="devPhone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone</span></div>
-  <div id="label"></div>
+  <div id="steps"></div>
   <div id="line"></div>
   <div id="desk"><div class="bar"><i></i><i></i><i></i></div><div id="deskView"><div id="deskZoom"><img id="deskImg"><div id="callouts"></div></div></div></div>
   <div id="phoneText"><b></b><span></span></div>
-  <div id="phone"><img id="phoneImg"></div>
+  <div id="phone"><img id="phoneImg"><div id="phoneTaps"></div></div>
 </div>
-<div id="hero" class="layer"><div id="heroBrand"><div id="heroLogo"></div><div id="heroNameWrap"><div id="heroName">Peeparr</div></div></div><div id="heroTag"></div><div id="heroSub"></div></div>
+<div id="hero" class="layer"><div id="heroBrand"><div id="heroLogo"></div><div id="heroNameWrap"><div id="heroName">Peeparr</div></div></div><div id="heroTag"></div><div id="heroSub"></div><div id="heroSub2"></div></div>
 <div id="band2" class="layer"></div>
 <div id="band" class="layer"></div>
 <div id="title" class="layer"></div>
@@ -81,7 +93,7 @@ for (let i = 0; i < 4; i++) {
   $('ringGroup').appendChild(p); rings.push(p);
 }
 
-const INTRO_END = 4.6;
+const INTRO_END = 5.4;
 const SWEEP_IN = 0.45, SWEEP_HOLD = 0.95, SWEEP_OUT = 0.45;
 const FEATURE_LEN = 10.2;
 const DESK_SCALE = 1020 / 1280;
@@ -89,54 +101,47 @@ const DESK_SCALE = 1020 / 1280;
 // for each step, a slow push-in), then the same on the phone.
 const FEATURES = [
   {
-    title: 'Previews everywhere',
-    desk: { clip: 'a2-desk-hover', a: 88, b: 230, zoom: 1.12, focus: [0.43, 0.3] },
-    steps: [{ f: 88, text: 'Your library, front and centre.' }, { f: 138, text: 'Rest on any scene and its preview plays.' }],
-    callouts: [{ f: 142, at: [662, 214], label: 'Hover' }],
-    phone: { clip: 'b-phone-previews', a: 40, b: 219 },
-    phoneHead: 'Stop scrolling. It starts playing.',
-  },
-  {
-    title: 'One-click downloads',
-    desk: { clip: 'c2-desk-request', a: 12, b: 155, zoom: 1.3, focus: [0.66, 0.67] },
-    steps: [{ f: 12, text: 'See a scene you want? One click requests it.' }, { f: 80, text: 'Its button now shows where it is.' }],
-    callouts: [{ f: 70, at: [848, 482], label: 'Request' }],
-    phone: { clip: 'd-phone-downloads', a: 1, b: 121 },
-    phoneHead: 'Follow every download, all the way in.',
-  },
-  {
-    title: 'Search everything',
-    desk: { clip: 'g-desk-search', a: 1, b: 245, zoom: 1.06, focus: [0.5, 0.2] },
-    steps: [{ f: 1, text: 'One search box for it all.' }, { f: 132, text: 'Performers, sites and scenes, together.' }],
+    title: 'Search for scenes', step: 'Search',
+    desk: { clip: 'g-desk-search', a: 60, b: 245, zoom: 1.06, focus: [0.5, 0.2] },
+    steps: [{ f: 60, text: 'One search box for performers, sites and scenes.' }, { f: 140, text: 'Everything that matches, in one place.' }],
     callouts: [{ f: 124, at: [686, 32], label: 'Search' }],
     phone: { clip: 'h-phone-search', a: 1, b: 177 },
-    phoneHead: 'Find anything, from anywhere.',
+    phoneHead: 'Search from your phone, too.',
   },
   {
-    title: 'Watch anywhere',
+    title: 'Request scenes', step: 'Request',
+    desk: { clip: 'c2-desk-request', a: 12, b: 155, zoom: 1.3, focus: [0.66, 0.67] },
+    steps: [{ f: 12, text: 'Found one you want? One click requests it.' }, { f: 80, text: 'Whisparr takes it from there.' }],
+    callouts: [{ f: 70, at: [848, 482], label: 'Request' }],
+    phone: { clip: 'l-phone-request', a: 1, b: 130 },
+    phoneTaps: [{ f: 54, at: [358, 345], label: 'Request' }],
+    phoneHead: 'Request with a tap on your phone.',
+  },
+  {
+    title: 'Download scenes', step: 'Download',
+    desk: { clip: 'k-desk-download', a: 1, b: 245, zoom: 1.14, focus: [0.3, 0.25] },
+    steps: [{ f: 1, text: 'Follow every request on its way in.' }, { f: 80, text: 'Requested, downloading, importing: see where each one is.' }],
+    callouts: [],
+    phone: { clip: 'd-phone-downloads', a: 1, b: 121 },
+    phoneHead: 'Check on downloads from anywhere.',
+  },
+  {
+    title: 'Watch scenes', step: 'Watch',
     desk: { clip: 'e2-desk-play', a: 80, b: 290, zoom: 1.04, focus: [0.5, 0.5] },
-    steps: [{ f: 80, text: 'Press play: it picks up where you left off.' }, { f: 192, text: 'Keep browsing: it plays on in the miniplayer.' }],
+    steps: [{ f: 80, text: 'Downloaded? It\'s in your library. Press play.' }, { f: 192, text: 'Keep browsing: it plays on in the miniplayer.' }],
     callouts: [
       { f: 120, at: [168, 406], label: 'Play', life: 0.5 },
       { f: 198, at: [36, 94], label: 'Home', life: 0.9 },
       { f: 210, box: [1064, 570, 400, 269], label: 'Miniplayer' },
     ],
     phone: { clip: 'f-phone-play', a: 1, b: 136 },
-    phoneHead: 'Your library, in your pocket.',
-  },
-  {
-    title: 'Performers & studios',
-    desk: { clip: 'i-desk-performer', a: 1, b: 194, zoom: 1.06, focus: [0.5, 0.35] },
-    steps: [{ f: 1, text: 'A page for every performer and studio.' }, { f: 70, text: 'Monitor one: new scenes get requested.' }],
-    callouts: [],
-    phone: { clip: 'j-phone-performer', a: 1, b: 172 },
-    phoneHead: 'Every performer, one tap away.',
+    phoneHead: 'Watch on your phone, too.',
   },
 ];
 let start = INTRO_END + 0.15;
 for (const f of FEATURES) { f.from = start; f.sweep = start - 0.45; start += FEATURE_LEN; }
 const END_FROM = start;
-const SWEEPS = [...FEATURES.map((f) => ({ t: f.sweep, title: f.title })), { t: END_FROM - 0.45, title: '' }];
+const SWEEPS = [...FEATURES.map((f, i) => ({ t: f.sweep, title: f.title, kicker: 'Step ' + (i + 1) + ' of ' + FEATURES.length })), { t: END_FROM - 0.45, title: '' }];
 window.TOTAL = END_FROM + 5.3;
 
 // Feature timing (local seconds).
@@ -178,8 +183,13 @@ window.render = async function render(t) {
     $('heroName').style.transform = 'translateX(' + ((1 - slide) * -60).toFixed(2) + '%)';
     $('heroName').style.opacity = slide.toFixed(3);
     $('heroTag').textContent = intro ? 'Your adult library, all in one place.' : 'A self-hosted central hub for your adult library';
-    $('heroSub').textContent = 'On your desktop and your phone';
+    $('heroSub').textContent = 'Search · Request · Download · Watch';
+    $('heroSub2').textContent = 'On your desktop and your phone';
     $('heroSub').style.display = intro ? 'block' : 'none';
+    $('heroSub2').style.display = intro ? 'block' : 'none';
+    const sub2 = outC(prog(t, base + 3.1, base + 3.6));
+    $('heroSub2').style.opacity = sub2.toFixed(3);
+    $('heroSub2').style.transform = 'translateY(' + ((1 - sub2) * 10).toFixed(1) + 'px)';
     const sub = outC(prog(t, base + 2.4, base + 2.9));
     $('heroSub').style.opacity = sub.toFixed(3);
     $('heroSub').style.transform = 'translateY(' + ((1 - sub) * 12).toFixed(1) + 'px)';
@@ -261,11 +271,9 @@ window.render = async function render(t) {
 
     // Desktop caption above, then the phone headline beside the phone.
     const lab = outC(prog(L, DESK_ON + 0.5, DESK_ON + 1.0)) * (1 - prog(L, SWITCH_FROM - 0.1, SWITCH_FROM + 0.3));
-    $('label').textContent = 'On your desktop';
     const step = [...f.steps].reverse().find((st) => L >= deskL(f, st.f) - 0.1) ?? f.steps[0];
     $('line').textContent = step.text;
     const fresh = step === f.steps[0] ? 1 : outC(prog(L, deskL(f, step.f) - 0.1, deskL(f, step.f) + 0.25));
-    $('label').style.opacity = lab.toFixed(3);
     $('line').style.opacity = (lab * fresh).toFixed(3);
     $('line').style.transform = 'translateY(' + ((1 - outC(prog(L, DESK_ON + 0.5, DESK_ON + 1.0))) * 10 + (1 - fresh) * 8).toFixed(1) + 'px)';
 
@@ -274,6 +282,42 @@ window.render = async function render(t) {
     $('devDesk').className = onPhone ? '' : 'on';
     $('devPhone').className = onPhone ? 'on' : '';
     $('devices').style.opacity = outC(prog(L, 0.3, 0.8)).toFixed(3);
+    const idx = FEATURES.indexOf(f);
+    $('steps').innerHTML = FEATURES.map((x, i) => '<span class="st' + (i < idx ? ' done' : i === idx ? ' on' : '') + '"><b>' + (i < idx ? '✓' : i + 1) + '</b>' + x.step + '</span>').join('<i></i>');
+    $('steps').style.opacity = outC(prog(L, 0.3, 0.8)).toFixed(3);
+
+    // Taps on the phone: the same ripple, scaled to its screen.
+    const pt = $('phoneTaps');
+    pt.innerHTML = '';
+    const PH = 270 / 390;
+    const phoneL = (frame) => PHONE_PLAY_FROM + ((frame - f.phone.a) / (f.phone.b - f.phone.a)) * (FEATURE_LEN - 0.2 - PHONE_PLAY_FROM);
+    for (const c of f.phoneTaps ?? []) {
+      const u = L - phoneL(c.f);
+      if (u < -0.1 || u > 1.7) continue;
+      const el = document.createElement('div');
+      el.className = 'callout';
+      el.style.left = c.at[0] * PH + 'px'; el.style.top = c.at[1] * PH + 'px';
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.opacity = (prog(u, -0.1, 0) * (1 - prog(u, 0.25, 0.6))).toFixed(3);
+      el.appendChild(dot);
+      for (const delay of [0, 0.14]) {
+        const r = prog(u, delay, delay + 0.7);
+        if (r <= 0 || r >= 1) continue;
+        const d = lerp(18, 80, outC(r));
+        const ring = document.createElement('div');
+        ring.className = 'ring';
+        ring.style.cssText += 'left:' + (-d / 2) + 'px;top:' + (-d / 2) + 'px;width:' + d + 'px;height:' + d + 'px;opacity:' + (1 - r).toFixed(3);
+        el.appendChild(ring);
+      }
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = c.label;
+      const tagIn = outBack(prog(u, -0.05, 0.25)), tagOut = prog(u, 1.3, 1.6);
+      tag.style.cssText += 'bottom:30px;right:-14px;font-size:18px;padding:6px 13px;opacity:' + (prog(u, -0.05, 0.1) * (1 - tagOut)).toFixed(3) + ';transform:translateY(' + ((1 - tagIn) * 8).toFixed(1) + 'px) scale(' + lerp(0.85, 1, tagIn).toFixed(3) + ')';
+      el.appendChild(tag);
+      pt.appendChild(el);
+    }
 
     // Phone: rises from below, turning to face you, then floats.
     const up = outQ(prog(L, SWITCH_FROM + 0.15, SWITCH_TO + 0.5));
@@ -304,13 +348,13 @@ window.render = async function render(t) {
     const pin2 = outC(prog(u, -0.1, SWEEP_IN - 0.1));
     const pout2 = inC(prog(u, SWEEP_IN + SWEEP_HOLD - 0.08, SWEEP_IN + SWEEP_HOLD + SWEEP_OUT - 0.08));
     band2X = -1.3 + 1.3 * pin2 + 1.3 * pout2;
-    title = sw.title;
+    title = sw.title ? '<small>' + sw.kicker + '</small>' + sw.title : '';
     titleOpacity = outC(prog(u, SWEEP_IN * 0.4, SWEEP_IN)) * (1 - inC(prog(u, SWEEP_IN + SWEEP_HOLD - 0.1, SWEEP_IN + SWEEP_HOLD + SWEEP_OUT * 0.6)));
     titleX = (1 - pin) * -320 + pout * 320 + (u - SWEEP_IN) * 26;
   }
   $('band').style.transform = 'translateX(' + (bandX * 100).toFixed(2) + '%) skewX(-12deg)';
   $('band2').style.transform = 'translateX(' + (band2X * 100).toFixed(2) + '%) skewX(-12deg)';
-  $('title').textContent = title;
+  $('title').innerHTML = title;
   $('title').style.opacity = titleOpacity.toFixed(3);
   $('title').style.transform = 'translateX(' + titleX.toFixed(1) + 'px)';
 };
