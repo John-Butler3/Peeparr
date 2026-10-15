@@ -20,7 +20,7 @@ Peeparr is a self-hosted central hub for your adult library. Browse and watch ev
 </p>
 
 <p align="center">
-  <img src="docs/assets/peeparr-ad.gif" alt="A 50-second ad in four steps: search for scenes, request them, follow the downloads, and watch -- each shown in use on desktop, then on a phone -- ending on the Peeparr logo" width="100%" />
+  <img src="docs/assets/peeparr-ad.gif" alt="A one-minute ad: Peeparr as an add-on for your Stash and Whisparr, then four steps: search for scenes, request them, follow the downloads, and watch -- each shown in use on desktop, then on a phone -- ending on the Peeparr logo" width="100%" />
 </p>
 
 > (full quality: [1280×720 GIF](https://github.com/John-Butler3/Peeparr/releases/download/v1.0.0/peeparr-ad-hq.gif), [MP4](docs/assets/peeparr-ad.mp4)) video and screenshots use demo data

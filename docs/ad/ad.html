@@ -41,6 +41,22 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0a0a0a;
 #steps .st.on{color:#fff;background:#ff0033;border-color:#ff0033}
 #steps .st.on b{background:#fff;color:#ff0033}
 #steps i{width:18px;height:2px;background:rgba(255,255,255,.18)}
+/* How it fits: Peeparr between your Stash library and Whisparr. */
+#fit{display:none}
+#fitHead{position:absolute;left:0;right:0;top:92px;text-align:center}
+#fitHead b{display:block;font-size:18px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#ff3355;margin-bottom:12px}
+#fitHead span{display:block;font-size:50px;font-weight:900;letter-spacing:-1.5px}
+.fitCard{position:absolute;top:318px;width:320px;height:144px;box-sizing:border-box;padding:24px 26px;border-radius:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;gap:20px;will-change:transform,opacity}
+.fitCard svg{flex:none;width:58px;height:58px;color:#ff3355}
+.fitCard strong{display:block;font-size:38px;font-weight:900;letter-spacing:-1px}
+.fitCard em{display:block;font-style:normal;font-size:20px;font-weight:600;color:#aaa}
+#fitStash{left:130px}
+#fitWhisparr{left:830px}
+#fitLogo{position:absolute;left:550px;top:318px;width:180px;filter:drop-shadow(0 14px 40px rgba(255,0,51,.5));will-change:transform,opacity}
+#fitLogo svg{display:block;width:100%;height:auto}
+#fitName{position:absolute;left:0;right:0;top:470px;text-align:center;font-size:30px;font-weight:900}
+#fitLines{position:absolute;inset:0;width:1280px;height:720px}
+#fitNote{position:absolute;left:0;right:0;top:606px;text-align:center;font-size:22px;font-weight:700;color:#d4d4d4}
 #heroSub2{font-size:22px;font-weight:600;color:#aaa;white-space:nowrap;margin-top:-14px}
 #heroSub{font-size:26px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ff3355;white-space:nowrap}
 #band{background:#ff0033;will-change:transform}
@@ -65,6 +81,15 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0a0a0a;
   <div id="desk"><div class="bar"><i></i><i></i><i></i></div><div id="deskView"><div id="deskZoom"><img id="deskImg"><div id="callouts"></div></div></div></div>
   <div id="phoneText"><b></b><span></span></div>
   <div id="phone"><img id="phoneImg"><div id="phoneTaps"></div></div>
+</div>
+<div id="fit" class="layer">
+  <div id="fitHead"><b>Works with what you run</b><span>An add-on for your Stash and Whisparr</span></div>
+  <svg id="fitLines" viewBox="0 0 1280 720"><g fill="none" stroke-width="3" stroke-linecap="round"><path id="fitL1" d="M452 390H546" stroke="#ff3355"/><path id="fitL2" d="M734 390H828" stroke="#ff3355"/><path id="fitArc" d="M990 466C990 590 290 590 290 466" stroke="rgba(255,255,255,.5)" stroke-dasharray="8 10"/></g><g id="fitDots"></g></svg>
+  <div id="fitStash" class="fitCard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg><div><strong>Stash</strong><em>Your library</em></div></div>
+  <div id="fitLogo"></div>
+  <div id="fitName">Peeparr</div>
+  <div id="fitWhisparr" class="fitCard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/></svg><div><strong>Whisparr</strong><em>Your downloads</em></div></div>
+  <div id="fitNote">Request in Peeparr, Whisparr downloads it, and it lands in your Stash library.</div>
 </div>
 <div id="hero" class="layer"><div id="heroBrand"><div id="heroLogo"></div><div id="heroNameWrap"><div id="heroName">Peeparr</div></div></div><div id="heroTag"></div><div id="heroSub"></div><div id="heroSub2"></div></div>
 <div id="band2" class="layer"></div>
@@ -138,7 +163,9 @@ const FEATURES = [
     phoneHead: 'Watch on your phone, too.',
   },
 ];
-let start = INTRO_END + 0.15;
+// How it fits, between the intro and the first step.
+const FIT_FROM = INTRO_END, FIT_END = FIT_FROM + 5.2;
+let start = FIT_END + 0.15;
 for (const f of FEATURES) { f.from = start; f.sweep = start - 0.45; start += FEATURE_LEN; }
 const END_FROM = start;
 const SWEEPS = [...FEATURES.map((f, i) => ({ t: f.sweep, title: f.title, kicker: 'Step ' + (i + 1) + ' of ' + FEATURES.length })), { t: END_FROM - 0.45, title: '' }];
@@ -161,7 +188,7 @@ async function setImg(img, src) {
 }
 
 window.render = async function render(t) {
-  const strength = t < INTRO_END || t >= END_FROM ? 0.95 : 0.12;
+  const strength = t < INTRO_END || t >= END_FROM ? 0.95 : t < FIT_END ? 0.35 : 0.12;
   rings.forEach((p, i) => {
     const ph = ((t / 2.6) + i / rings.length) % 1;
     const fade = ph < 0.12 ? ph / 0.12 : 1 - (ph - 0.12) / 0.88;
@@ -170,9 +197,11 @@ window.render = async function render(t) {
   });
 
   // Intro and end card.
-  const intro = t < INTRO_END + 0.4;
+  const intro = t < FIT_FROM + 0.05;
   const end = t >= END_FROM - 0.2;
   $('hero').style.display = intro || end ? 'flex' : 'none';
+  $('hero').style.opacity = intro ? (1 - prog(t, FIT_FROM - 0.4, FIT_FROM)).toFixed(3) : '1';
+  $('hero').style.transform = intro ? 'scale(' + lerp(1, 0.94, inC(prog(t, FIT_FROM - 0.4, FIT_FROM))).toFixed(4) + ')' : 'none';
   if (intro || end) {
     const base = intro ? 0.15 : END_FROM + 0.15;
     const pop = outBack(prog(t, base, base + 0.55));
@@ -184,9 +213,8 @@ window.render = async function render(t) {
     $('heroName').style.opacity = slide.toFixed(3);
     $('heroTag').textContent = intro ? 'Your adult library, all in one place.' : 'A self-hosted central hub for your adult library';
     $('heroSub').textContent = 'Search · Request · Download · Watch';
-    $('heroSub2').textContent = 'On your desktop and your phone';
+    $('heroSub2').textContent = intro ? 'On your desktop and your phone' : 'An add-on for your Stash and Whisparr';
     $('heroSub').style.display = intro ? 'block' : 'none';
-    $('heroSub2').style.display = intro ? 'block' : 'none';
     const sub2 = outC(prog(t, base + 3.1, base + 3.6));
     $('heroSub2').style.opacity = sub2.toFixed(3);
     $('heroSub2').style.transform = 'translateY(' + ((1 - sub2) * 10).toFixed(1) + 'px)';
@@ -196,6 +224,50 @@ window.render = async function render(t) {
     const tag = outC(prog(t, base + 1.7, base + 2.2));
     $('heroTag').style.opacity = tag.toFixed(3);
     $('heroTag').style.transform = 'translateY(' + ((1 - tag) * 14).toFixed(1) + 'px)';
+  }
+
+  // How it fits.
+  const inFit = t >= FIT_FROM - 0.4 && t < FIT_END + 0.3;
+  $('fit').style.display = inFit ? 'block' : 'none';
+  if (inFit) {
+    const F = t - FIT_FROM;
+    $('fit').style.opacity = prog(F, -0.4, 0).toFixed(3);
+    const head = outC(prog(F, 0, 0.5));
+    $('fitHead').style.opacity = head.toFixed(3);
+    $('fitHead').style.transform = 'translateY(' + ((1 - head) * 16).toFixed(1) + 'px)';
+    const pop = outBack(prog(F, 0.2, 0.75));
+    $('fitLogo').style.transform = 'scale(' + (0.6 + 0.4 * pop).toFixed(4) + ')';
+    $('fitLogo').style.opacity = prog(F, 0.2, 0.45).toFixed(3);
+    $('fitName').style.opacity = outC(prog(F, 0.5, 0.9)).toFixed(3);
+    const l = outC(prog(F, 0.6, 1.2)), r = outC(prog(F, 0.85, 1.45));
+    $('fitStash').style.opacity = l.toFixed(3);
+    $('fitStash').style.transform = 'translateX(' + ((1 - l) * -60).toFixed(1) + 'px)';
+    $('fitWhisparr').style.opacity = r.toFixed(3);
+    $('fitWhisparr').style.transform = 'translateX(' + ((1 - r) * 60).toFixed(1) + 'px)';
+    // Lines draw in, then dots run along them: requests out to Whisparr,
+    // downloads round into Stash, and your library into Peeparr.
+    const draw = (id, x, len) => { $(id).setAttribute('stroke-dasharray', id === 'fitArc' ? '8 10' : len + ' ' + len); if (id !== 'fitArc') $(id).setAttribute('stroke-dashoffset', ((1 - x) * len).toFixed(1)); $(id).style.opacity = id === 'fitArc' ? x.toFixed(3) : '1'; };
+    const d1 = inOutS(prog(F, 1.3, 1.7)), d2 = inOutS(prog(F, 1.5, 1.9)), d3 = inOutS(prog(F, 2.0, 2.6));
+    draw('fitL1', d1, 94); draw('fitL2', d2, 94); draw('fitArc', d3, 1);
+    const dots = $('fitDots');
+    dots.innerHTML = '';
+    const flows = [['fitL2', d2, 1], ['fitArc', d3, 1], ['fitL1', d1, 1]];
+    for (const [id, on, dir] of flows) {
+      if (on < 1) continue;
+      const path = $(id), len = path.getTotalLength();
+      for (let k = 0; k < 3; k++) {
+        let u = ((F - 1.9) * (id === 'fitArc' ? 0.35 : 0.9) + k / 3) % 1;
+        if (dir < 0) u = 1 - u;
+        const pt = path.getPointAtLength(u * len);
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', pt.x.toFixed(1)); c.setAttribute('cy', pt.y.toFixed(1)); c.setAttribute('r', '6');
+        c.setAttribute('fill', '#fff'); c.setAttribute('opacity', (Math.sin(Math.PI * (dir < 0 ? 1 - u : u)) * 0.9).toFixed(3));
+        dots.appendChild(c);
+      }
+    }
+    const note = outC(prog(F, 2.5, 3.0));
+    $('fitNote').style.opacity = note.toFixed(3);
+    $('fitNote').style.transform = 'translateY(' + ((1 - note) * 10).toFixed(1) + 'px)';
   }
 
   // Features.
@@ -359,6 +431,6 @@ window.render = async function render(t) {
   $('title').style.transform = 'translateX(' + titleX.toFixed(1) + 'px)';
 };
 
-fetch('logo.svg').then((r) => r.text()).then((svg) => { $('heroLogo').innerHTML = svg; window.ready = true; });
+fetch('logo.svg').then((r) => r.text()).then((svg) => { $('heroLogo').innerHTML = svg; $('fitLogo').innerHTML = svg; window.ready = true; });
 </script>
 </body></html>
