@@ -47,6 +47,9 @@ services:
       # Uncomment in .env if catalog checks time out on IPv4-only networks:
       # NODE_OPTIONS=--no-network-family-autoselection
       NODE_OPTIONS: ${NODE_OPTIONS:-}
+      # The ThePornDB metadata routes only answer private networks; set to
+      # "true" in .env to allow any address (see docs/DEPLOYMENT.md).
+      PEEPARR_METADATA_ALLOW_ANY_NETWORK: ${PEEPARR_METADATA_ALLOW_ANY_NETWORK:-false}
     ports:
       - "${APP_PORT:-3000}:3000"
     restart: unless-stopped
