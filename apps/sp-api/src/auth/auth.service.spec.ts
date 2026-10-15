@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await, @typescript-eslint/unbound-method */
 
 import * as argon2 from 'argon2';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
@@ -190,6 +194,29 @@ describe('AuthService', () => {
       argon2.verify(adminUsers[0].passwordHash, 'this-is-a-strong-password'),
     ).resolves.toBe(true);
     expect(sessionCookieService.setSessionCookie).toHaveBeenCalledTimes(1);
+  });
+
+  it('only allows creating the admin from your own network', async () => {
+    const outside = createRequest({ remoteAddress: '203.0.113.9', ip: '203.0.113.9' });
+    // Through a proxy that isn't trusted: the proxy's LAN address proves nothing.
+    const proxied = createRequest({ remoteAddress: '172.18.0.3', forwardedFor: '203.0.113.9' });
+    const dto = { username: 'LocalAdmin', password: 'this-is-a-strong-password' };
+
+    await expect(service.bootstrapAdmin(dto, outside, createResponse())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.bootstrapAdmin(dto, proxied, createResponse())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(adminUsers).toHaveLength(0);
+
+    process.env.PEEPARR_ALLOW_REMOTE_SETUP = 'true';
+    try {
+      await service.bootstrapAdmin(dto, outside, createResponse());
+    } finally {
+      delete process.env.PEEPARR_ALLOW_REMOTE_SETUP;
+    }
+    expect(adminUsers).toHaveLength(1);
   });
 
   it('blocks bootstrap once an admin account already exists', async () => {

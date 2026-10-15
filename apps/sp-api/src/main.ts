@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { applyHttpSecurity } from './security/http-security';
 import { resolveNestLogLevels } from './logging/log-levels';
 
 async function bootstrap() {
@@ -12,6 +13,8 @@ async function bootstrap() {
     logger: resolveNestLogLevels(),
   });
   const logger = new Logger('Bootstrap');
+  // Before anything else: proxy trust, security headers, cross-site checks.
+  applyHttpSecurity(app);
 
   app.useGlobalPipes(
     new ValidationPipe({

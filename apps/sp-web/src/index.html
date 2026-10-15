@@ -22,19 +22,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Peeparr" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-    <script>
-      // Discreet logo (set in Settings > Content, per device), before the
-      // splash paints: the logo, the browser tab, and the icon used when the
-      // app is added to a home screen.
-      try {
-        if (localStorage.getItem('peeparr.discreetLogo') === '1') {
-          document.documentElement.classList.add('discreet-logo');
-          document.querySelector('link[rel="icon"][type="image/svg+xml"]').href = 'favicon-discreet.svg';
-          document.querySelector('link[rel="manifest"]').href = 'manifest-discreet.webmanifest';
-          document.querySelector('link[rel="apple-touch-icon"]').href = 'icons/apple-touch-icon-discreet.png';
-        }
-      } catch (e) {}
-    </script>
+    <!-- Discreet logo, before the splash paints (a file rather than inline,
+         for the Content-Security-Policy). -->
+    <script src="boot.js"></script>
     <!--
       Launch splash: on screen from the very first paint, before the app has
       loaded. The app then plays the reveal on this same element once it has

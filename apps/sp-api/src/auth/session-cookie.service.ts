@@ -7,7 +7,12 @@ export class SessionCookieService {
   readonly cookieName = 'peeparr_session';
   readonly sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
   private readonly sessionSecret: string;
-  private readonly secureCookie: boolean;
+  /**
+   * Secure whenever the request came over HTTPS; SESSION_COOKIE_SECURE=true
+   * forces it always. (A Secure cookie is always right over HTTPS, so
+   * older installs' SESSION_COOKIE_SECURE=false doesn't switch this off.)
+   */
+  private readonly forceSecure: boolean;
 
   constructor() {
     const configuredSecret = process.env.SESSION_SECRET?.trim();
@@ -16,7 +21,7 @@ export class SessionCookieService {
     }
 
     this.sessionSecret = configuredSecret || 'test-session-secret';
-    this.secureCookie = parseBoolean(process.env.SESSION_COOKIE_SECURE);
+    this.forceSecure = parseBoolean(process.env.SESSION_COOKIE_SECURE?.trim());
   }
 
   readSessionId(cookieHeader: string | undefined): string | null {
@@ -50,16 +55,21 @@ export class SessionCookieService {
       expires: expiresAt,
       httpOnly: true,
       sameSite: 'lax',
-      secure: this.secureCookie,
+      secure: this.isSecure(response),
       path: '/',
     });
+  }
+
+  // Behind a reverse proxy, "came over HTTPS" needs PEEPARR_TRUST_PROXY.
+  private isSecure(response: Response): boolean {
+    return this.forceSecure || response.req?.secure === true;
   }
 
   clearSessionCookie(response: Response): void {
     response.clearCookie(this.cookieName, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: this.secureCookie,
+      secure: this.isSecure(response),
       path: '/',
     });
   }

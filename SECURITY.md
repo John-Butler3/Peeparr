@@ -14,9 +14,11 @@ Fixes go into the latest release. Update with `peeparr-update`.
 
 ## Running Peeparr safely
 
-- Keep Peeparr on your own network. Use a VPN, or a reverse proxy with its
-  own login and HTTPS, to reach it from outside.
-- Behind HTTPS, set `SESSION_COOKIE_SECURE=true` in `/opt/peeparr/.env`.
+- A VPN is the simplest way to reach Peeparr from outside. Behind a reverse
+  proxy, follow [Behind a reverse proxy](docs/DEPLOYMENT.md#behind-a-reverse-proxy):
+  create the admin from your own network first, set `PEEPARR_TRUST_PROXY`,
+  and use HTTPS.
 - The ThePornDB metadata address used by Whisparr-Eros
   (`/api/whisparr-metadata/…`) has no login, since Whisparr can't sign in.
-  Anyone who can reach it can use your ThePornDB key, so don't expose it.
+  It only answers your private network, never visitors coming through the
+  proxy.

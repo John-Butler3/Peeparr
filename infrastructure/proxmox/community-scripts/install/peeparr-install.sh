@@ -36,8 +36,8 @@ PORT=3000
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?schema=public
 SESSION_SECRET=$(openssl rand -base64 48 | tr -d '\r\n')
 APP_DATA_DIR=/var/lib/peeparr
-# Set to true once Peeparr is served over HTTPS.
-SESSION_COOKIE_SECURE=false
+# Behind a reverse proxy: the proxy's hop count or address (see the docs).
+# PEEPARR_TRUST_PROXY=1
 EOF
 chmod 600 /opt/peeparr/.env
 msg_ok "Configured Peeparr"

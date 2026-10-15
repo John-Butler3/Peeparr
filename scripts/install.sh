@@ -140,8 +140,8 @@ POSTGRES_USER=peeparr
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 APP_PORT=${APP_PORT}
 PEEPARR_IMAGE=${IMAGE_TAG}
-# Set to true once Peeparr is served over HTTPS.
-SESSION_COOKIE_SECURE=false
+# Behind a reverse proxy: the proxy's hop count or address (docs/DEPLOYMENT.md).
+# PEEPARR_TRUST_PROXY=1
 # Uncomment if catalog Save & Test times out on an IPv4-only network:
 # NODE_OPTIONS=--no-network-family-autoselection
 ENV

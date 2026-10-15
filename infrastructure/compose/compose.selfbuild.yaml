@@ -42,14 +42,17 @@ services:
       PORT: 3000
       DATABASE_MIGRATION_MAX_ATTEMPTS: 30
       DATABASE_MIGRATION_RETRY_DELAY_SECONDS: 2
-      # Set to "true" in .env once Peeparr is served over HTTPS.
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # Secure whenever the request came over HTTPS; "true" forces it always.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-}
       # Uncomment in .env if catalog checks time out on IPv4-only networks:
       # NODE_OPTIONS=--no-network-family-autoselection
       NODE_OPTIONS: ${NODE_OPTIONS:-}
       # The ThePornDB metadata routes only answer private networks; set to
       # "true" in .env to allow any address (see docs/DEPLOYMENT.md).
       PEEPARR_METADATA_ALLOW_ANY_NETWORK: ${PEEPARR_METADATA_ALLOW_ANY_NETWORK:-false}
+      # Behind a reverse proxy: set in .env (see docs/DEPLOYMENT.md).
+      PEEPARR_TRUST_PROXY: ${PEEPARR_TRUST_PROXY:-}
+      PEEPARR_ALLOW_REMOTE_SETUP: ${PEEPARR_ALLOW_REMOTE_SETUP:-false}
     ports:
       - "${APP_PORT:-3000}:3000"
     restart: unless-stopped

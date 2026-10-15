@@ -3,8 +3,10 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import { isFromPrivateNetwork } from '../security/http-security';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { BootstrapAdminDto } from './dto/bootstrap-admin.dto';
@@ -45,6 +47,18 @@ export class AuthService {
     request: Request,
     response: Response,
   ): Promise<AuthStatusResponse> {
+    // Creating the admin is only allowed from your own network, so an
+    // instance exposed before setup can't be claimed by a stranger.
+    // PEEPARR_ALLOW_REMOTE_SETUP=true allows it from anywhere.
+    if (
+      process.env.PEEPARR_ALLOW_REMOTE_SETUP?.trim().toLowerCase() !== 'true' &&
+      !isFromPrivateNetwork(request)
+    ) {
+      throw new ForbiddenException(
+        'Create the admin account from your own network (not through the internet), then sign in from anywhere.',
+      );
+    }
+
     const passwordHash = await argon2.hash(dto.password, {
       type: argon2.argon2id,
     });

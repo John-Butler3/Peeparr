@@ -75,6 +75,43 @@ falls back to this repository's script).
 3. If Whisparr-Eros should use TPDB, set it up as in
    [Whisparr-Eros and the catalog choice](#whisparr-eros-and-the-catalog-choice).
 
+## Behind a reverse proxy
+
+To reach Peeparr from outside your home, put it behind a reverse proxy with
+HTTPS (Nginx Proxy Manager, Caddy, Traefik, a Cloudflare Tunnel...). A VPN
+such as WireGuard or Tailscale is simpler still, and needs none of this.
+
+1. **Create the admin account first, from your own network.** Peeparr only
+   allows it from a private address, so a stranger can't claim a new
+   instance through the proxy. (`PEEPARR_ALLOW_REMOTE_SETUP=true` lifts
+   this, if you really must set it up remotely.)
+2. **Tell Peeparr about the proxy** with `PEEPARR_TRUST_PROXY`, so it sees
+   each visitor's real address (for sign-in limits) and knows the
+   connection is HTTPS (for secure cookies):
+   - `PEEPARR_TRUST_PROXY=1`: the proxy talks to Peeparr directly (one hop).
+   - Or the proxy's address or network, e.g. `PEEPARR_TRUST_PROXY=10.0.0.2`.
+
+   Without it, everyone arriving through the proxy shares the proxy's
+   address, so a stranger's failed sign-ins could lock you out.
+3. **Forward the usual headers**: `Host`, `X-Forwarded-For` and
+   `X-Forwarded-Proto` (most proxies do this by default).
+4. **Keep Whisparr talking to Peeparr directly** on your network, not through
+   the proxy. The ThePornDB metadata routes refuse anything that comes
+   through the proxy from outside, so they aren't reachable from the
+   internet.
+
+Peeparr also:
+
+- marks the session cookie `Secure` whenever the request came over HTTPS
+  (or always, with `SESSION_COOKIE_SECURE=true`);
+- sends security headers: a Content-Security-Policy, no framing, no
+  referrer to other sites, and HSTS over HTTPS;
+- refuses requests from other websites that would change anything;
+- limits failed sign-ins per address and per username.
+
+Optionally, put an extra login in front (Authelia, Authentik, Cloudflare
+Access) for a second layer.
+
 ## Updating
 
 Docker installs (`install.sh`):
