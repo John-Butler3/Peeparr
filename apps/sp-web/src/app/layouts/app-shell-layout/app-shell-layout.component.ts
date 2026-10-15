@@ -131,17 +131,12 @@ const DESKTOP_NAV_ITEMS: readonly ShellNavItem[] = [
   SETTINGS_NAV_ITEM,
 ];
 
-const MOBILE_PRIMARY_NAV_ITEMS: readonly ShellNavItem[] = [
-  HOME_NAV_ITEM,
-  SCENES_NAV_ITEM,
-  ACQUISITION_NAV_ITEM,
-  LIBRARY_NAV_ITEM,
-];
+// Phone bottom bar: Home, Library (Series and Galleries slide out beside
+// it), Upcoming, Acquisition, and a menu sheet with everything else.
+const MOBILE_LIBRARY_GROUP: readonly ShellNavItem[] = [SERIES_NAV_ITEM, GALLERIES_NAV_ITEM];
 
 const MOBILE_SECONDARY_NAV_ITEMS: readonly ShellNavItem[] = [
-  UPCOMING_NAV_ITEM,
-  SERIES_NAV_ITEM,
-  GALLERIES_NAV_ITEM,
+  SCENES_NAV_ITEM,
   PERFORMERS_NAV_ITEM,
   STUDIOS_NAV_ITEM,
   SETTINGS_NAV_ITEM,
@@ -189,8 +184,16 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   };
 
   protected readonly desktopNavItems = DESKTOP_NAV_ITEMS;
-  protected readonly mobilePrimaryNavItems = MOBILE_PRIMARY_NAV_ITEMS;
+  protected readonly homeNavItem = HOME_NAV_ITEM;
+  protected readonly libraryNavItem = LIBRARY_NAV_ITEM;
+  protected readonly upcomingNavItem = UPCOMING_NAV_ITEM;
+  protected readonly acquisitionNavItem = ACQUISITION_NAV_ITEM;
+  /** The bar's third and fourth slots (the Library tray slides over them). */
+  protected readonly mobileMiddleItems: readonly ShellNavItem[] = [UPCOMING_NAV_ITEM, ACQUISITION_NAV_ITEM];
+  protected readonly mobileLibraryGroup = MOBILE_LIBRARY_GROUP;
   protected readonly mobileSecondaryNavItems = MOBILE_SECONDARY_NAV_ITEMS;
+  /** Series and Galleries slid out beside Library on the bottom bar. */
+  protected readonly libraryTrayOpen = signal(false);
   protected readonly collapsed = signal(!this.matchesMedia(AppShellLayoutComponent.WIDE_GUIDE_MEDIA_QUERY));
   protected readonly accountMenuOpen = signal(false);
   protected readonly mastheadHidden = signal(false);
@@ -245,14 +248,39 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
     const currentUrl = this.currentUrl();
     return this.mobileSecondaryNavItems.some((item) => this.matchesNavItem(item, currentUrl));
   });
-  /** Which bottom-bar item the glass capsule sits behind (-1: none). */
+  /** On Library, Series or Galleries. */
+  protected readonly libraryGroupActive = computed(() => {
+    const currentUrl = this.currentUrl();
+    return [this.libraryNavItem, ...this.mobileLibraryGroup].some((item) =>
+      this.matchesNavItem(item, currentUrl),
+    );
+  });
+  /**
+   * Which bottom-bar slot the glass capsule sits behind (-1: none). Slots:
+   * Home, Library, Upcoming, Acquisition and the menu -- with the Library
+   * tray out, Series and Galleries take Upcoming's and Acquisition's places.
+   */
   protected readonly mobileActiveIndex = computed(() => {
     const currentUrl = this.currentUrl();
-    const index = this.mobilePrimaryNavItems.findIndex((item) => this.matchesNavItem(item, currentUrl));
-    if (index >= 0) {
-      return index;
+    if (this.matchesNavItem(this.homeNavItem, currentUrl)) {
+      return 0;
     }
-    return this.moreMenuOpen() || this.moreNavActive() ? this.mobilePrimaryNavItems.length : -1;
+    if (this.libraryTrayOpen()) {
+      const inTray = this.mobileLibraryGroup.findIndex((item) => this.matchesNavItem(item, currentUrl));
+      if (inTray >= 0) {
+        return 2 + inTray;
+      }
+      if (this.matchesNavItem(this.libraryNavItem, currentUrl)) {
+        return 1;
+      }
+    } else if (this.libraryGroupActive()) {
+      return 1;
+    } else if (this.matchesNavItem(this.upcomingNavItem, currentUrl)) {
+      return 2;
+    } else if (this.matchesNavItem(this.acquisitionNavItem, currentUrl)) {
+      return 3;
+    }
+    return this.moreMenuOpen() || this.moreNavActive() ? 4 : -1;
   });
 
   ngOnInit(): void {
@@ -272,6 +300,9 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
       .subscribe((event) => {
         this.currentUrl.set(this.normalizeUrl(event.urlAfterRedirects));
         this.moreMenuOpen.set(false);
+        if (!this.libraryGroupActive()) {
+          this.libraryTrayOpen.set(false);
+        }
         this.accountMenuOpen.set(false);
         this.mastheadHidden.set(false);
       });
@@ -342,6 +373,7 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   protected onEscape(): void {
     this.accountMenuOpen.set(false);
     this.moreMenuOpen.set(false);
+    this.libraryTrayOpen.set(false);
   }
 
   @ViewChild('searchFocusProxy') private searchFocusProxy?: ElementRef<HTMLInputElement>;
@@ -380,6 +412,25 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
 
   protected toggleMoreMenu(): void {
     this.moreMenuOpen.update((value) => !value);
+  }
+
+  // Library: slides Series and Galleries out beside it (going to the
+  // Library page unless already on one of the three); tapped again, tucks
+  // them away.
+  protected onLibraryTap(): void {
+    this.moreMenuOpen.set(false);
+    if (this.libraryTrayOpen()) {
+      this.libraryTrayOpen.set(false);
+      return;
+    }
+    this.libraryTrayOpen.set(true);
+    if (!this.libraryGroupActive()) {
+      void this.router.navigateByUrl(this.libraryNavItem.route);
+    }
+  }
+
+  protected closeLibraryTray(): void {
+    this.libraryTrayOpen.set(false);
   }
 
   protected closeMoreMenu(): void {

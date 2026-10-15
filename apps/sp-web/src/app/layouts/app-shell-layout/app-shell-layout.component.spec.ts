@@ -252,7 +252,7 @@ describe('AppShellLayoutComponent', () => {
     ) as HTMLElement | null;
     const bottomNavItems = Array.from(
       fixture.nativeElement.querySelectorAll(
-        '.mobile-nav-item .mobile-nav-label',
+        '.mobile-bottom-nav .mobile-nav-item:not(.slot-in) .mobile-nav-label',
       ) as NodeListOf<HTMLElement>,
     ).map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
     const moreTrigger = fixture.nativeElement.querySelector(
@@ -261,7 +261,7 @@ describe('AppShellLayoutComponent', () => {
 
     expect(desktopSidebar).toBeNull();
     expect(bottomNav).toBeTruthy();
-    expect(bottomNavItems).toEqual(['Home', 'Scenes', 'Acquisition', 'Library', 'You']);
+    expect(bottomNavItems).toEqual(['Home', 'Library', 'Upcoming', 'Acquisition', 'More']);
 
     moreTrigger?.click();
     fixture.detectChanges();
@@ -273,11 +273,46 @@ describe('AppShellLayoutComponent', () => {
     ) as HTMLElement | null;
 
     expect(moreSheet).toBeTruthy();
-    expect(moreSheet?.textContent).toContain('Galleries');
+    expect(moreSheet?.textContent).toContain('Scenes');
     expect(moreSheet?.textContent).toContain('Performers');
     expect(moreSheet?.textContent).toContain('Studios');
     expect(moreSheet?.textContent).toContain('Settings');
     expect(moreSheet?.textContent).toContain('Log out');
+  });
+
+  it('slides Series and Galleries out beside Library, leaving Home in place', async () => {
+    const { fixture, router } = await renderComponent({ isPhone: true });
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const element = fixture.nativeElement as HTMLElement;
+    const bar = element.querySelector('[data-testid="mobile-bottom-nav"]') as HTMLElement;
+    const library = element.querySelector('[data-testid="mobile-library-trigger"]') as HTMLButtonElement;
+    const series = element.querySelector('[data-testid="mobile-library-series"]') as HTMLElement;
+
+    expect(bar.classList).not.toContain('library-open');
+    expect(series.getAttribute('aria-hidden')).toBe('true');
+
+    library.click();
+    fixture.detectChanges();
+
+    expect(bar.classList).toContain('library-open');
+    expect(library.getAttribute('aria-expanded')).toBe('true');
+    expect(navigateSpy).toHaveBeenCalledWith('/library');
+    expect(series.getAttribute('aria-hidden')).toBeNull();
+    expect(element.querySelector('[data-testid="mobile-library-galleries"]')?.getAttribute('href')).toBe(
+      '/galleries',
+    );
+    // Home and More stay; Upcoming and Acquisition step aside.
+    expect(element.querySelector('.slot-home')?.getAttribute('aria-hidden')).toBeNull();
+    expect(element.querySelector('[data-testid="mobile-more-trigger"]')?.getAttribute('aria-hidden')).toBeNull();
+    expect(
+      Array.from(element.querySelectorAll('.slot-out')).map((el) => el.getAttribute('aria-hidden')),
+    ).toEqual(['true', 'true']);
+
+    library.click();
+    fixture.detectChanges();
+
+    expect(bar.classList).not.toContain('library-open');
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
   });
 
   it('keeps repair visibility available from the phone shell', async () => {

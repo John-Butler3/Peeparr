@@ -238,6 +238,7 @@
   <nav
     class="mobile-bottom-nav"
     [class.is-hidden]="mastheadHidden()"
+    [class.library-open]="libraryTrayOpen()"
     aria-label="Bottom navigation"
     data-testid="mobile-bottom-nav"
   >
@@ -247,11 +248,42 @@
       [style.--active-index]="mobileActiveIndex() < 0 ? 0 : mobileActiveIndex()"
       aria-hidden="true"
     ></span>
-    @for (item of mobilePrimaryNavItems; track item.route) {
+    <!-- Behind Library and the two pages that slide out beside it. -->
+    <span class="library-tray" aria-hidden="true"></span>
+
+    <a
+      [routerLink]="homeNavItem.route"
+      class="mobile-nav-item slot-home"
+      [class.active]="isNavItemActive(homeNavItem)"
+      (click)="closeMoreMenu(); closeLibraryTray()"
+    >
+      <span class="icon" aria-hidden="true"><i [class]="homeNavItem.icon"></i></span>
+      <span class="mobile-nav-label">{{ homeNavItem.label }}</span>
+    </a>
+
+    <button
+      type="button"
+      class="mobile-nav-item slot-library"
+      [class.active]="libraryGroupActive()"
+      [attr.aria-expanded]="libraryTrayOpen()"
+      aria-controls="mobile-library-tray"
+      data-testid="mobile-library-trigger"
+      (click)="onLibraryTap()"
+    >
+      <span class="icon" aria-hidden="true"><i [class]="libraryNavItem.icon"></i></span>
+      <span class="mobile-nav-label">{{ libraryNavItem.label }}</span>
+    </button>
+
+    <!-- Upcoming and Acquisition: slide away while the Library tray is out. -->
+    @for (item of mobileMiddleItems; track item.route; let i = $index) {
       <a
         [routerLink]="item.route"
-        class="mobile-nav-item"
+        class="mobile-nav-item slot-out"
+        [class.slot-3]="i === 0"
+        [class.slot-4]="i === 1"
         [class.active]="isNavItemActive(item)"
+        [attr.tabindex]="libraryTrayOpen() ? -1 : null"
+        [attr.aria-hidden]="libraryTrayOpen() ? 'true' : null"
         (click)="closeMoreMenu()"
       >
         <span class="icon" aria-hidden="true"><i [class]="item.icon"></i></span>
@@ -261,19 +293,40 @@
 
     <button
       type="button"
-      class="mobile-nav-item mobile-nav-item--more"
+      class="mobile-nav-item mobile-nav-item--more slot-5"
       [class.active]="moreMenuOpen() || moreNavActive()"
       [class.has-alert]="!!degradedState()"
       [attr.aria-controls]="moreMenuOpen() ? 'mobile-more-sheet' : null"
       [attr.aria-expanded]="moreMenuOpen()"
+      aria-label="More"
       data-testid="mobile-more-trigger"
       (click)="toggleMoreMenu()"
     >
-      <span class="icon" aria-hidden="true"><span class="avatar small">{{ userInitial() }}</span></span>
-      <span class="mobile-nav-label">You</span>
+      <span class="icon" aria-hidden="true"><i class="pi pi-bars"></i></span>
+      <span class="mobile-nav-label">More</span>
       @if (degradedState()) {
         <span class="mobile-nav-indicator" data-testid="mobile-more-indicator"></span>
       }
     </button>
+
+    <!-- The Library tray: Series and Galleries, in Upcoming's and Acquisition's places. -->
+    <div id="mobile-library-tray" class="library-tray-items" role="group" aria-label="Library">
+      @for (item of mobileLibraryGroup; track item.route; let i = $index) {
+        <a
+          [routerLink]="item.route"
+          class="mobile-nav-item slot-in"
+          [class.slot-3]="i === 0"
+          [class.slot-4]="i === 1"
+          [class.active]="isNavItemActive(item)"
+          [attr.tabindex]="libraryTrayOpen() ? null : -1"
+          [attr.aria-hidden]="libraryTrayOpen() ? null : 'true'"
+          [attr.data-testid]="'mobile-library-' + item.label.toLowerCase()"
+          (click)="closeMoreMenu()"
+        >
+          <span class="icon" aria-hidden="true"><i [class]="item.icon"></i></span>
+          <span class="mobile-nav-label">{{ item.label }}</span>
+        </a>
+      }
+    </div>
   </nav>
 }
