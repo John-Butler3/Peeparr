@@ -27,7 +27,7 @@
 # search.
 #
 # Run this ON THE PROXMOX HOST as root:
-#   CATALOG=tpdb PEEPARR_URL=http://10.50.50.201:3000 ./install-whisparr-eros-lxc.sh
+#   CATALOG=tpdb PEEPARR_URL=http://<host>:3000 ./install-whisparr-eros-lxc.sh
 #   CATALOG=stashdb ./install-whisparr-eros-lxc.sh
 #
 # The community-scripts installer is interactive by default (Default vs
@@ -42,7 +42,7 @@ set -euo pipefail
 
 # ---- Configuration (override via env vars) ----
 CATALOG="${CATALOG:-}"                 # tpdb | stashdb (asked if unset)
-PEEPARR_URL="${PEEPARR_URL:-}"       # e.g. http://10.50.50.201:3000 (tpdb only)
+PEEPARR_URL="${PEEPARR_URL:-}"       # e.g. http://<host>:3000 (tpdb only)
 COMMUNITY_SCRIPT_URL="${COMMUNITY_SCRIPT_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/whisparr-eros.sh}"
 CONFIGURE_EROS_URL="${CONFIGURE_EROS_URL:-https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/configure-eros.sh}"
 
@@ -52,7 +52,7 @@ fi
 case "$CATALOG" in
   tpdb)
     if [[ -z "$PEEPARR_URL" ]]; then
-      read -r -p "Peeparr URL as Eros will reach it (e.g. http://10.50.50.201:3000): " PEEPARR_URL
+      read -r -p "Peeparr URL as Eros will reach it (e.g. http://<host>:3000): " PEEPARR_URL
     fi
     ;;
   stashdb) ;;

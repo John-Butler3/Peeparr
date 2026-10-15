@@ -1,5 +1,3 @@
-// Before anything reads settings: old STASHARR_* names still work.
-import './legacy-env';
 import { existsSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { Logger, ValidationPipe } from '@nestjs/common';

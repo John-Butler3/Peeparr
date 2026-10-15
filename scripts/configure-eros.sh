@@ -18,7 +18,7 @@
 #   On the Eros machine (systemd install, e.g. community-scripts LXC):
 #     ./configure-eros.sh --catalog tpdb --peeparr-url http://10.0.0.5:3000
 #   On a Proxmox host, against an Eros LXC:
-#     ./configure-eros.sh --ctid 110 --catalog tpdb --peeparr-url http://10.0.0.5:3000
+#     ./configure-eros.sh --ctid <ctid> --catalog tpdb --peeparr-url http://10.0.0.5:3000
 #   Over SSH:
 #     ./configure-eros.sh --ssh root@eros-host --catalog stashdb
 #   Eros running in Docker (run on the Docker host):

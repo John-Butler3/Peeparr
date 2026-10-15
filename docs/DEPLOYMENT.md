@@ -130,7 +130,7 @@ The original install uses **TPDB** as Peeparr's catalog, so Eros was
 changed to use Peeparr's own TPDB-backed metadata proxy instead:
 
 ```xml
-<WhisparrMetadata>http://10.50.50.201:3000/api/whisparr-metadata/{route}</WhisparrMetadata>
+<WhisparrMetadata>http://<host>:3000/api/whisparr-metadata/{route}</WhisparrMetadata>
 ```
 
 The proxy ([`apps/sp-api/src/whisparr-metadata`](../apps/sp-api/src/whisparr-metadata))
@@ -179,16 +179,16 @@ Every way to run it:
 
 ```bash
 # On the Eros machine (community-scripts LXC or any systemd install)
-./configure-eros.sh --catalog tpdb --peeparr-url http://10.50.50.201:3000
+./configure-eros.sh --catalog tpdb --peeparr-url http://<host>:3000
 ./configure-eros.sh --catalog stashdb
 ./configure-eros.sh --status
 
 # From the Proxmox host, against an Eros container
-./configure-eros.sh --ctid 110 --catalog tpdb --peeparr-url http://10.50.50.201:3000
+./configure-eros.sh --ctid <ctid> --catalog tpdb --peeparr-url http://<host>:3000
 
 # Over SSH, or for Eros in Docker (run on the Docker host)
-./configure-eros.sh --ssh root@eros-host --catalog tpdb --peeparr-url http://10.50.50.201:3000
-./configure-eros.sh --docker whisparr --catalog tpdb --peeparr-url http://10.50.50.201:3000
+./configure-eros.sh --ssh root@eros-host --catalog tpdb --peeparr-url http://<host>:3000
+./configure-eros.sh --docker whisparr --catalog tpdb --peeparr-url http://<host>:3000
 ```
 
 For `tpdb` it first checks, from the Eros side, that Peeparr's proxy answers
@@ -199,7 +199,7 @@ restarts Eros.
 A new Eros LXC can be installed and configured in one go on Proxmox:
 
 ```bash
-CATALOG=tpdb PEEPARR_URL=http://10.50.50.201:3000 ./infrastructure/proxmox/install-whisparr-eros-lxc.sh
+CATALOG=tpdb PEEPARR_URL=http://<host>:3000 ./infrastructure/proxmox/install-whisparr-eros-lxc.sh
 CATALOG=stashdb ./infrastructure/proxmox/install-whisparr-eros-lxc.sh
 ```
 
