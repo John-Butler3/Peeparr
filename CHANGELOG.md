@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.5.0](https://github.com/John-Butler3/Peeparr/compare/v1.4.0...v1.5.0) (2026-10-16)
+
+
+### Features
+
+* **galleries,home:** carousel swipes, safe deep zoom, smoother hero hand-off ([b8e2065](https://github.com/John-Butler3/Peeparr/commit/b8e2065ff13e86471642650ec89a4ace01251d26))
+* **galleries:** full-resolution pictures in the image viewer ([683b060](https://github.com/John-Butler3/Peeparr/commit/683b06084747dccdadebc27b6ae1dc83321b5b33))
+* **galleries:** smooth photo zoom, and galleries load more as you scroll ([00c3b00](https://github.com/John-Butler3/Peeparr/commit/00c3b0085064868d1c9478d3d97953413ff298af))
+* **galleries:** swipe down to close the photo viewer ([f77fefd](https://github.com/John-Butler3/Peeparr/commit/f77fefd6f3896081801c040d0855ac9966477384))
+* **galleries:** uncropped previews and pinch-to-zoom photo viewer ([e72b104](https://github.com/John-Butler3/Peeparr/commit/e72b104d463140b8f75b5121b10312be388419d0))
+* **proxmox:** LXC installs and updates from prebuilt release bundles ([a7646a0](https://github.com/John-Butler3/Peeparr/commit/a7646a01b6ec7f128d6b525e8662fd17c983d7f1))
+* **web:** swipe in from the left edge to go back ([10abe9d](https://github.com/John-Butler3/Peeparr/commit/10abe9da8cca4dff87d2f987eeb8098e2c8b0dd5))
+
+
+### Bug Fixes
+
+* **deps:** drop vulnerable sprintf-js from the test tooling ([59c6eb8](https://github.com/John-Butler3/Peeparr/commit/59c6eb8ac26001c04d016bb432572d7eb95adafb))
+* **galleries:** zoom photos in much further again ([d1129ec](https://github.com/John-Butler3/Peeparr/commit/d1129ecb9c07c26e862bd841a2c44923548ccb6c))
+* **galleries:** zoomed photos are drawn from the full-resolution pixels ([638fcf3](https://github.com/John-Butler3/Peeparr/commit/638fcf34cd964b1f396d1366917c96432569c5a8))
+* **proxmox:** name the repository when attaching the release bundle ([77ef3d3](https://github.com/John-Butler3/Peeparr/commit/77ef3d32954a3c35adea329aa8455bcff7fd81e7))
+* **proxmox:** run the release bundle script with bash ([eb3651e](https://github.com/John-Butler3/Peeparr/commit/eb3651e218fd87fc72757cf992b44f2bdf4aced5))
+* **security:** status check only shows the version when signed in ([38887a9](https://github.com/John-Butler3/Peeparr/commit/38887a97437e6c021fbf4af3620a5baefc2d1d74))
+
 ## [1.4.0](https://github.com/John-Butler3/Peeparr/compare/v1.3.0...v1.4.0) (2026-10-16)
 
 
