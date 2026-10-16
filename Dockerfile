@@ -13,6 +13,16 @@ RUN corepack enable && pnpm install --frozen-lockfile
 RUN DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sp?schema=public \
   ./node_modules/.bin/prisma generate --schema /app/prisma/schema.prisma
 
+# Only what the server runs: no build or test tooling in the image.
+FROM base AS prod-deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
+COPY prisma ./prisma
+COPY apps/sp-api/package.json apps/sp-api/package.json
+COPY apps/sp-web/package.json apps/sp-web/package.json
+RUN corepack enable && pnpm install --frozen-lockfile --prod --filter . --filter sp-api
+RUN DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sp?schema=public \
+  ./node_modules/.bin/prisma generate --schema /app/prisma/schema.prisma
+
 FROM deps AS build
 COPY . .
 RUN pnpm --filter sp-api build
@@ -30,9 +40,9 @@ ENV PORT=3000
 ENV PEEPARR_VERSION=$PEEPARR_VERSION
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
-COPY --from=build /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/apps/sp-api/package.json ./apps/sp-api/package.json
-COPY --from=build /app/apps/sp-api/node_modules ./apps/sp-api/node_modules
+COPY --from=prod-deps /app/apps/sp-api/node_modules ./apps/sp-api/node_modules
 COPY --from=build /app/apps/sp-api/dist ./apps/sp-api/dist
 COPY --from=build /app/apps/sp-web/dist ./apps/sp-web/dist
 COPY --from=build /app/prisma ./prisma
