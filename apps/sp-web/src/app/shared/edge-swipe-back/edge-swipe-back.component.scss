@@ -1,0 +1,36 @@
+// The back arrow that follows a swipe in from the left edge (positioned and
+// moved from the component as the finger moves).
+.edge-back {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface-elevated, #222) 92%, transparent);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 40%);
+  color: var(--text-muted, #aaa);
+  font-size: 1.05rem;
+  opacity: 0;
+  transform: translateX(-44px);
+  pointer-events: none;
+  will-change: transform;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+// Far enough: let go to go back.
+.edge-back.is-armed {
+  background: var(--yt-red, #e5484d);
+  color: #fff;
+}
+
+.edge-back.is-settling {
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease-out;
+}

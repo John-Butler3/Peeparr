@@ -124,7 +124,8 @@
     }
 
     @if (currentViewerImage(); as viewerImage) {
-      <div class="image-viewer-overlay" role="dialog" aria-modal="true">
+      <!-- Sideways swipes here change picture, not page (no edge swipe back). -->
+      <div class="image-viewer-overlay" role="dialog" aria-modal="true" data-no-swipe-back>
         <!-- Its own layer, so it can fade as a picture is pulled down to close. -->
         <div #backdrop class="viewer-backdrop" aria-hidden="true"></div>
 
