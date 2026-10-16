@@ -1,0 +1,122 @@
+:host {
+  display: block;
+}
+
+.remote-access {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--yt-radius, 12px);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.copy.small {
+  font-size: 0.8125rem;
+}
+
+.callout {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #f5a623 16%, transparent);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.callout.muted {
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.options {
+  display: grid;
+  gap: 8px;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.option.selected {
+  border-color: var(--yt-red, #ff0033);
+  background: color-mix(in srgb, var(--yt-red, #ff0033) 7%, transparent);
+}
+
+.option input {
+  margin-top: 3px;
+  accent-color: var(--yt-red, #ff0033);
+}
+
+.option span {
+  display: grid;
+  gap: 2px;
+}
+
+.option small {
+  color: var(--text-muted);
+}
+
+.address {
+  padding: 8px 12px;
+  border: 1px solid var(--yt-input-border, var(--border-subtle));
+  border-radius: 8px;
+  background: var(--yt-input-bg, transparent);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.error {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 0.875rem;
+}
+
+.saved {
+  margin: 0;
+  color: #56d364;
+  font-size: 0.875rem;
+}
+
+.save {
+  justify-self: start;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--yt-chip-active-bg, #f1f1f1);
+  color: var(--yt-chip-active-text, #0f0f0f);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

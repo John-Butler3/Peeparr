@@ -226,8 +226,12 @@ cat <<SUMMARY
     Lost password:  click "Forgot password?" on the sign-in page, then run
                     peeparr-reset-password   (or: cd ${INSTALL_DIR} && docker compose exec app peeparr-reset-password)
 
-Next: create the admin account in the browser, then connect your catalog
-(StashDB / FansDB / TPDB), Stash and Whisparr.
+Next: create the admin account in the browser (from your own network), then
+connect your catalog (StashDB / FansDB / TPDB), Stash and Whisparr.
+
+Reaching Peeparr from outside through a reverse proxy? Choose it under
+"Remote access" at the end of setup (or Settings > Account) -- see
+docs/DEPLOYMENT.md ("Behind a reverse proxy").
 
 If Whisparr-Eros should use TPDB as its metadata source, point it at this
 Peeparr with scripts/configure-eros.sh -- see docs/DEPLOYMENT.md

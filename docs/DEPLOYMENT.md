@@ -85,11 +85,17 @@ such as WireGuard or Tailscale is simpler still, and needs none of this.
    allows it from a private address, so a stranger can't claim a new
    instance through the proxy. (`PEEPARR_ALLOW_REMOTE_SETUP=true` lifts
    this, if you really must set it up remotely.)
-2. **Tell Peeparr about the proxy** with `PEEPARR_TRUST_PROXY`, so it sees
-   each visitor's real address (for sign-in limits) and knows the
-   connection is HTTPS (for secure cookies):
-   - `PEEPARR_TRUST_PROXY=1`: the proxy talks to Peeparr directly (one hop).
-   - Or the proxy's address or network, e.g. `PEEPARR_TRUST_PROXY=10.0.0.2`.
+2. **Tell Peeparr about the proxy**, so it sees each visitor's real address
+   (for sign-in limits) and knows the connection is HTTPS (for secure
+   cookies). In the app: **Remote access**, at the end of setup or in
+   Settings › Account. It takes effect straight away:
+   - **Through a reverse proxy**: the proxy talks to Peeparr directly (most
+     setups).
+   - **A specific proxy address**: only trust that address or network, e.g.
+     `10.0.0.2` or `172.16.0.0/12`.
+
+   Or on the server, `PEEPARR_TRUST_PROXY=1` (or the proxy's address) in
+   `/opt/peeparr/.env`, which overrides the in-app choice.
 
    Without it, everyone arriving through the proxy shares the proxy's
    address, so a stranger's failed sign-ins could lock you out.

@@ -16,8 +16,8 @@ Fixes go into the latest release. Update with `peeparr-update`.
 
 - A VPN is the simplest way to reach Peeparr from outside. Behind a reverse
   proxy, follow [Behind a reverse proxy](docs/DEPLOYMENT.md#behind-a-reverse-proxy):
-  create the admin from your own network first, set `PEEPARR_TRUST_PROXY`,
-  and use HTTPS.
+  create the admin from your own network first, choose Remote access ›
+  Through a reverse proxy (setup or Settings › Account), and use HTTPS.
 - The ThePornDB metadata address used by Whisparr-Eros
   (`/api/whisparr-metadata/…`) has no login, since Whisparr can't sign in.
   It only answers your private network, never visitors coming through the

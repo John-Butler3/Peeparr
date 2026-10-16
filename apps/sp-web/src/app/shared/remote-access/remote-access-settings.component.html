@@ -1,0 +1,81 @@
+<article class="remote-access" data-testid="remote-access">
+  <p class="eyebrow">Remote access</p>
+  <h3>How do you reach Peeparr from outside?</h3>
+  <p class="copy">
+    A VPN is simplest. With a reverse proxy (Nginx Proxy Manager, Caddy, Traefik, a Cloudflare
+    Tunnel), tell Peeparr so it sees each visitor's real address and that the connection is secure.
+  </p>
+
+  @if (loading()) {
+    <p class="copy">Loading…</p>
+  } @else {
+    @if (proxyNotTrusted()) {
+      <p class="callout" data-testid="remote-access-proxy-hint">
+        You're connected through a proxy right now. Choose "Through a reverse proxy" so sign-in
+        limits and secure cookies work properly.
+      </p>
+    }
+    @if (locked()) {
+      <p class="callout muted">
+        Set on the server with <code>PEEPARR_TRUST_PROXY</code>, so it can't be changed here.
+      </p>
+    }
+
+    <div class="options" role="radiogroup" aria-label="Remote access">
+      <label class="option" [class.selected]="mode() === 'none'">
+        <input type="radio" name="remote-access" [checked]="mode() === 'none'" [disabled]="locked()" (change)="choose('none')" />
+        <span>
+          <strong>Only on my network or a VPN</strong>
+          <small>No reverse proxy in front of Peeparr.</small>
+        </span>
+      </label>
+      <label class="option" [class.selected]="mode() === 'proxy'">
+        <input type="radio" name="remote-access" [checked]="mode() === 'proxy'" [disabled]="locked()" (change)="choose('proxy')" />
+        <span>
+          <strong>Through a reverse proxy</strong>
+          <small>The proxy connects to Peeparr directly (most setups).</small>
+        </span>
+      </label>
+      <label class="option" [class.selected]="mode() === 'custom'">
+        <input type="radio" name="remote-access" [checked]="mode() === 'custom'" [disabled]="locked()" (change)="choose('custom')" />
+        <span>
+          <strong>A specific proxy address</strong>
+          <small>Only trust these addresses, e.g. 10.0.0.2 or 172.16.0.0/12.</small>
+        </span>
+      </label>
+      @if (mode() === 'custom') {
+        <input
+          class="address"
+          type="text"
+          inputmode="url"
+          autocomplete="off"
+          placeholder="10.0.0.2"
+          aria-label="Proxy address"
+          [disabled]="locked()"
+          [ngModel]="customValue()"
+          (ngModelChange)="customValue.set($event); savedMessage.set(null)"
+        />
+      }
+    </div>
+
+    @if (mode() !== 'none') {
+      <p class="copy small">
+        Create the admin account from your own network first, use HTTPS, and keep Whisparr talking to
+        Peeparr directly on your network.
+      </p>
+    }
+
+    @if (error(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+    @if (savedMessage(); as message) {
+      <p class="saved" role="status">{{ message }}</p>
+    }
+
+    @if (!locked()) {
+      <button type="button" class="save" [disabled]="saving() || !dirty()" (click)="save()">
+        {{ saving() ? 'Saving…' : 'Save' }}
+      </button>
+    }
+  }
+</article>

@@ -155,7 +155,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/mai
 
 Open `http://<host>:3000`. On the first visit you create the single local admin account; after that, signing in is required.
 
-**Reaching it from outside your home?** A VPN (WireGuard, Tailscale) is simplest. To use a reverse proxy with HTTPS instead, follow [Behind a reverse proxy](docs/DEPLOYMENT.md#behind-a-reverse-proxy): create the admin from your own network first and set `PEEPARR_TRUST_PROXY`.
+**Reaching it from outside your home?** A VPN (WireGuard, Tailscale) is simplest. To use a reverse proxy with HTTPS instead, follow [Behind a reverse proxy](docs/DEPLOYMENT.md#behind-a-reverse-proxy): create the admin from your own network first, then choose **Remote access › Through a reverse proxy** (in setup or Settings › Account).
 
 **Using ThePornDB as the catalog?** Whisparr-Eros must then use Peeparr's ThePornDB metadata proxy instead of its built-in StashDB metadata. Setup shows you how, with the command ready to copy. On the Whisparr-Eros machine:
 

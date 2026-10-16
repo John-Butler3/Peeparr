@@ -19,7 +19,12 @@ const logger = new Logger('HttpSecurity');
  * "true" would trust addresses anyone can fake, so it's read as one hop.
  */
 export function trustProxySetting(env: NodeJS.ProcessEnv = process.env): number | string | false {
-  const raw = env.PEEPARR_TRUST_PROXY?.trim();
+  return parseTrustProxy(env.PEEPARR_TRUST_PROXY);
+}
+
+/** A trust-proxy value as Express takes it: hops, addresses, or false. */
+export function parseTrustProxy(value: string | null | undefined): number | string | false {
+  const raw = value?.trim();
   if (!raw || raw.toLowerCase() === 'false' || raw === '0') {
     return false;
   }
@@ -30,6 +35,47 @@ export function trustProxySetting(env: NodeJS.ProcessEnv = process.env): number 
     return 1;
   }
   return raw;
+}
+
+/**
+ * Why a remote-access value can't be used, or null if it can: a hop count
+ * (1-5), or comma-separated proxy addresses / networks.
+ */
+export function trustProxyProblem(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) {
+    return null;
+  }
+  if (/^\d+$/.test(raw)) {
+    const hops = Number(raw);
+    return hops >= 1 && hops <= 5 ? null : 'Use a number of proxies from 1 to 5.';
+  }
+  for (const part of raw.split(',').map((p) => p.trim())) {
+    const [address, prefix, extra] = part.split('/');
+    const family = isIP(address ?? '');
+    const maxPrefix = family === 4 ? 32 : 128;
+    const prefixOk = prefix === undefined || (/^\d+$/.test(prefix) && Number(prefix) <= maxPrefix);
+    if (!family || !prefixOk || extra !== undefined) {
+      return `"${part}" isn't an IP address or network (like 10.0.0.2 or 172.16.0.0/12).`;
+    }
+  }
+  return null;
+}
+
+// What's in effect: PEEPARR_TRUST_PROXY, else the Remote access setting.
+let effectiveTrustProxy: number | string | false = false;
+
+export function currentTrustProxy(): number | string | false {
+  return effectiveTrustProxy;
+}
+
+/** Applies a trust-proxy value now (no restart): Express and the checks below. */
+export function applyTrustProxy(
+  expressApp: { set(setting: string, value: unknown): unknown },
+  value: number | string | false,
+): void {
+  effectiveTrustProxy = value;
+  expressApp.set('trust proxy', value);
 }
 
 const PRIVATE = (() => {
@@ -78,7 +124,7 @@ export function isFromPrivateNetwork(request: Request): boolean {
   }
   // request.ip is the client as reported by the trusted proxy (Express
   // walks X-Forwarded-For back to the first address it doesn't trust).
-  return trustProxySetting() !== false ? isPrivateAddress(request.ip) : false;
+  return currentTrustProxy() !== false ? isPrivateAddress(request.ip) : false;
 }
 
 /** Security headers on every response. */
@@ -167,8 +213,10 @@ export function applyHttpSecurity(app: NestExpressApplication): void {
   if (/^(true|\*)$/i.test(process.env.PEEPARR_TRUST_PROXY?.trim() ?? '')) {
     logger.warn('PEEPARR_TRUST_PROXY=true would trust any sender; treating it as one proxy hop (1).');
   }
+  // From the environment now; otherwise the Remote access setting is applied
+  // once the app has started (NetworkSettingsService).
+  applyTrustProxy(express, trust);
   if (trust !== false) {
-    app.set('trust proxy', trust);
     logger.log(`Trusting the reverse proxy: ${String(trust)}`);
   }
   app.use(securityHeaders);

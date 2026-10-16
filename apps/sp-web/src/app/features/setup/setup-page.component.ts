@@ -42,9 +42,10 @@ import {
 } from '../../shared/readiness/first-run-readiness.utils';
 
 import { TpdbCatalogGuideComponent } from '../../shared/tpdb-catalog-guide/tpdb-catalog-guide.component';
+import { RemoteAccessSettingsComponent } from '../../shared/remote-access/remote-access-settings.component';
 @Component({
   selector: 'app-setup-page',
-  imports: [TpdbCatalogGuideComponent, Message, ProgressSpinner, ButtonDirective, RouterLink, IntegrationRepairPanelComponent],
+  imports: [RemoteAccessSettingsComponent, TpdbCatalogGuideComponent, Message, ProgressSpinner, ButtonDirective, RouterLink, IntegrationRepairPanelComponent],
   templateUrl: './setup-page.component.html',
   styleUrl: './setup-page.component.scss',
 })

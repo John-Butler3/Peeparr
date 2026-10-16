@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import {
+  applyTrustProxy,
   isFromPrivateNetwork,
+  trustProxyProblem,
   rejectCrossSiteWrites,
   securityHeaders,
   trustProxySetting,
@@ -40,8 +42,11 @@ function response() {
 }
 
 describe('HTTP security', () => {
+  const expressApp = { set: jest.fn() };
+
   afterEach(() => {
     delete process.env.PEEPARR_TRUST_PROXY;
+    applyTrustProxy(expressApp, false);
   });
 
   describe('trustProxySetting', () => {
@@ -79,12 +84,23 @@ describe('HTTP security', () => {
     });
 
     it('with a trusted proxy, judges the client address it reports', () => {
-      process.env.PEEPARR_TRUST_PROXY = '1';
+      applyTrustProxy(expressApp, 1);
+      expect(expressApp.set).toHaveBeenCalledWith('trust proxy', 1);
       const outside = request({ remoteAddress: '172.18.0.3', ip: '203.0.113.9', headers: { 'x-forwarded-for': '203.0.113.9' } });
       const home = request({ remoteAddress: '172.18.0.3', ip: '192.168.1.50', headers: { 'x-forwarded-for': '192.168.1.50' } });
       expect(isFromPrivateNetwork(outside)).toBe(false);
       expect(isFromPrivateNetwork(home)).toBe(true);
     });
+  });
+
+  describe('trustProxyProblem', () => {
+    it.each(['', '1', '2', '10.0.0.2', '172.16.0.0/12', '10.0.0.2, 192.168.1.0/24', 'fd00::/8'])(
+      'accepts %p',
+      (value) => expect(trustProxyProblem(value)).toBeNull(),
+    );
+    it.each(['0', '9', 'true', '*', 'proxy.local', '10.0.0.0/40', '10.0.0.300'])('refuses %p', (value) =>
+      expect(trustProxyProblem(value)).toEqual(expect.any(String)),
+    );
   });
 
   describe('securityHeaders', () => {

@@ -290,6 +290,10 @@ model AppSettings {
   defaultMonitored          Boolean  @default(true)
   defaultSearchForMovie     Boolean  @default(true)
   defaultTagIds             Int[]    @default([])
+  /// The reverse proxy in front of Peeparr (Settings / setup "Remote access"):
+  /// a hop count ("1") or the proxy's addresses. Null: none. The
+  /// PEEPARR_TRUST_PROXY environment setting overrides it.
+  trustProxy                String?
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 }
