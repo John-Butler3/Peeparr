@@ -213,10 +213,10 @@ describe('PinchZoomDirective', () => {
     expect(parseFloat(photo.style.width) / parseFloat(photo.style.height)).toBeCloseTo(2);
   });
 
-  it('zoomed all the way in, the picture keeps its shape and stays within GPU limits', () => {
+  it('zooms far past actual pixels, and all the way in the picture keeps its shape', () => {
     const { stage, photo } = render();
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) {
       stage.dispatchEvent(
         new WheelEvent('wheel', { deltaY: -400, clientX: 400, clientY: 300, cancelable: true }),
       );
@@ -226,8 +226,8 @@ describe('PinchZoomDirective', () => {
 
     const width = parseFloat(photo.style.width);
     const height = parseFloat(photo.style.height);
-    expect(width).toBeLessThanOrEqual(PinchZoomDirective.MAX_LAYER_PX);
-    expect(width).toBeGreaterThan(6000);
+    // 6000px picture: up to 4x actual pixels.
+    expect(width).toBeCloseTo(24000, 0);
     expect(width / height).toBeCloseTo(400 / 300);
     // Laid out, not stretched by a leftover transform.
     expect(photo.style.transform).toBe('none');

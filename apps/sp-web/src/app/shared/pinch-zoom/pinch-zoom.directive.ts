@@ -44,9 +44,10 @@ interface Fitted {
  * fades `pinchZoomBackdrop`); let go far or fast enough and it slides off
  * and `dismiss` is emitted.
  *
- * GPU limits: browsers clamp very large layers (Safari per side, which
- * squashes or stretches the picture), so the deepest zoom keeps the zoomed
- * picture within MAX_LAYER_PX device pixels.
+ * Deep zoom: browsers clamp very large *composited* layers (Safari per
+ * side, which squashes or stretches the picture). The live transform is on
+ * the fitted-size picture (a small layer), and the settled layout carries no
+ * transform (painted in tiles like a long page), so neither gets that big.
  *
  * Smoothness: moves are a GPU transform, animated frame by frame. Sharpness:
  * a transform only stretches the picture as drawn at its fitted size, so once
@@ -67,11 +68,9 @@ export class PinchZoomDirective implements OnDestroy {
   /** Quiet time after moving before redrawing sharp. */
   static readonly SETTLE_MS = 120;
   /** Zoom at least this far, however small the picture... */
-  static readonly MIN_MAX_SCALE = 3;
-  /** ...and as far as this beyond actual pixels... */
-  static readonly BEYOND_ACTUAL = 1.5;
-  /** ...but never past this many device pixels along the picture's long side. */
-  static readonly MAX_LAYER_PX = 8192;
+  static readonly MIN_MAX_SCALE = 4;
+  /** ...and as far as this beyond actual pixels (pixel-peeping). */
+  static readonly BEYOND_ACTUAL = 4;
   /** Space between pictures in a carousel strip. */
   static readonly SLIDE_GAP_PX = 24;
   static readonly SLIDE_MS = 280;
@@ -540,14 +539,10 @@ export class PinchZoomDirective implements OnDestroy {
   }
 
   private maxScale(): number {
-    const wanted = Math.max(
+    return Math.max(
       PinchZoomDirective.MIN_MAX_SCALE,
       this.actualPixelsScale() * PinchZoomDirective.BEYOND_ACTUAL,
     );
-    const fitted = this.measure();
-    const longSide = fitted ? Math.max(fitted.w, fitted.h) * (globalThis.devicePixelRatio || 1) : 0;
-    const layerLimit = longSide > 0 ? PinchZoomDirective.MAX_LAYER_PX / longSide : wanted;
-    return Math.max(1, Math.min(wanted, layerLimit));
   }
 
   /** Picture pixels per screen (device) pixel when fitted. */
