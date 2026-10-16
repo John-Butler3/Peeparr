@@ -1,4 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
+import type { Request } from 'express';
+import { AuthService } from '../auth/auth.service';
 import { HealthController } from './health.controller';
 
 describe('HealthController', () => {
@@ -9,13 +11,18 @@ describe('HealthController', () => {
     $queryRaw: jest.fn().mockResolvedValue([{ result: 1 }]),
   } as unknown as PrismaService;
 
+  const resolveRequestAuth = jest.fn();
+  const authService = { resolveRequestAuth } as unknown as AuthService;
+  const request = {} as Request;
+
   let controller: HealthController;
 
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.PEEPARR_VERSION;
     delete process.env.npm_package_version;
-    controller = new HealthController(prisma);
+    resolveRequestAuth.mockResolvedValue({ authenticated: true });
+    controller = new HealthController(prisma, authService);
   });
 
   afterAll(() => {
@@ -27,7 +34,7 @@ describe('HealthController', () => {
     process.env.PEEPARR_VERSION = '9.9.9-test';
     process.env.npm_package_version = '0.0.1';
 
-    await expect(controller.getStatus()).resolves.toMatchObject({
+    await expect(controller.getStatus(request)).resolves.toMatchObject({
       status: 'ok',
       database: 'ok',
       service: 'sp-api',
@@ -39,15 +46,24 @@ describe('HealthController', () => {
   it('falls back to npm_package_version when PEEPARR_VERSION is unset', async () => {
     process.env.npm_package_version = '1.2.3-local';
 
-    await expect(controller.getStatus()).resolves.toMatchObject({
+    await expect(controller.getStatus(request)).resolves.toMatchObject({
       version: '1.2.3-local',
     });
   });
 
   it('falls back to a dev version when no runtime version is available', async () => {
-    await expect(controller.getStatus()).resolves.toMatchObject({
+    await expect(controller.getStatus(request)).resolves.toMatchObject({
       version: '0.0.0-dev',
     });
+  });
+
+  it('leaves the version out when not signed in', async () => {
+    process.env.PEEPARR_VERSION = '9.9.9-test';
+    resolveRequestAuth.mockResolvedValue({ authenticated: false });
+
+    const status = await controller.getStatus(request);
+    expect(status).toEqual({ status: 'ok', database: 'ok', service: 'sp-api' });
+    expect(status).not.toHaveProperty('version');
   });
 });
 
