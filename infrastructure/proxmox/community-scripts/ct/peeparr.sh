@@ -12,11 +12,11 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 APP="Peeparr"
 var_tags="${var_tags:-arr}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-3072}"
+var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-no}"
+var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -34,47 +34,48 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_branch "peeparr" "John-Butler3/Peeparr" "main"; then
+  if ! command -v pnpm >/dev/null; then
+    NODE_VERSION="22" NODE_MODULE="pnpm@$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/package.json | jq -r '.packageManager | split("@")[1]')" setup_nodejs
+  fi
+
+  if check_for_gh_release "peeparr" "John-Butler3/Peeparr"; then
     msg_info "Stopping Service"
     systemctl stop peeparr
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    cp /opt/peeparr/.env /opt/peeparr.env.bak
-    msg_ok "Backed up Configuration"
+    create_backup /opt/peeparr/.env
 
-    fetch_and_deploy_gh_branch "peeparr" "John-Butler3/Peeparr" "main" "/opt/peeparr"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "peeparr" "John-Butler3/Peeparr" "prebuild" "latest" "/opt/peeparr" "peeparr-*.tar.gz"
 
-    msg_info "Restoring Configuration"
-    cp /opt/peeparr.env.bak /opt/peeparr/.env
-    rm -f /opt/peeparr.env.bak
-    msg_ok "Restored Configuration"
+    restore_backup
 
-    msg_info "Building Peeparr (Patience)"
+    msg_info "Updating Peeparr"
     cd /opt/peeparr
-    export NODE_OPTIONS="--max-old-space-size=2048"
+    if grep -q '^PEEPARR_VERSION=' .env; then
+      sed -i "s|^PEEPARR_VERSION=.*|PEEPARR_VERSION=$(cat VERSION)|" .env
+    else
+      echo "PEEPARR_VERSION=$(cat VERSION)" >>.env
+    fi
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
     set -a
     source /opt/peeparr/.env
     set +a
-    $STD pnpm install --frozen-lockfile
+    $STD pnpm install --prod --frozen-lockfile --filter . --filter sp-api
     $STD ./node_modules/.bin/prisma generate --schema prisma/schema.prisma
-    $STD pnpm --filter sp-api build
-    $STD pnpm --filter sp-web build
-    cp infrastructure/docker/reset-password.sh /usr/local/bin/peeparr-reset-password
-    chmod +x /usr/local/bin/peeparr-reset-password
-    msg_ok "Built Peeparr"
+    ln -sf /opt/peeparr/bin/peeparr-reset-password /usr/local/bin/peeparr-reset-password
+    msg_ok "Updated Peeparr"
 
-    msg_info "Securing Service"
-    # Installs from before this ran Peeparr as root: give it its own user.
-    useradd --system --home-dir /var/lib/peeparr --shell /usr/sbin/nologin peeparr 2>/dev/null || true
-    mkdir -p /var/lib/peeparr
-    chown -R peeparr:peeparr /var/lib/peeparr
-    chmod 700 /var/lib/peeparr
     if ! grep -q '^User=peeparr' /etc/systemd/system/peeparr.service; then
+      msg_info "Securing Service"
+      # Installs from before this ran Peeparr as root: give it its own user.
+      useradd --system --home-dir /var/lib/peeparr --shell /usr/sbin/nologin peeparr 2>/dev/null || true
+      mkdir -p /var/lib/peeparr
+      chown -R peeparr:peeparr /var/lib/peeparr
+      chmod 700 /var/lib/peeparr
       sed -i 's|^Type=simple$|Type=simple\nUser=peeparr\nGroup=peeparr|; s|^RestartSec=5$|RestartSec=5\nNoNewPrivileges=true\nPrivateTmp=true\nProtectSystem=full\nProtectHome=true\nReadWritePaths=/var/lib/peeparr|' /etc/systemd/system/peeparr.service
       systemctl daemon-reload
+      msg_ok "Secured Service"
     fi
-    msg_ok "Secured Service"
 
     msg_info "Starting Service"
     systemctl start peeparr
@@ -88,7 +89,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"

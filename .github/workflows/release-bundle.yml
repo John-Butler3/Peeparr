@@ -1,0 +1,65 @@
+name: Release Bundle
+
+# Attaches peeparr-<version>.tar.gz (built, ready to run without Docker) to a
+# GitHub release; the Proxmox LXC script installs and updates from it.
+# Called by Release Please when it publishes a release, or run by hand for
+# an existing tag.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. v1.4.0)
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    name: Build And Attach Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          path: src
+
+      # The bundling script from this workflow's own commit, so older tags
+      # (from before the script existed) can be bundled too.
+      - name: Check out the bundling script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: tools
+          sparse-checkout: scripts
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 10.32.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/pnpm-lock.yaml
+
+      - name: Build the bundle
+        env:
+          PEEPARR_SRC: ${{ github.workspace }}/src
+        run: tools/scripts/build-release-bundle.sh "${{ inputs.tag }}" dist-release
+
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.tag }}" dist-release/peeparr-*.tar.gz --clobber

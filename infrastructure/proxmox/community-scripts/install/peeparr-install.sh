@@ -17,15 +17,13 @@ msg_info "Installing Dependencies"
 $STD apt install -y openssl
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="22" NODE_MODULE="pnpm@$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/package.json | jq -r '.packageManager | split("@")[1]')" setup_nodejs
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="peeparr" PG_DB_USER="peeparr" setup_postgresql_db
-
-fetch_and_deploy_gh_branch "peeparr" "John-Butler3/Peeparr" "main" "/opt/peeparr"
+fetch_and_deploy_gh_release "peeparr" "John-Butler3/Peeparr" "prebuild" "latest" "/opt/peeparr" "peeparr-*.tar.gz"
 
 msg_info "Configuring Peeparr"
-# Peeparr runs as its own unprivileged user.
-useradd --system --home-dir /var/lib/peeparr --shell /usr/sbin/nologin peeparr 2>/dev/null || true
+useradd --system --home-dir /var/lib/peeparr --shell /usr/sbin/nologin peeparr
 mkdir -p /var/lib/peeparr
 chown peeparr:peeparr /var/lib/peeparr
 chmod 700 /var/lib/peeparr
@@ -36,25 +34,24 @@ PORT=3000
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?schema=public
 SESSION_SECRET=$(openssl rand -base64 48 | tr -d '\r\n')
 APP_DATA_DIR=/var/lib/peeparr
-# Behind a reverse proxy: the proxy's hop count or address (see the docs).
+PEEPARR_VERSION=$(cat /opt/peeparr/VERSION)
+# Behind a reverse proxy: choose it under Remote access in setup, or set the
+# proxy's hop count or address here (see docs/DEPLOYMENT.md).
 # PEEPARR_TRUST_PROXY=1
 EOF
 chmod 600 /opt/peeparr/.env
 msg_ok "Configured Peeparr"
 
-msg_info "Building Peeparr (Patience)"
+msg_info "Installing Peeparr"
 cd /opt/peeparr
-export NODE_OPTIONS="--max-old-space-size=2048"
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 set -a
 source /opt/peeparr/.env
 set +a
-$STD pnpm install --frozen-lockfile
+$STD pnpm install --prod --frozen-lockfile --filter . --filter sp-api
 $STD ./node_modules/.bin/prisma generate --schema prisma/schema.prisma
-$STD pnpm --filter sp-api build
-$STD pnpm --filter sp-web build
-cp infrastructure/docker/reset-password.sh /usr/local/bin/peeparr-reset-password
-chmod +x /usr/local/bin/peeparr-reset-password
-msg_ok "Built Peeparr"
+ln -sf /opt/peeparr/bin/peeparr-reset-password /usr/local/bin/peeparr-reset-password
+msg_ok "Installed Peeparr"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/peeparr.service

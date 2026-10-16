@@ -13,14 +13,14 @@
   "website": "https://github.com/John-Butler3/Peeparr",
   "logo": "https://raw.githubusercontent.com/John-Butler3/Peeparr/main/apps/sp-web/public/icons/icon-192.png",
   "config_path": "/opt/peeparr/.env",
-  "description": "Peeparr is a self-hosted console that discovers scenes from a catalog (StashDB, FansDB or TPDB), sends requests to Whisparr and checks what's already in your Stash library, with a YouTube-style player and library browser.",
+  "description": "Peeparr is a self-hosted hub for your adult library, alongside Stash and Whisparr: discover scenes from a catalog (StashDB, FansDB or TPDB), request them through Whisparr, see what's already in your Stash library, and watch it all in one place.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/peeparr.sh",
       "resources": {
         "cpu": 2,
-        "ram": 3072,
+        "ram": 2048,
         "hdd": 8,
         "os": "debian",
         "version": "13"
@@ -43,10 +43,6 @@
     {
       "text": "Using TPDB as the catalog? Whisparr-Eros must use Peeparr's TPDB metadata proxy: run scripts/configure-eros.sh --catalog tpdb --peeparr-url http://<peeparr-ip>:3000 (see docs/DEPLOYMENT.md).",
       "type": "warning"
-    },
-    {
-      "text": "Building the app needs about 3 GB RAM; you can lower it after install.",
-      "type": "info"
     }
   ]
 }
