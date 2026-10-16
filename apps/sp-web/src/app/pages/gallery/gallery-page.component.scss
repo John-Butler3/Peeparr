@@ -183,9 +183,14 @@ p {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   z-index: 100;
-  background: rgb(6 12 20 / 92%);
   display: grid;
   place-items: center;
+}
+
+.viewer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(6 12 20 / 92%);
 }
 
 .viewer-stage {

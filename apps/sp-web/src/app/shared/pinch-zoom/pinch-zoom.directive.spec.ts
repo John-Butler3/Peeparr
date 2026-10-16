@@ -5,21 +5,25 @@ import { PinchZoomDirective } from './pinch-zoom.directive';
 @Component({
   imports: [PinchZoomDirective],
   template: `
+    <div #backdrop class="backdrop"></div>
     <div
       class="stage"
       appPinchZoom
       [pinchZoomTarget]="photo"
       [pinchZoomEnabled]="enabled"
+      [pinchZoomTrack]="withTrack ? track : null"
+      [pinchZoomBackdrop]="backdrop"
       (zoomedChange)="zoomed = $event"
       (swipe)="swipes.push($event)"
       (dismiss)="dismissed = dismissed + 1"
     >
-      <img #photo class="photo" alt="" />
+      <div #track class="track"><img #photo class="photo" alt="" /></div>
     </div>
   `,
 })
 class HostComponent {
   enabled = true;
+  withTrack = false;
   zoomed = false;
   swipes: string[] = [];
   dismissed = 0;
@@ -61,9 +65,10 @@ describe('PinchZoomDirective', () => {
     TestBed.resetTestingModule();
   });
 
-  function render(enabled = true) {
+  function render(enabled = true, withTrack = false) {
     const fixture = TestBed.createComponent(HostComponent);
     fixture.componentInstance.enabled = enabled;
+    fixture.componentInstance.withTrack = withTrack;
     fixture.detectChanges();
     const stage = fixture.nativeElement.querySelector('.stage') as HTMLElement;
     const photo = fixture.nativeElement.querySelector('.photo') as HTMLImageElement;
@@ -279,6 +284,49 @@ describe('PinchZoomDirective', () => {
     tap(stage, 50, 50, 5000);
     expect(host.dismissed).toBe(0);
     vi.advanceTimersByTime(PinchZoomDirective.DOUBLE_TAP_MS);
+    expect(host.dismissed).toBe(1);
+  });
+
+  it('with a strip: pulling the photo down fades the backdrop, and far enough closes', () => {
+    const { fixture, host, photo } = render(true, true);
+    const track = fixture.nativeElement.querySelector('.track') as HTMLElement;
+    const backdrop = fixture.nativeElement.querySelector('.backdrop') as HTMLElement;
+
+    // A short pull springs back.
+    photo.dispatchEvent(pointer('pointerdown', 400, 300, { time: 0 }));
+    photo.dispatchEvent(pointer('pointermove', 405, 350, { time: 300 }));
+    expect(track.style.transform).toContain('translate3d(0px, 50px, 0)');
+    expect(Number(backdrop.style.opacity)).toBeLessThan(1);
+    photo.dispatchEvent(pointer('pointerup', 405, 350, { time: 400 }));
+    vi.advanceTimersByTime(PinchZoomDirective.SLIDE_MS + 40);
+    expect(track.style.transform).toBe('');
+    expect(backdrop.style.opacity).toBe('');
+    expect(host.dismissed).toBe(0);
+
+    // A long one slides away, then closes (no tap-to-close wait).
+    photo.dispatchEvent(pointer('pointerdown', 400, 300, { time: 1000 }));
+    photo.dispatchEvent(pointer('pointermove', 400, 500, { time: 1300 }));
+    photo.dispatchEvent(pointer('pointerup', 400, 500, { time: 1400 }));
+    expect(host.dismissed).toBe(0);
+    vi.advanceTimersByTime(PinchZoomDirective.DISMISS_MS + 40);
+    expect(host.dismissed).toBe(1);
+    expect(track.style.transform).toContain('600px');
+    expect(host.swipes).toEqual([]);
+  });
+
+  it('with a strip: a quick flick down closes too, but sideways drags never do', () => {
+    const { host, photo } = render(true, true);
+
+    photo.dispatchEvent(pointer('pointerdown', 400, 300, { time: 0 }));
+    photo.dispatchEvent(pointer('pointermove', 400, 360, { time: 50 }));
+    photo.dispatchEvent(pointer('pointerup', 400, 360, { time: 60 }));
+    vi.advanceTimersByTime(PinchZoomDirective.DISMISS_MS + 40);
+    expect(host.dismissed).toBe(1);
+
+    photo.dispatchEvent(pointer('pointerdown', 400, 300, { time: 1000 }));
+    photo.dispatchEvent(pointer('pointermove', 300, 360, { time: 1300 }));
+    photo.dispatchEvent(pointer('pointerup', 300, 360, { time: 1400 }));
+    vi.advanceTimersByTime(PinchZoomDirective.SLIDE_MS + 40);
     expect(host.dismissed).toBe(1);
   });
 

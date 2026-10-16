@@ -125,6 +125,9 @@
 
     @if (currentViewerImage(); as viewerImage) {
       <div class="image-viewer-overlay" role="dialog" aria-modal="true">
+        <!-- Its own layer, so it can fade as a picture is pulled down to close. -->
+        <div #backdrop class="viewer-backdrop" aria-hidden="true"></div>
+
         <button
           type="button"
           class="viewer-close"
@@ -148,6 +151,7 @@
           appPinchZoom
           pinchZoomTarget=".viewer-panel.is-current .viewer-full"
           [pinchZoomTrack]="track"
+          [pinchZoomBackdrop]="backdrop"
           [pinchZoomHasPrevious]="viewerHasPrevious()"
           [pinchZoomHasNext]="viewerHasNext()"
           [pinchZoomEnabled]="viewerFullLoaded()"

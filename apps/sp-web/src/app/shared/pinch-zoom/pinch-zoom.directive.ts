@@ -40,6 +40,9 @@ interface Fitted {
  * a carousel, pass the strip holding the neighbouring pictures (either side
  * of the current one, a stage width + SLIDE_GAP_PX away) as `pinchZoomTrack`:
  * swipes then drag the strip, and a swipe slides it a whole picture across.
+ * With a strip, dragging down at normal size pulls the picture away (and
+ * fades `pinchZoomBackdrop`); let go far or fast enough and it slides off
+ * and `dismiss` is emitted.
  *
  * GPU limits: browsers clamp very large layers (Safari per side, which
  * squashes or stretches the picture), so the deepest zoom keeps the zoomed
@@ -72,6 +75,9 @@ export class PinchZoomDirective implements OnDestroy {
   /** Space between pictures in a carousel strip. */
   static readonly SLIDE_GAP_PX = 24;
   static readonly SLIDE_MS = 280;
+  /** Pulled down this share of the stage (or flicked down): closes. */
+  static readonly DISMISS_SHARE = 0.18;
+  static readonly DISMISS_MS = 220;
 
   private readonly stage = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
@@ -89,6 +95,8 @@ export class PinchZoomDirective implements OnDestroy {
   @Input() pinchZoomTrack: HTMLElement | null = null;
   @Input() pinchZoomHasPrevious = false;
   @Input() pinchZoomHasNext = false;
+  /** Faded out as the picture is pulled down to close. */
+  @Input() pinchZoomBackdrop: HTMLElement | null = null;
 
   @Output() readonly zoomedChange = new EventEmitter<boolean>();
   @Output() readonly swipe = new EventEmitter<'next' | 'previous'>();
@@ -116,8 +124,11 @@ export class PinchZoomDirective implements OnDestroy {
   private frame: number | null = null;
   private animation: { from: View; to: View; duration: number; start: number | null } | null = null;
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
-  /** The carousel strip's sideways offset, and its slide animation. */
+  /** The carousel strip's offset (sideways: swipe; down: closing). */
   private trackX = 0;
+  private trackY = 0;
+  /** A one-finger drag at normal size: decided once, sideways or down. */
+  private axis: 'x' | 'y' | null = null;
   private trackFrame: number | null = null;
   private trackFallback: ReturnType<typeof setTimeout> | null = null;
   private sharpTimer: ReturnType<typeof setTimeout> | null = null;
@@ -143,6 +154,7 @@ export class PinchZoomDirective implements OnDestroy {
       };
       this.multiTouch = false;
       this.moved = false;
+      this.axis = null;
       this.trail = [{ point, time: event.timeStamp }];
     } else if (this.pointers.size === 2) {
       this.multiTouch = true;
@@ -188,9 +200,16 @@ export class PinchZoomDirective implements OnDestroy {
           }),
         );
       } else if (start && this.moved) {
-        // At normal size a sideways drag moves the strip (or the picture),
-        // reluctantly where there's no picture to come in.
         const dx = current.x - start.point.x;
+        const dy = current.y - start.point.y;
+        this.axis ??= Math.abs(dx) >= Math.abs(dy) || !this.pinchZoomTrack ? 'x' : 'y';
+        if (this.axis === 'y') {
+          // Down pulls the picture away to close; up only gives a little.
+          this.setTrack(0, dy > 0 ? dy : dy / 4);
+          return;
+        }
+        // A sideways drag moves the strip (or the picture), reluctantly
+        // where there's no picture to come in.
         const neighbour = dx < 0 ? this.pinchZoomHasNext : this.pinchZoomHasPrevious;
         const x = this.pinchZoomTrack && !neighbour ? dx / 3 : dx;
         if (this.pinchZoomTrack) {
@@ -227,6 +246,24 @@ export class PinchZoomDirective implements OnDestroy {
       this.onTap(point, start.type, start.onTarget, event.timeStamp);
       return;
     }
+    if (single && this.view.scale <= 1 && this.axis === 'y') {
+      this.pinch = null;
+      const dy = point.y - start.point.y;
+      const height = this.stage.clientHeight || 1;
+      const flung = this.flingVelocity().y > 0.5 && dy > 30;
+      if (dy > height * PinchZoomDirective.DISMISS_SHARE || flung) {
+        this.clearDismissTimer();
+        this.animateTrack(
+          0,
+          height,
+          () => this.emit(() => this.dismiss.emit()),
+          PinchZoomDirective.DISMISS_MS,
+        );
+      } else {
+        this.animateTrack(0, 0);
+      }
+      return;
+    }
     if (single && this.view.scale <= 1) {
       const dx = point.x - start.point.x;
       const dy = point.y - start.point.y;
@@ -245,7 +282,7 @@ export class PinchZoomDirective implements OnDestroy {
       }
       if (this.trackX !== 0) {
         this.pinch = null;
-        this.animateTrack(0);
+        this.animateTrack(0, 0);
         return;
       }
     }
@@ -328,7 +365,7 @@ export class PinchZoomDirective implements OnDestroy {
     }
     this.reset();
     const distance = this.stage.clientWidth + PinchZoomDirective.SLIDE_GAP_PX;
-    this.animateTrack(direction === 'next' ? -distance : distance, () => {
+    this.animateTrack(direction === 'next' ? -distance : distance, 0, () => {
       this.emit(() => this.swipe.emit(direction));
       // In case the host doesn't reset: don't leave the strip slid away.
       this.trackFallback = setTimeout(() => this.setTrack(0), 250);
@@ -480,7 +517,7 @@ export class PinchZoomDirective implements OnDestroy {
       w = box.width;
       h = box.height;
       cx = box.left - stage.left + w / 2 - this.view.tx - this.trackX;
-      cy = box.top - stage.top + h / 2 - this.view.ty;
+      cy = box.top - stage.top + h / 2 - this.view.ty - this.trackY;
     } else {
       w = target.offsetWidth;
       h = target.offsetHeight;
@@ -718,26 +755,46 @@ export class PinchZoomDirective implements OnDestroy {
     this.sharp = false;
   }
 
-  private setTrack(x: number): void {
+  /**
+   * Moves the strip. Pulled down, the picture also shrinks a little and the
+   * backdrop fades, the further the more.
+   */
+  private setTrack(x: number, y = 0): void {
     this.trackX = x;
+    this.trackY = y;
     if (this.trackFallback) {
       clearTimeout(this.trackFallback);
       this.trackFallback = null;
     }
     const track = this.pinchZoomTrack;
+    const height = this.stage.clientHeight || 1;
+    const pulled = Math.max(0, y) / height;
     if (track) {
-      track.style.transform = x ? `translate3d(${x}px, 0, 0)` : '';
+      const shrink = 1 - Math.min(0.25, pulled * 0.5);
+      track.style.transform =
+        x || y ? `translate3d(${x}px, ${y}px, 0)${pulled ? ` scale(${shrink})` : ''}` : '';
+    }
+    const backdrop = this.pinchZoomBackdrop;
+    if (backdrop) {
+      backdrop.style.opacity = pulled ? String(Math.max(0, 1 - pulled * 1.6)) : '';
     }
   }
 
-  private animateTrack(to: number, done?: () => void): void {
+  private animateTrack(
+    toX: number,
+    toY: number,
+    done?: () => void,
+    duration = PinchZoomDirective.SLIDE_MS,
+  ): void {
     this.stopTrack();
-    const from = this.trackX;
+    const fromX = this.trackX;
+    const fromY = this.trackY;
     let start: number | null = null;
     const step = (now: number) => {
       start ??= now;
-      const t = Math.min(1, (now - start) / PinchZoomDirective.SLIDE_MS);
-      this.setTrack(from + (to - from) * easeOutCubic(t));
+      const t = Math.min(1, (now - start) / duration);
+      const e = easeOutCubic(t);
+      this.setTrack(fromX + (toX - fromX) * e, fromY + (toY - fromY) * e);
       if (t < 1) {
         this.trackFrame = requestFrame(step);
       } else {
