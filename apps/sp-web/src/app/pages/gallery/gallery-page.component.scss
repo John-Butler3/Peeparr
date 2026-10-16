@@ -104,14 +104,28 @@ p {
   color: var(--text-muted);
 }
 
+// Justified rows: every tile keeps its picture's shape (--ar, width /
+// height) and the tiles in a row share a height, so nothing is cropped.
 .image-grid {
+  --row-height: 200px;
   margin-top: 1.1rem;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+// Keeps the last, part-filled row at its natural size instead of stretched.
+.image-grid::after {
+  content: '';
+  flex-grow: 1000000;
 }
 
 .image-tile {
+  --ar: 1;
+  flex: var(--ar) 1 calc(var(--ar) * var(--row-height));
+  aspect-ratio: var(--ar);
+  // A lone very wide picture can't be wider than the page.
+  max-width: 100%;
   padding: 0;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
@@ -123,7 +137,8 @@ p {
 
 .image-tile img {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 100%;
+  // Tile and picture share a shape; cover only absorbs rounding.
   object-fit: cover;
   display: block;
 }
@@ -152,6 +167,12 @@ p {
 .image-viewer-overlay {
   position: fixed;
   inset: 0;
+  // Pinches zoom the photo (PinchZoomDirective), never the page.
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   z-index: 100;
   background: rgb(6 12 20 / 92%);
   display: grid;
@@ -187,26 +208,7 @@ p {
 
 .viewer-full.ready {
   opacity: 1;
-}
-
-.viewer-full.zoomable {
-  cursor: zoom-in;
-}
-
-// Actual pixels: the stage scrolls (drag or swipe to look around).
-.viewer-stage.zoomed {
-  display: block;
-  overflow: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-.viewer-stage.zoomed .viewer-image {
-  display: block;
-  margin: auto;
-  max-width: none;
-  max-height: none;
-  cursor: zoom-out;
+  will-change: transform;
 }
 
 .viewer-loading,
@@ -279,5 +281,10 @@ p {
   .viewer-nav {
     width: 2.4rem;
     height: 2.4rem;
+  }
+
+  .image-grid {
+    --row-height: 120px;
+    gap: 0.35rem;
   }
 }

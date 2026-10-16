@@ -130,36 +130,46 @@ describe('GalleryPageComponent image viewer', () => {
     expect(full().classList).not.toContain('ready');
   });
 
-  it('tapping a large picture zooms to actual pixels, tapping again fits it', async () => {
+  it('grid tiles keep the shape of each picture, so none is cropped', async () => {
+    const { element } = await render();
+    const tiles = [...element.querySelectorAll<HTMLElement>('.image-tile')];
+
+    expect(tiles.map((tile) => tile.style.getPropertyValue('--ar'))).toEqual(['1.5', '1.5', '1.5']);
+  });
+
+  it('zooms the photo, not the page: a click zooms it, Esc fits it again', async () => {
     const { fixture, element, open, full } = await render();
     open(0);
     loadFull(full(), 6000, 4000);
+    for (const [key, value] of Object.entries({
+      offsetWidth: 600,
+      offsetHeight: 400,
+      offsetLeft: 0,
+      offsetTop: 0,
+    })) {
+      Object.defineProperty(full(), key, { configurable: true, value });
+    }
     fixture.detectChanges();
-    const stage = element.querySelector('.viewer-stage')!;
-    expect(element.querySelector('.viewer-hint')?.textContent).toContain('Tap to zoom');
+    expect(element.querySelector<HTMLElement>('.viewer-stage')!.style.touchAction).toBe('none');
+    expect(element.querySelector('.viewer-hint')).not.toBeNull();
 
-    full().click();
+    const at = (type: string, time: number) => {
+      const event = new MouseEvent(type, { bubbles: true, clientX: 300, clientY: 200, button: 0 });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+      Object.defineProperty(event, 'timeStamp', { value: time });
+      full().dispatchEvent(event);
+    };
+    at('pointerdown', 0);
+    at('pointerup', 50);
     fixture.detectChanges();
-    expect(stage.classList).toContain('zoomed');
-    // Tapping around a zoomed picture is for panning, not closing.
-    (stage as HTMLElement).click();
-    fixture.detectChanges();
-    expect(element.querySelector('.image-viewer-overlay')).not.toBeNull();
-
-    full().click();
-    fixture.detectChanges();
-    expect(stage.classList).not.toContain('zoomed');
-  });
-
-  it('a picture that already fits the screen does not zoom', async () => {
-    const { fixture, element, open, full } = await render();
-    open(0);
-    loadFull(full(), 200, 100);
-    fixture.detectChanges();
-
-    full().click();
-    fixture.detectChanges();
-    expect(element.querySelector('.viewer-stage')!.classList).not.toContain('zoomed');
+    expect(full().style.transform).toContain('scale(');
     expect(element.querySelector('.viewer-hint')).toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(full().style.transform).toBe('');
+    // Still open: the first Esc only zooms back out.
+    expect(element.querySelector('.image-viewer-overlay')).not.toBeNull();
   });
 });

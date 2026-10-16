@@ -85,7 +85,12 @@
     } @else {
       <section class="image-grid">
         @for (image of images(); track image.id; let i = $index) {
-          <button type="button" class="image-tile" (click)="openViewer(i)">
+          <button
+            type="button"
+            class="image-tile"
+            [style.--ar]="aspectRatio(image)"
+            (click)="openViewer(i)"
+          >
             <img
               [src]="image.thumbnailUrl ?? image.imageUrl"
               [alt]="image.title ?? gallery.title"
@@ -118,7 +123,7 @@
     }
 
     @if (currentViewerImage(); as viewerImage) {
-      <div class="image-viewer-overlay" role="dialog" aria-modal="true" (click)="closeViewer()">
+      <div class="image-viewer-overlay" role="dialog" aria-modal="true">
         <button
           type="button"
           class="viewer-close"
@@ -132,16 +137,19 @@
           type="button"
           class="viewer-nav viewer-prev"
           aria-label="Previous image"
-          (click)="showPreviousImage(); $event.stopPropagation()"
+          (click)="showPreviousImage()"
         >
           <i class="pi pi-chevron-left" aria-hidden="true"></i>
         </button>
 
         <div
-          #viewerStage
           class="viewer-stage"
-          [class.zoomed]="viewerZoomed()"
-          (click)="onViewerStageClick($event)"
+          appPinchZoom
+          [pinchZoomTarget]="fullImage"
+          [pinchZoomEnabled]="viewerFullLoaded()"
+          (zoomedChange)="viewerZoomed.set($event)"
+          (swipe)="$event === 'next' ? showNextImage() : showPreviousImage()"
+          (dismiss)="closeViewer()"
         >
           <!-- Thumbnail straight away (already loaded for the grid), full size over it once it arrives. -->
           @if (!viewerFullLoaded() && viewerImage.thumbnailUrl) {
@@ -150,16 +158,17 @@
               [src]="viewerImage.thumbnailUrl"
               alt=""
               aria-hidden="true"
+              draggable="false"
             />
           }
           <img
+            #fullImage
             class="viewer-image viewer-full"
             [class.ready]="viewerFullLoaded()"
-            [class.zoomable]="viewerCanZoom()"
             [src]="viewerImage.imageUrl ?? viewerImage.thumbnailUrl"
             [alt]="viewerImage.title ?? gallery.title"
+            draggable="false"
             (load)="onViewerFullLoaded($event, viewerImage)"
-            (click)="toggleViewerZoom($event); $event.stopPropagation()"
           />
         </div>
 
@@ -167,15 +176,15 @@
           <span class="viewer-loading" role="status">
             <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Loading full resolution
           </span>
-        } @else if (viewerCanZoom()) {
-          <span class="viewer-hint">{{ viewerZoomed() ? 'Tap to fit' : 'Tap to zoom' }}</span>
+        } @else if (!viewerZoomed()) {
+          <span class="viewer-hint">{{ zoomHint }}</span>
         }
 
         <button
           type="button"
           class="viewer-nav viewer-next"
           aria-label="Next image"
-          (click)="showNextImage(); $event.stopPropagation()"
+          (click)="showNextImage()"
         >
           <i class="pi pi-chevron-right" aria-hidden="true"></i>
         </button>

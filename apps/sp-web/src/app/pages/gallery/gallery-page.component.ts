@@ -1,18 +1,15 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
-  ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
-  afterNextRender,
   computed,
   effect,
   inject,
-  Injector,
   signal,
   untracked,
-  viewChild,
+  ViewChild,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
@@ -23,10 +20,18 @@ import { GalleriesService } from '../../core/api/galleries.service';
 import { GalleryFeedItem, GalleryImage } from '../../core/api/galleries.types';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
+import { PinchZoomDirective } from '../../shared/pinch-zoom/pinch-zoom.directive';
 
 @Component({
   selector: 'app-gallery-page',
-  imports: [BackLinkDirective, RouterLink, Message, ProgressSpinner, ButtonDirective],
+  imports: [
+    BackLinkDirective,
+    PinchZoomDirective,
+    RouterLink,
+    Message,
+    ProgressSpinner,
+    ButtonDirective,
+  ],
   templateUrl: './gallery-page.component.html',
   styleUrl: './gallery-page.component.scss',
 })
@@ -55,33 +60,28 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
   protected readonly imagesError = signal<string | null>(null);
 
   protected readonly viewerIndex = signal<number | null>(null);
-  /** Full-size URL that has finished loading, and its natural size. */
-  private readonly viewerLoaded = signal<{ url: string; width: number; height: number } | null>(
-    null,
-  );
+  /** Full-size URL that has finished loading. */
+  private readonly viewerLoadedUrl = signal<string | null>(null);
   protected readonly viewerZoomed = signal(false);
-  private readonly viewerStage = viewChild<ElementRef<HTMLElement>>('viewerStage');
-  private readonly injector = inject(Injector);
+  // Decorator, not viewChild(): the JIT-compiled specs don't see signal queries.
+  @ViewChild(PinchZoomDirective) private pinchZoom?: PinchZoomDirective;
 
   protected readonly viewerFullLoaded = computed(() => {
     const url = this.currentViewerImage()?.imageUrl;
-    return !url || this.viewerLoaded()?.url === url;
+    return !url || this.viewerLoadedUrl() === url;
   });
 
-  /** Zoom only helps when the picture is bigger than the screen shows it. */
-  protected readonly viewerCanZoom = computed(() => {
-    const loaded = this.viewerLoaded();
-    if (!this.viewerFullLoaded() || !loaded) {
-      return false;
-    }
-    return loaded.width > window.innerWidth || loaded.height > window.innerHeight;
-  });
+  protected readonly zoomHint =
+    typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
+      ? 'Pinch or double-tap to zoom'
+      : 'Click or scroll to zoom';
 
   // Each new picture starts fitted, and the ones either side load in the
   // background so stepping through is instant.
   private readonly onViewerImageChange = effect(() => {
     const index = this.viewerIndex();
     this.viewerZoomed.set(false);
+    this.pinchZoom?.reset();
     if (index === null) {
       return;
     }
@@ -168,46 +168,15 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
   protected onViewerFullLoaded(event: Event, image: GalleryImage): void {
     const element = event.target as HTMLImageElement;
     if (image.imageUrl && element.currentSrc.endsWith(image.imageUrl)) {
-      this.viewerLoaded.set({
-        url: image.imageUrl,
-        width: element.naturalWidth,
-        height: element.naturalHeight,
-      });
+      this.viewerLoadedUrl.set(image.imageUrl);
     }
   }
 
-  /** Around the picture: closes, unless zoomed in (then it's for panning). */
-  protected onViewerStageClick(event: MouseEvent): void {
-    event.stopPropagation();
-    if (!this.viewerZoomed()) {
-      this.closeViewer();
-    }
-  }
-
-  /** Fit to screen <-> actual pixels, keeping the tapped spot in view. */
-  protected toggleViewerZoom(event: MouseEvent): void {
-    if (!this.viewerCanZoom()) {
-      return;
-    }
-    if (this.viewerZoomed()) {
-      this.viewerZoomed.set(false);
-      return;
-    }
-    const element = event.target as HTMLImageElement;
-    const rect = element.getBoundingClientRect();
-    const fx = rect.width ? (event.clientX - rect.left) / rect.width : 0.5;
-    const fy = rect.height ? (event.clientY - rect.top) / rect.height : 0.5;
-    this.viewerZoomed.set(true);
-    afterNextRender(
-      () => {
-        const stage = this.viewerStage()?.nativeElement;
-        if (stage) {
-          stage.scrollLeft = fx * stage.scrollWidth - stage.clientWidth / 2;
-          stage.scrollTop = fy * stage.scrollHeight - stage.clientHeight / 2;
-        }
-      },
-      { injector: this.injector },
-    );
+  /** Width / height for the grid tile, so the whole picture shows. */
+  protected aspectRatio(image: GalleryImage): number {
+    const ratio = image.width && image.height ? image.width / image.height : 1;
+    // Keep panoramas and very tall pictures from taking over a row.
+    return Math.min(3, Math.max(0.4, ratio));
   }
 
   protected currentViewerImage(): GalleryImage | null {
@@ -226,7 +195,7 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
 
     if (event.key === 'Escape') {
       if (this.viewerZoomed()) {
-        this.viewerZoomed.set(false);
+        this.pinchZoom?.reset(true);
         return;
       }
       this.closeViewer();
