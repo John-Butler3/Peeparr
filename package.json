@@ -22,7 +22,8 @@
   "pnpm": {
     "overrides": {
       "mysql2": "^3.23.1",
-      "deepmerge-ts": "^8.0.0"
+      "deepmerge-ts": "^8.0.0",
+      "@istanbuljs/load-nyc-config>js-yaml": "^4.1.0"
     }
   }
 }
