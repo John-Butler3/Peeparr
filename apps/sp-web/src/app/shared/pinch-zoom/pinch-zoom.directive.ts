@@ -23,6 +23,11 @@ interface Point {
  *
  * Put it on the stage (positioned, filling the screen, picture centred in
  * it) and pass the picture as `pinchZoomTarget`.
+ *
+ * Sharpness: while fingers move, the zoom is a CSS transform (fast, but the
+ * browser just stretches the picture as drawn at its fitted size). Once the
+ * gesture settles the picture is laid out at its zoomed size instead, so the
+ * browser redraws it from the full-resolution pixels.
  */
 @Directive({
   selector: '[appPinchZoom]',
@@ -36,6 +41,8 @@ export class PinchZoomDirective implements OnDestroy {
   static readonly ANIMATION_MS = 200;
   /** Zoom at least this far, however small the picture. */
   static readonly MIN_MAX_SCALE = 4;
+  /** Quiet time after wheel zooming before redrawing sharp. */
+  static readonly WHEEL_SETTLE_MS = 150;
 
   private readonly stage = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
@@ -52,6 +59,11 @@ export class PinchZoomDirective implements OnDestroy {
   private tx = 0;
   private ty = 0;
   private zoomed = false;
+  /** Fitted size and centre on the stage, measured before zooming. */
+  private base: { w: number; h: number; cx: number; cy: number } | null = null;
+  /** Laid out at the zoomed size (sharp) rather than transformed. */
+  private sharp = false;
+  private sharpTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly pointers = new Map<number, Point>();
   private gestureStart: { point: Point; time: number; type: string; onTarget: boolean } | null =
@@ -68,7 +80,12 @@ export class PinchZoomDirective implements OnDestroy {
     }
     this.stage.setPointerCapture?.(event.pointerId);
     this.pointers.set(event.pointerId, this.local(event));
+    this.cancelSharpen();
     this.setTransition(false);
+    if (this.scale > 1) {
+      // Back to the transform while fingers move.
+      this.apply();
+    }
     if (this.pointers.size === 1) {
       this.gestureStart = {
         point: this.local(event),
@@ -130,6 +147,8 @@ export class PinchZoomDirective implements OnDestroy {
     this.pinch = null;
     if (this.scale < 1.02) {
       this.reset(true);
+    } else {
+      this.scheduleSharpen(0);
     }
 
     const start = this.gestureStart;
@@ -158,11 +177,17 @@ export class PinchZoomDirective implements OnDestroy {
     this.setTransition(false);
     // Trackpad pinches arrive as ctrl+wheel with small steps.
     const factor = Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0015));
+    this.cancelSharpen();
     this.zoomAt(this.scale * factor, this.local(event), false);
     if (this.scale < 1.02) {
       this.reset(false);
+    } else {
+      this.scheduleSharpen(PinchZoomDirective.WHEEL_SETTLE_MS);
     }
   };
+
+  // A new screen size changes the fitted size: start again from fitted.
+  private readonly onResize = (): void => this.reset();
 
   // Safari's own pinch-to-zoom of the page.
   private readonly preventGesture = (event: Event): void => event.preventDefault();
@@ -181,11 +206,14 @@ export class PinchZoomDirective implements OnDestroy {
       this.stage.addEventListener('gesturestart', this.preventGesture);
       this.stage.addEventListener('gesturechange', this.preventGesture);
       this.stage.addEventListener('click', this.stopClick);
+      window.addEventListener('resize', this.onResize);
     });
   }
 
   ngOnDestroy(): void {
     this.clearDismissTimer();
+    this.cancelSharpen();
+    window.removeEventListener('resize', this.onResize);
     this.stage.removeEventListener('pointerdown', this.onPointerDown);
     this.stage.removeEventListener('pointermove', this.onPointerMove);
     this.stage.removeEventListener('pointerup', this.onPointerUp);
@@ -202,6 +230,7 @@ export class PinchZoomDirective implements OnDestroy {
 
   /** Back to fitted, e.g. for the next picture or Esc. */
   reset(animate = false): void {
+    this.cancelSharpen();
     this.setTransition(animate);
     this.scale = 1;
     this.tx = 0;
@@ -219,6 +248,7 @@ export class PinchZoomDirective implements OnDestroy {
       return;
     }
     this.zoomAt(this.closeUpScale(), point, true);
+    this.scheduleSharpen(PinchZoomDirective.ANIMATION_MS + 20);
   }
 
   private onTap(point: Point, type: string, onTarget: boolean, time: number): void {
@@ -259,8 +289,28 @@ export class PinchZoomDirective implements OnDestroy {
   }
 
   private canZoom(): boolean {
+    const base = this.geometry();
+    return this.pinchZoomEnabled && !!base && base.w > 0 && base.h > 0;
+  }
+
+  /**
+   * The picture's fitted size and centre. Measured from the layout whenever
+   * it isn't laid out zoomed (a transform doesn't change the layout).
+   */
+  private geometry(): { w: number; h: number; cx: number; cy: number } | null {
     const target = this.pinchZoomTarget;
-    return this.pinchZoomEnabled && !!target && target.offsetWidth > 0 && target.offsetHeight > 0;
+    if (!target) {
+      return null;
+    }
+    if (!this.sharp || !this.base) {
+      this.base = {
+        w: target.offsetWidth,
+        h: target.offsetHeight,
+        cx: target.offsetLeft + target.offsetWidth / 2,
+        cy: target.offsetTop + target.offsetHeight / 2,
+      };
+    }
+    return this.base;
   }
 
   /** About actual pixels, but always a real step in (2.5x or more). */
@@ -274,45 +324,45 @@ export class PinchZoomDirective implements OnDestroy {
 
   /** Picture pixels per screen (device) pixel when fitted. */
   private actualPixelsScale(): number {
-    const target = this.pinchZoomTarget as HTMLImageElement | null;
-    const natural = target?.naturalWidth ?? 0;
-    const shown = (target?.offsetWidth ?? 0) * (globalThis.devicePixelRatio || 1);
+    const natural = (this.pinchZoomTarget as HTMLImageElement | null)?.naturalWidth ?? 0;
+    const shown = (this.geometry()?.w ?? 0) * (globalThis.devicePixelRatio || 1);
     return shown > 0 && natural > 0 ? natural / shown : 1;
   }
 
   /** Scales to `nextScale`, keeping the picture point under `point` there. */
   private zoomAt(nextScale: number, point: Point, animate: boolean): void {
-    const target = this.pinchZoomTarget;
-    if (!target) {
+    const base = this.geometry();
+    if (!base) {
       return;
     }
     const clamped = Math.min(this.maxScale(), Math.max(1, nextScale));
-    const centre = this.targetCentre(target);
     // Offset of the point from the picture's centre, in unscaled pixels.
-    const dx = (point.x - centre.x - this.tx) / this.scale;
-    const dy = (point.y - centre.y - this.ty) / this.scale;
+    const dx = (point.x - base.cx - this.tx) / this.scale;
+    const dy = (point.y - base.cy - this.ty) / this.scale;
     this.scale = clamped;
-    this.tx = point.x - centre.x - clamped * dx;
-    this.ty = point.y - centre.y - clamped * dy;
+    this.tx = point.x - base.cx - clamped * dx;
+    this.ty = point.y - base.cy - clamped * dy;
     this.setTransition(animate);
     this.clampAndApply();
   }
 
   /** No empty space dragged into view: edges stop at the stage's edges. */
   private clampAndApply(): void {
-    const target = this.pinchZoomTarget;
-    if (target) {
-      const limitX = Math.max(0, (target.offsetWidth * this.scale - this.stage.clientWidth) / 2);
-      const limitY = Math.max(0, (target.offsetHeight * this.scale - this.stage.clientHeight) / 2);
+    const base = this.geometry();
+    if (base) {
+      const limitX = Math.max(0, (base.w * this.scale - this.stage.clientWidth) / 2);
+      const limitY = Math.max(0, (base.h * this.scale - this.stage.clientHeight) / 2);
       this.tx = Math.min(limitX, Math.max(-limitX, this.tx));
       this.ty = Math.min(limitY, Math.max(-limitY, this.ty));
     }
     this.apply();
   }
 
+  /** Shows the current zoom as a transform (quick, for moving fingers). */
   private apply(): void {
     const target = this.pinchZoomTarget;
     if (target) {
+      this.unsharpen(target);
       target.style.transform =
         this.scale === 1 ? '' : `translate(${this.tx}px, ${this.ty}px) scale(${this.scale})`;
     }
@@ -332,11 +382,60 @@ export class PinchZoomDirective implements OnDestroy {
     }
   }
 
-  private targetCentre(target: HTMLElement): Point {
-    return {
-      x: target.offsetLeft + target.offsetWidth / 2,
-      y: target.offsetTop + target.offsetHeight / 2,
-    };
+  private scheduleSharpen(delayMs: number): void {
+    this.cancelSharpen();
+    this.sharpTimer = setTimeout(() => {
+      this.sharpTimer = null;
+      this.sharpen();
+    }, delayMs);
+  }
+
+  private cancelSharpen(): void {
+    if (this.sharpTimer) {
+      clearTimeout(this.sharpTimer);
+      this.sharpTimer = null;
+    }
+  }
+
+  /** Lays the picture out at its zoomed size, in the same place on screen. */
+  private sharpen(): void {
+    const target = this.pinchZoomTarget;
+    const base = this.geometry();
+    if (!target || !base || this.scale <= 1 || this.pointers.size > 0) {
+      return;
+    }
+    const width = base.w * this.scale;
+    const height = base.h * this.scale;
+    Object.assign(target.style, {
+      transition: 'none',
+      transform: 'none',
+      position: 'absolute',
+      left: `${base.cx + this.tx - width / 2}px`,
+      top: `${base.cy + this.ty - height / 2}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+      maxWidth: 'none',
+      maxHeight: 'none',
+    });
+    this.sharp = true;
+  }
+
+  private unsharpen(target: HTMLElement): void {
+    if (!this.sharp) {
+      return;
+    }
+    for (const property of [
+      'position',
+      'left',
+      'top',
+      'width',
+      'height',
+      'maxWidth',
+      'maxHeight',
+    ] as const) {
+      target.style[property] = '';
+    }
+    this.sharp = false;
   }
 
   private local(event: MouseEvent): Point {

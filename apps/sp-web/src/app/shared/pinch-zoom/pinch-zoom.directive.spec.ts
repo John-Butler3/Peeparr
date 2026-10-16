@@ -122,6 +122,34 @@ describe('PinchZoomDirective', () => {
     expect(host.zoomed).toBe(false);
   });
 
+  it('once a zoom settles, lays the photo out at that size so it is drawn sharp', () => {
+    const { photo, tap } = render();
+
+    tap(photo, 400, 300, 0, 'mouse');
+    // Animating: still the quick transform.
+    expect(photo.style.transform).toContain('scale(');
+    vi.advanceTimersByTime(PinchZoomDirective.ANIMATION_MS + 20);
+
+    // 6000px photo shown 400px wide: 15x is actual pixels (no device scaling here).
+    expect(photo.style.transform).toBe('none');
+    expect(photo.style.position).toBe('absolute');
+    expect(photo.style.width).toBe('6000px');
+    expect(photo.style.height).toBe('4500px');
+    // Clicked at the centre, so the centre stays put: 400 - 6000 / 2.
+    expect(photo.style.left).toBe('-2600px');
+
+    // Touching it again goes back to the transform for the gesture...
+    photo.dispatchEvent(pointer('pointerdown', 400, 300, { time: 1000 }));
+    expect(photo.style.width).toBe('');
+    expect(photo.style.transform).toContain('scale(15)');
+    photo.dispatchEvent(pointer('pointermove', 300, 300, { time: 1050 }));
+    photo.dispatchEvent(pointer('pointerup', 300, 300, { time: 1100 }));
+    // ...and sharp again when it ends.
+    vi.advanceTimersByTime(0);
+    expect(photo.style.width).toBe('6000px');
+    expect(photo.style.left).toBe('-2700px');
+  });
+
   it('a mouse click on the photo zooms; the wheel zooms too', () => {
     const { host, stage, photo, tap, scale } = render();
 
