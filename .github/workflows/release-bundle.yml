@@ -57,7 +57,7 @@ jobs:
       - name: Build the bundle
         env:
           PEEPARR_SRC: ${{ github.workspace }}/src
-        run: tools/scripts/build-release-bundle.sh "${{ inputs.tag }}" dist-release
+        run: bash tools/scripts/build-release-bundle.sh "${{ inputs.tag }}" dist-release
 
       - name: Attach it to the release
         env:
