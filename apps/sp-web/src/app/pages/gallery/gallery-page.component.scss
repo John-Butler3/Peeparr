@@ -158,15 +158,75 @@ p {
   place-items: center;
 }
 
+.viewer-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+// Thumbnail and full picture share one cell, the full one fading in on top.
 .viewer-image {
-  max-width: min(94vw, 1400px);
-  max-height: 92vh;
+  grid-area: 1 / 1;
+  max-width: 100vw;
+  max-height: 100dvh;
   object-fit: contain;
-  border-radius: 6px;
+}
+
+// Small thumbnails are stretched to the size the full picture will take.
+.viewer-thumb {
+  width: 100vw;
+  height: 100dvh;
+  filter: blur(6px);
+}
+
+.viewer-full {
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+
+.viewer-full.ready {
+  opacity: 1;
+}
+
+.viewer-full.zoomable {
+  cursor: zoom-in;
+}
+
+// Actual pixels: the stage scrolls (drag or swipe to look around).
+.viewer-stage.zoomed {
+  display: block;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.viewer-stage.zoomed .viewer-image {
+  display: block;
+  margin: auto;
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
+.viewer-loading,
+.viewer-hint {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 0.8rem;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .viewer-close {
   position: absolute;
+  z-index: 1;
   top: 1rem;
   right: 1rem;
   width: 2.4rem;
@@ -182,6 +242,7 @@ p {
 
 .viewer-nav {
   position: absolute;
+  z-index: 1;
   top: 50%;
   transform: translateY(-50%);
   width: 3rem;

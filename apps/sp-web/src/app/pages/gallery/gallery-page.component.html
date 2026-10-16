@@ -86,7 +86,11 @@
       <section class="image-grid">
         @for (image of images(); track image.id; let i = $index) {
           <button type="button" class="image-tile" (click)="openViewer(i)">
-            <img [src]="image.thumbnailUrl ?? image.imageUrl" [alt]="image.title ?? gallery.title" loading="lazy" />
+            <img
+              [src]="image.thumbnailUrl ?? image.imageUrl"
+              [alt]="image.title ?? gallery.title"
+              loading="lazy"
+            />
           </button>
         }
       </section>
@@ -105,7 +109,9 @@
 
       @if (imagesError()) {
         <div class="load-more-error">
-          <p-message severity="error" styleClass="app-inline-message">{{ imagesError() }}</p-message>
+          <p-message severity="error" styleClass="app-inline-message">{{
+            imagesError()
+          }}</p-message>
           <button pButton type="button" (click)="retryLoadMoreImages()">Retry</button>
         </div>
       }
@@ -131,12 +137,39 @@
           <i class="pi pi-chevron-left" aria-hidden="true"></i>
         </button>
 
-        <img
-          class="viewer-image"
-          [src]="viewerImage.imageUrl ?? viewerImage.thumbnailUrl"
-          [alt]="viewerImage.title ?? gallery.title"
-          (click)="$event.stopPropagation()"
-        />
+        <div
+          #viewerStage
+          class="viewer-stage"
+          [class.zoomed]="viewerZoomed()"
+          (click)="onViewerStageClick($event)"
+        >
+          <!-- Thumbnail straight away (already loaded for the grid), full size over it once it arrives. -->
+          @if (!viewerFullLoaded() && viewerImage.thumbnailUrl) {
+            <img
+              class="viewer-image viewer-thumb"
+              [src]="viewerImage.thumbnailUrl"
+              alt=""
+              aria-hidden="true"
+            />
+          }
+          <img
+            class="viewer-image viewer-full"
+            [class.ready]="viewerFullLoaded()"
+            [class.zoomable]="viewerCanZoom()"
+            [src]="viewerImage.imageUrl ?? viewerImage.thumbnailUrl"
+            [alt]="viewerImage.title ?? gallery.title"
+            (load)="onViewerFullLoaded($event, viewerImage)"
+            (click)="toggleViewerZoom($event); $event.stopPropagation()"
+          />
+        </div>
+
+        @if (!viewerFullLoaded()) {
+          <span class="viewer-loading" role="status">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Loading full resolution
+          </span>
+        } @else if (viewerCanZoom()) {
+          <span class="viewer-hint">{{ viewerZoomed() ? 'Tap to fit' : 'Tap to zoom' }}</span>
+        }
 
         <button
           type="button"
