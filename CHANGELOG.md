@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.4.0](https://github.com/John-Butler3/Peeparr/compare/v1.3.0...v1.4.0) (2026-10-16)
+
+
+### Features
+
+* **setup:** choose remote access through a reverse proxy ([cd8b51e](https://github.com/John-Butler3/Peeparr/commit/cd8b51eac6dfe1bcbf23d5b3fb31653d168a17cb))
+
+
+### Bug Fixes
+
+* **home:** new scenes and their thumbnails show up promptly ([98e68fa](https://github.com/John-Butler3/Peeparr/commit/98e68fa87228d82fb4408a89f1323dae4a76772a))
+* **mobile:** Library takes you back to Library from Series and Galleries ([14faf19](https://github.com/John-Butler3/Peeparr/commit/14faf190695416a9f55bf8d424bb7bdb9997c3d6))
+* **security:** ready for exposure behind a reverse proxy ([4012b5c](https://github.com/John-Butler3/Peeparr/commit/4012b5cefed61e4c9300069d302486d776759e7f))
+
+
+### Reverts
+
+* card thumbnails back to Stash's originals ([a14ec83](https://github.com/John-Butler3/Peeparr/commit/a14ec839499db6a25b65c4695048471e3fe5a898))
+
 ## [1.3.0](https://github.com/John-Butler3/Peeparr/compare/v1.2.0...v1.3.0) (2026-10-15)
 
 
