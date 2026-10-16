@@ -49,7 +49,16 @@ describe('GalleryPageComponent image viewer', () => {
     TestBed.resetTestingModule();
   });
 
-  async function render() {
+  async function render(
+    getGalleryImages: (id: string, page: number) => unknown = () =>
+      of({
+        total: 3,
+        page: 1,
+        perPage: 60,
+        hasMore: false,
+        items: [image('1'), image('2'), image('3')],
+      }),
+  ) {
     await TestBed.configureTestingModule({
       imports: [GalleryPageComponent],
       providers: [
@@ -62,14 +71,7 @@ describe('GalleryPageComponent image viewer', () => {
           provide: GalleriesService,
           useValue: {
             getGalleryById: () => of(gallery),
-            getGalleryImages: () =>
-              of({
-                total: 3,
-                page: 1,
-                perPage: 60,
-                hasMore: false,
-                items: [image('1'), image('2'), image('3')],
-              }),
+            getGalleryImages,
           },
         },
       ],
@@ -138,6 +140,9 @@ describe('GalleryPageComponent image viewer', () => {
   });
 
   it('zooms the photo, not the page: a click zooms it, Esc fits it again', async () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    });
     const { fixture, element, open, full } = await render();
     open(0);
     loadFull(full(), 6000, 4000);
@@ -162,14 +167,54 @@ describe('GalleryPageComponent image viewer', () => {
     };
     at('pointerdown', 0);
     at('pointerup', 50);
+    vi.advanceTimersByTime(300);
     fixture.detectChanges();
     expect(full().style.transform).toContain('scale(');
     expect(element.querySelector('.viewer-hint')).toBeNull();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    vi.advanceTimersByTime(400);
     fixture.detectChanges();
     expect(full().style.transform).toBe('');
     // Still open: the first Esc only zooms back out.
     expect(element.querySelector('.image-viewer-overlay')).not.toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('loads more images by itself when scrolled near the end', async () => {
+    let reportNear: ((near: boolean) => void) | null = null;
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+          reportNear = (near) => callback([{ isIntersecting: near }]);
+        }
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    const pages: number[] = [];
+    const { fixture, element } = await render((_id, page) => {
+      pages.push(page);
+      return of({
+        total: 9,
+        page,
+        perPage: 3,
+        hasMore: page < 3,
+        items: [1, 2, 3].map((n) => image(`${page}-${n}`)),
+      });
+    });
+    expect(pages).toEqual([1]);
+
+    // Scrolled near the end: the next page loads, and, still near the end
+    // (a tall screen), the one after.
+    reportNear!(true);
+    await Promise.resolve();
+    fixture.detectChanges();
+    expect(pages).toEqual([1, 2, 3]);
+    expect(element.querySelectorAll('.image-tile').length).toBe(9);
+    expect(element.querySelector('.load-more-images')).toBeNull();
+
+    vi.unstubAllGlobals();
   });
 });

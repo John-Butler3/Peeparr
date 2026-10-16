@@ -20,6 +20,7 @@ import { GalleriesService } from '../../core/api/galleries.service';
 import { GalleryFeedItem, GalleryImage } from '../../core/api/galleries.types';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
+import { NearViewportDirective } from '../../shared/near-viewport/near-viewport.directive';
 import { PinchZoomDirective } from '../../shared/pinch-zoom/pinch-zoom.directive';
 
 @Component({
@@ -27,6 +28,7 @@ import { PinchZoomDirective } from '../../shared/pinch-zoom/pinch-zoom.directive
   imports: [
     BackLinkDirective,
     PinchZoomDirective,
+    NearViewportDirective,
     RouterLink,
     Message,
     ProgressSpinner,
@@ -95,6 +97,8 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
 
   private galleryId: string | null = null;
   private imagesInFlight = false;
+  /** The end of the grid is near the screen: keep loading pages. */
+  private gridEndNear = false;
 
   ngOnInit(): void {
     this.routeSubscription = this.route.paramMap.subscribe((paramMap) => {
@@ -123,6 +127,13 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
   protected retryLoadMoreImages(): void {
     this.imagesError.set(null);
     this.loadNextImagesPage();
+  }
+
+  protected onGridEndNear(near: boolean): void {
+    this.gridEndNear = near;
+    if (near && !this.imagesError()) {
+      this.loadNextImagesPage();
+    }
   }
 
   protected loadMoreImages(): void {
@@ -261,6 +272,12 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
           this.images.update((current) =>
             isInitialPage ? response.items : [...current, ...response.items],
           );
+        },
+        complete: () => {
+          // Still at the end (a short page, or a tall screen): next page.
+          if (this.gridEndNear && this.imagesHasMore()) {
+            queueMicrotask(() => this.loadNextImagesPage());
+          }
         },
         error: (err: unknown) => {
           this.imagesError.set(

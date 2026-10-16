@@ -100,15 +100,16 @@
         }
       </section>
 
-      @if (imagesHasMore()) {
-        <button
-          pButton
-          type="button"
-          class="load-more-images"
-          [disabled]="loadingMoreImages()"
-          (click)="loadMoreImages()"
-        >
-          {{ loadingMoreImages() ? 'Loading...' : 'Load more images' }}
+      <!-- Scrolling near the end loads the next page; the button is the fallback. -->
+      <div class="grid-end" appNearViewport (nearViewport)="onGridEndNear($event)"></div>
+
+      @if (loadingMoreImages()) {
+        <p class="state loading-more">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Loading more images…
+        </p>
+      } @else if (imagesHasMore()) {
+        <button pButton type="button" class="load-more-images" (click)="loadMoreImages()">
+          Load more images
         </button>
       }
 
