@@ -8,7 +8,6 @@ import {
   effect,
   inject,
   signal,
-  untracked,
   ViewChild,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -63,36 +62,45 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
 
   protected readonly viewerIndex = signal<number | null>(null);
   /** Full-size URL that has finished loading. */
-  private readonly viewerLoadedUrl = signal<string | null>(null);
+  private readonly viewerLoadedUrls = signal<ReadonlySet<string>>(new Set());
   protected readonly viewerZoomed = signal(false);
   // Decorator, not viewChild(): the JIT-compiled specs don't see signal queries.
   @ViewChild(PinchZoomDirective) private pinchZoom?: PinchZoomDirective;
 
   protected readonly viewerFullLoaded = computed(() => {
-    const url = this.currentViewerImage()?.imageUrl;
-    return !url || this.viewerLoadedUrl() === url;
+    const image = this.currentViewerImage();
+    return !image || this.isFullLoaded(image);
   });
+
+  /** The current picture with the ones either side (offset -1, 0, 1). */
+  protected readonly viewerPanels = computed(() => {
+    const index = this.viewerIndex();
+    const images = this.images();
+    if (index === null) {
+      return [];
+    }
+    return [-1, 0, 1]
+      .map((offset) => ({ offset, image: images[index + offset] }))
+      .filter((panel): panel is { offset: number; image: GalleryImage } => !!panel.image);
+  });
+
+  protected readonly viewerHasPrevious = computed(() => (this.viewerIndex() ?? 0) > 0);
+  protected readonly viewerHasNext = computed(
+    () => (this.viewerIndex() ?? Infinity) < this.images().length - 1,
+  );
 
   protected readonly zoomHint =
     typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
       ? 'Pinch or double-tap to zoom'
       : 'Click or scroll to zoom';
 
-  // Each new picture starts fitted, and the ones either side load in the
-  // background so stepping through is instant.
+  // Each new picture starts fitted. (The ones either side load in their
+  // own panels, off screen, so stepping through is instant.)
   private readonly onViewerImageChange = effect(() => {
-    const index = this.viewerIndex();
+    this.viewerIndex();
     this.viewerZoomed.set(false);
+    // Same render as the new picture: recentres a slid carousel strip too.
     this.pinchZoom?.reset();
-    if (index === null) {
-      return;
-    }
-    const images = untracked(this.images);
-    for (const neighbour of [images[index + 1], images[index - 1]]) {
-      if (neighbour?.imageUrl) {
-        new Image().src = neighbour.imageUrl;
-      }
-    }
   });
 
   private galleryId: string | null = null;
@@ -178,8 +186,25 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
 
   protected onViewerFullLoaded(event: Event, image: GalleryImage): void {
     const element = event.target as HTMLImageElement;
-    if (image.imageUrl && element.currentSrc.endsWith(image.imageUrl)) {
-      this.viewerLoadedUrl.set(image.imageUrl);
+    const url = image.imageUrl;
+    if (url && element.currentSrc.endsWith(url) && !this.viewerLoadedUrls().has(url)) {
+      this.viewerLoadedUrls.update((urls) => new Set(urls).add(url));
+    }
+  }
+
+  protected isFullLoaded(image: GalleryImage): boolean {
+    return !image.imageUrl || this.viewerLoadedUrls().has(image.imageUrl);
+  }
+
+  /** Buttons and arrow keys: slide the next picture in, as a swipe does. */
+  protected step(direction: 'next' | 'previous'): void {
+    if (this.pinchZoom?.slide(direction)) {
+      return;
+    }
+    if (direction === 'next') {
+      this.showNextImage();
+    } else {
+      this.showPreviousImage();
     }
   }
 
@@ -211,9 +236,9 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
       }
       this.closeViewer();
     } else if (event.key === 'ArrowLeft') {
-      this.showPreviousImage();
+      this.step('previous');
     } else if (event.key === 'ArrowRight') {
-      this.showNextImage();
+      this.step('next');
     }
   }
 

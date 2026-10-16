@@ -138,7 +138,7 @@
           type="button"
           class="viewer-nav viewer-prev"
           aria-label="Previous image"
-          (click)="showPreviousImage()"
+          (click)="step('previous')"
         >
           <i class="pi pi-chevron-left" aria-hidden="true"></i>
         </button>
@@ -146,31 +146,48 @@
         <div
           class="viewer-stage"
           appPinchZoom
-          [pinchZoomTarget]="fullImage"
+          pinchZoomTarget=".viewer-panel.is-current .viewer-full"
+          [pinchZoomTrack]="track"
+          [pinchZoomHasPrevious]="viewerHasPrevious()"
+          [pinchZoomHasNext]="viewerHasNext()"
           [pinchZoomEnabled]="viewerFullLoaded()"
           (zoomedChange)="viewerZoomed.set($event)"
           (swipe)="$event === 'next' ? showNextImage() : showPreviousImage()"
           (dismiss)="closeViewer()"
         >
-          <!-- Thumbnail straight away (already loaded for the grid), full size over it once it arrives. -->
-          @if (!viewerFullLoaded() && viewerImage.thumbnailUrl) {
-            <img
-              class="viewer-image viewer-thumb"
-              [src]="viewerImage.thumbnailUrl"
-              alt=""
-              aria-hidden="true"
-              draggable="false"
-            />
-          }
-          <img
-            #fullImage
-            class="viewer-image viewer-full"
-            [class.ready]="viewerFullLoaded()"
-            [src]="viewerImage.imageUrl ?? viewerImage.thumbnailUrl"
-            [alt]="viewerImage.title ?? gallery.title"
-            draggable="false"
-            (load)="onViewerFullLoaded($event, viewerImage)"
-          />
+          <!-- The pictures either side wait off screen and slide in with a
+               swipe. Tracked by picture, so the one sliding in stays put
+               (no reload) when it becomes the current one. -->
+          <div #track class="viewer-track">
+            @for (panel of viewerPanels(); track panel.image.id) {
+              <div
+                class="viewer-panel"
+                [class.is-current]="panel.offset === 0"
+                [class.is-previous]="panel.offset < 0"
+                [class.is-next]="panel.offset > 0"
+                [attr.aria-hidden]="panel.offset !== 0 ? 'true' : null"
+              >
+                <!-- Thumbnail straight away (already loaded for the grid), full size over it once it arrives. -->
+                @if (!isFullLoaded(panel.image) && panel.image.thumbnailUrl) {
+                  <img
+                    class="viewer-image viewer-thumb"
+                    [src]="panel.image.thumbnailUrl"
+                    alt=""
+                    aria-hidden="true"
+                    draggable="false"
+                  />
+                }
+                <img
+                  class="viewer-image viewer-full"
+                  [class.ready]="isFullLoaded(panel.image)"
+                  [src]="panel.image.imageUrl ?? panel.image.thumbnailUrl"
+                  [alt]="panel.image.title ?? gallery.title"
+                  draggable="false"
+                  (load)="onViewerFullLoaded($event, panel.image)"
+                />
+              </div>
+            }
+          </div>
         </div>
 
         @if (!viewerFullLoaded()) {
@@ -185,7 +202,7 @@
           type="button"
           class="viewer-nav viewer-next"
           aria-label="Next image"
-          (click)="showNextImage()"
+          (click)="step('next')"
         >
           <i class="pi pi-chevron-right" aria-hidden="true"></i>
         </button>

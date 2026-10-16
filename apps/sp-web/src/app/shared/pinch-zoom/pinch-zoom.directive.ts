@@ -36,7 +36,14 @@ interface Fitted {
  * sideways drag and a swipe emits `swipe`; a tap beside it emits `dismiss`.
  *
  * Put it on the stage (positioned, filling the screen, picture centred in it
- * with object-fit: contain) and pass the picture as `pinchZoomTarget`.
+ * with object-fit: contain) and pass the picture as `pinchZoomTarget`. For
+ * a carousel, pass the strip holding the neighbouring pictures (either side
+ * of the current one, a stage width + SLIDE_GAP_PX away) as `pinchZoomTrack`:
+ * swipes then drag the strip, and a swipe slides it a whole picture across.
+ *
+ * GPU limits: browsers clamp very large layers (Safari per side, which
+ * squashes or stretches the picture), so the deepest zoom keeps the zoomed
+ * picture within MAX_LAYER_PX device pixels.
  *
  * Smoothness: moves are a GPU transform, animated frame by frame. Sharpness:
  * a transform only stretches the picture as drawn at its fitted size, so once
@@ -56,15 +63,32 @@ export class PinchZoomDirective implements OnDestroy {
   static readonly WHEEL_ANIMATION_MS = 140;
   /** Quiet time after moving before redrawing sharp. */
   static readonly SETTLE_MS = 120;
-  /** Zoom at least this far, however small the picture. */
-  static readonly MIN_MAX_SCALE = 4;
+  /** Zoom at least this far, however small the picture... */
+  static readonly MIN_MAX_SCALE = 3;
+  /** ...and as far as this beyond actual pixels... */
+  static readonly BEYOND_ACTUAL = 1.5;
+  /** ...but never past this many device pixels along the picture's long side. */
+  static readonly MAX_LAYER_PX = 8192;
+  /** Space between pictures in a carousel strip. */
+  static readonly SLIDE_GAP_PX = 24;
+  static readonly SLIDE_MS = 280;
 
   private readonly stage = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
 
-  @Input() pinchZoomTarget: HTMLElement | null = null;
+  /** The picture, or a selector for it within the stage (looked up as needed). */
+  @Input() pinchZoomTarget: HTMLElement | string | null = null;
   /** Off until the full picture has loaded: taps and swipes still work. */
   @Input() pinchZoomEnabled = true;
+  private get target(): HTMLElement | null {
+    const target = this.pinchZoomTarget;
+    return typeof target === 'string' ? this.stage.querySelector<HTMLElement>(target) : target;
+  }
+
+  /** Carousel strip, moved by swipes (see above). */
+  @Input() pinchZoomTrack: HTMLElement | null = null;
+  @Input() pinchZoomHasPrevious = false;
+  @Input() pinchZoomHasNext = false;
 
   @Output() readonly zoomedChange = new EventEmitter<boolean>();
   @Output() readonly swipe = new EventEmitter<'next' | 'previous'>();
@@ -92,6 +116,10 @@ export class PinchZoomDirective implements OnDestroy {
   private frame: number | null = null;
   private animation: { from: View; to: View; duration: number; start: number | null } | null = null;
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The carousel strip's sideways offset, and its slide animation. */
+  private trackX = 0;
+  private trackFrame: number | null = null;
+  private trackFallback: ReturnType<typeof setTimeout> | null = null;
   private sharpTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly onPointerDown = (event: PointerEvent): void => {
@@ -103,6 +131,7 @@ export class PinchZoomDirective implements OnDestroy {
     this.pointers.set(event.pointerId, point);
     // Catch it where it is: stop gliding, back to the transform to move it.
     this.stopAnimation();
+    this.stopTrack();
     this.cancelSharpen();
     this.render();
     if (this.pointers.size === 1) {
@@ -159,8 +188,16 @@ export class PinchZoomDirective implements OnDestroy {
           }),
         );
       } else if (start && this.moved) {
-        // At normal size the picture follows a sideways drag (for swiping).
-        this.setView({ scale: 1, tx: current.x - start.point.x, ty: 0 });
+        // At normal size a sideways drag moves the strip (or the picture),
+        // reluctantly where there's no picture to come in.
+        const dx = current.x - start.point.x;
+        const neighbour = dx < 0 ? this.pinchZoomHasNext : this.pinchZoomHasPrevious;
+        const x = this.pinchZoomTrack && !neighbour ? dx / 3 : dx;
+        if (this.pinchZoomTrack) {
+          this.setTrack(x);
+        } else {
+          this.setView({ scale: 1, tx: x, ty: 0 });
+        }
       }
     }
   };
@@ -193,10 +230,22 @@ export class PinchZoomDirective implements OnDestroy {
     if (single && this.view.scale <= 1) {
       const dx = point.x - start.point.x;
       const dy = point.y - start.point.y;
-      if (Math.abs(dx) > PinchZoomDirective.SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const flick = Math.abs(this.flingVelocity().x) > 0.4 && Math.abs(dx) > 20;
+      if (
+        (Math.abs(dx) > PinchZoomDirective.SWIPE_PX || flick) &&
+        Math.abs(dx) > Math.abs(dy) * 1.5
+      ) {
         this.pinch = null;
-        this.reset();
-        this.emit(() => this.swipe.emit(dx < 0 ? 'next' : 'previous'));
+        const direction = dx < 0 ? 'next' : 'previous';
+        if (!this.slide(direction)) {
+          this.reset();
+          this.emit(() => this.swipe.emit(direction));
+        }
+        return;
+      }
+      if (this.trackX !== 0) {
+        this.pinch = null;
+        this.animateTrack(0);
         return;
       }
     }
@@ -248,6 +297,10 @@ export class PinchZoomDirective implements OnDestroy {
     this.clearDismissTimer();
     this.cancelSharpen();
     this.stopAnimation();
+    this.stopTrack();
+    if (this.trackFallback) {
+      clearTimeout(this.trackFallback);
+    }
     window.removeEventListener('resize', this.onResize);
     this.stage.removeEventListener('pointerdown', this.onPointerDown);
     this.stage.removeEventListener('pointermove', this.onPointerMove);
@@ -263,9 +316,33 @@ export class PinchZoomDirective implements OnDestroy {
     return this.zoomed;
   }
 
+  /**
+   * Slides the carousel strip a whole picture across, then emits `swipe`
+   * (the host shows that picture and calls reset(), which recentres the
+   * strip in the same render). False when there's no strip or neighbour.
+   */
+  slide(direction: 'next' | 'previous'): boolean {
+    const neighbour = direction === 'next' ? this.pinchZoomHasNext : this.pinchZoomHasPrevious;
+    if (!this.pinchZoomTrack || !neighbour) {
+      return false;
+    }
+    this.reset();
+    const distance = this.stage.clientWidth + PinchZoomDirective.SLIDE_GAP_PX;
+    this.animateTrack(direction === 'next' ? -distance : distance, () => {
+      this.emit(() => this.swipe.emit(direction));
+      // In case the host doesn't reset: don't leave the strip slid away.
+      this.trackFallback = setTimeout(() => this.setTrack(0), 250);
+    });
+    return true;
+  }
+
   /** Back to fitted: at once (next picture), or animated (Esc). */
   reset(animate = false): void {
     this.cancelSharpen();
+    if (!animate) {
+      this.stopTrack();
+      this.setTrack(0);
+    }
     if (animate && !sameView(this.view, FITTED)) {
       this.animateTo(FITTED, PinchZoomDirective.ANIMATION_MS);
       return;
@@ -385,7 +462,7 @@ export class PinchZoomDirective implements OnDestroy {
    * letterbox it inside the box).
    */
   private measure(): Fitted | null {
-    const target = this.pinchZoomTarget;
+    const target = this.target;
     if (!target) {
       return null;
     }
@@ -402,7 +479,7 @@ export class PinchZoomDirective implements OnDestroy {
       // Exact (fractional) size; take off any sideways drag at 1x.
       w = box.width;
       h = box.height;
-      cx = box.left - stage.left + w / 2 - this.view.tx;
+      cx = box.left - stage.left + w / 2 - this.view.tx - this.trackX;
       cy = box.top - stage.top + h / 2 - this.view.ty;
     } else {
       w = target.offsetWidth;
@@ -426,12 +503,19 @@ export class PinchZoomDirective implements OnDestroy {
   }
 
   private maxScale(): number {
-    return Math.max(PinchZoomDirective.MIN_MAX_SCALE, this.actualPixelsScale() * 2);
+    const wanted = Math.max(
+      PinchZoomDirective.MIN_MAX_SCALE,
+      this.actualPixelsScale() * PinchZoomDirective.BEYOND_ACTUAL,
+    );
+    const fitted = this.measure();
+    const longSide = fitted ? Math.max(fitted.w, fitted.h) * (globalThis.devicePixelRatio || 1) : 0;
+    const layerLimit = longSide > 0 ? PinchZoomDirective.MAX_LAYER_PX / longSide : wanted;
+    return Math.max(1, Math.min(wanted, layerLimit));
   }
 
   /** Picture pixels per screen (device) pixel when fitted. */
   private actualPixelsScale(): number {
-    const natural = (this.pinchZoomTarget as HTMLImageElement | null)?.naturalWidth ?? 0;
+    const natural = (this.target as HTMLImageElement | null)?.naturalWidth ?? 0;
     const shown = (this.measure()?.w ?? 0) * (globalThis.devicePixelRatio || 1);
     return shown > 0 && natural > 0 ? natural / shown : 1;
   }
@@ -555,7 +639,7 @@ export class PinchZoomDirective implements OnDestroy {
 
   /** Shows the view as a transform (quick, for anything moving). */
   private render(): void {
-    const target = this.pinchZoomTarget;
+    const target = this.target;
     if (!target) {
       return;
     }
@@ -590,22 +674,20 @@ export class PinchZoomDirective implements OnDestroy {
 
   /**
    * Lays the picture out at its zoomed size, in the same place on screen,
-   * so it's drawn from the full image. Never bigger than the picture's own
-   * pixels: past that a transform enlarges it (there's no more detail).
+   * so it's drawn from the full image. No transform is left on it: a big
+   * transformed layer is what browsers clamp (and distort).
    */
   private sharpen(): void {
-    const target = this.pinchZoomTarget;
+    const target = this.target;
     const fitted = this.measure();
     const { scale, tx, ty } = this.view;
     if (!target || !fitted || scale <= 1 || this.pointers.size > 0 || this.animation) {
       return;
     }
-    const layoutScale = Math.min(scale, Math.max(1, this.actualPixelsScale()));
-    const width = fitted.w * layoutScale;
-    const height = fitted.h * layoutScale;
-    const rest = scale / layoutScale;
+    const width = fitted.w * scale;
+    const height = fitted.h * scale;
     Object.assign(target.style, {
-      transform: rest > 1.0001 ? `scale(${rest})` : 'none',
+      transform: 'none',
       willChange: '',
       position: 'absolute',
       left: `${fitted.cx + tx - width / 2}px`,
@@ -636,13 +718,50 @@ export class PinchZoomDirective implements OnDestroy {
     this.sharp = false;
   }
 
+  private setTrack(x: number): void {
+    this.trackX = x;
+    if (this.trackFallback) {
+      clearTimeout(this.trackFallback);
+      this.trackFallback = null;
+    }
+    const track = this.pinchZoomTrack;
+    if (track) {
+      track.style.transform = x ? `translate3d(${x}px, 0, 0)` : '';
+    }
+  }
+
+  private animateTrack(to: number, done?: () => void): void {
+    this.stopTrack();
+    const from = this.trackX;
+    let start: number | null = null;
+    const step = (now: number) => {
+      start ??= now;
+      const t = Math.min(1, (now - start) / PinchZoomDirective.SLIDE_MS);
+      this.setTrack(from + (to - from) * easeOutCubic(t));
+      if (t < 1) {
+        this.trackFrame = requestFrame(step);
+      } else {
+        this.trackFrame = null;
+        done?.();
+      }
+    };
+    this.trackFrame = requestFrame(step);
+  }
+
+  private stopTrack(): void {
+    if (this.trackFrame !== null) {
+      cancelFrame(this.trackFrame);
+      this.trackFrame = null;
+    }
+  }
+
   private local(event: MouseEvent): Point {
     const rect = this.stage.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
   private isOnTarget(event: Event): boolean {
-    const target = this.pinchZoomTarget;
+    const target = this.target;
     return !!target && event.target instanceof Node && target.contains(event.target);
   }
 

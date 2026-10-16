@@ -36,7 +36,13 @@
     opacity: 0.8;
     pointer-events: none;
     mask-image:
-      linear-gradient(to right, transparent, #000 var(--spread-x), #000 calc(100% - var(--spread-x)), transparent),
+      linear-gradient(
+        to right,
+        transparent,
+        #000 var(--spread-x),
+        #000 calc(100% - var(--spread-x)),
+        transparent
+      ),
       linear-gradient(
         to bottom,
         transparent,
@@ -106,6 +112,12 @@
 // zoom that trims the stray line many encodes carry along the top edge.)
 .hero-video {
   border-radius: 0;
+}
+
+// Back to the picture a little quicker than it faded in (FADE_OUT_MS).
+.hero-video:not(.is-playing),
+.hero-ambient-video:not(.is-playing) {
+  transition-duration: 300ms;
 }
 
 .hero-shade {

@@ -191,8 +191,29 @@ p {
 .viewer-stage {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+}
+
+// The carousel strip (moved by swipes) and a panel per picture; the ones
+// either side sit a screen and a gap away (PinchZoomDirective.SLIDE_GAP_PX).
+.viewer-track {
+  position: absolute;
+  inset: 0;
+}
+
+.viewer-panel {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
+}
+
+.viewer-panel.is-previous {
+  transform: translateX(calc(-100% - 24px));
+}
+
+.viewer-panel.is-next {
+  transform: translateX(calc(100% + 24px));
 }
 
 // Thumbnail and full picture share one cell, the full one fading in on top.

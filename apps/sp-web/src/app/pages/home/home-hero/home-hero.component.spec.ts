@@ -68,8 +68,12 @@ describe('HomeHeroComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.hero-slide').length).toBe(5);
     expect(fixture.nativeElement.querySelectorAll('.hero-dot').length).toBe(5);
     expect(title(fixture)).toBe('Recent Scene 1');
-    expect(fixture.nativeElement.querySelector('.hero-tag')?.textContent).toContain('New in your library');
-    expect(fixture.nativeElement.querySelector('.hero-meta')?.textContent).not.toContain('Recently added');
+    expect(fixture.nativeElement.querySelector('.hero-tag')?.textContent).toContain(
+      'New in your library',
+    );
+    expect(fixture.nativeElement.querySelector('.hero-meta')?.textContent).not.toContain(
+      'Recently added',
+    );
     expect(fixture.nativeElement.querySelector('.hero-slide').getAttribute('href')).toBe(
       '/scene/catalog-scene-1',
     );
@@ -87,12 +91,13 @@ describe('HomeHeroComponent', () => {
     fixture.detectChanges();
     expect(title(fixture)).toBe('Recent Scene 1');
 
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(100 + HomeHeroComponent.FADE_OUT_MS);
     fixture.detectChanges();
     expect(title(fixture)).toBe('Recent Scene 2');
 
+    vi.advanceTimersByTime(HomeHeroComponent.SLIDE_MS);
     video.dispatchEvent(new Event('playing'));
-    vi.advanceTimersByTime(8000);
+    vi.advanceTimersByTime(8000 + HomeHeroComponent.FADE_OUT_MS);
     fixture.detectChanges();
     expect(title(fixture)).toBe('Recent Scene 1');
   });
@@ -100,7 +105,8 @@ describe('HomeHeroComponent', () => {
   it('fills the progress bar over the preview time, without restarting after buffering', async () => {
     const fixture = await render([1, 2].map(buildItem));
     const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');
-    const fill = () => fixture.nativeElement.querySelector('.hero-progress-fill') as HTMLElement | null;
+    const fill = () =>
+      fixture.nativeElement.querySelector('.hero-progress-fill') as HTMLElement | null;
     expect(fill()).toBeNull();
 
     video.dispatchEvent(new Event('playing'));
@@ -115,8 +121,11 @@ describe('HomeHeroComponent', () => {
 
     vi.advanceTimersByTime(3000);
     fixture.detectChanges();
-    expect(title(fixture)).toBe('Recent Scene 2');
+    // The bar goes as the preview starts fading out.
     expect(fill()).toBeNull();
+    vi.advanceTimersByTime(HomeHeroComponent.FADE_OUT_MS);
+    fixture.detectChanges();
+    expect(title(fixture)).toBe('Recent Scene 2');
   });
 
   it("moves on when Stash's preview clip has played through once", async () => {
@@ -126,13 +135,46 @@ describe('HomeHeroComponent', () => {
 
     video.dispatchEvent(new Event('playing'));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.hero-progress-fill').style.animationDuration).toBe('9200ms');
+    expect(fixture.nativeElement.querySelector('.hero-progress-fill').style.animationDuration).toBe(
+      '9200ms',
+    );
     vi.advanceTimersByTime(9100);
     fixture.detectChanges();
     expect(title(fixture)).toBe('Recent Scene 1');
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(100 + HomeHeroComponent.FADE_OUT_MS);
     fixture.detectChanges();
     expect(title(fixture)).toBe('Recent Scene 2');
+  });
+
+  it('at the end of a preview: fades back to the picture, slides on, then fades into the next preview', async () => {
+    const fixture = await render([1, 2].map(buildItem));
+    const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');
+    const track: HTMLElement = fixture.nativeElement.querySelector('.hero-track');
+    video.dispatchEvent(new Event('playing'));
+    fixture.detectChanges();
+    expect(video.classList).toContain('is-playing');
+    const firstSource = video.getAttribute('src');
+
+    // 1. Fading out: same scene, the preview still there underneath.
+    vi.advanceTimersByTime(8000);
+    fixture.detectChanges();
+    expect(video.classList).not.toContain('is-playing');
+    expect(video.getAttribute('src')).toBe(firstSource);
+    expect(track.style.transform).toContain('calc(0%');
+
+    // 2. Faded: slides to the next picture, no preview loading meanwhile.
+    vi.advanceTimersByTime(HomeHeroComponent.FADE_OUT_MS);
+    fixture.detectChanges();
+    expect(track.style.transform).toContain('-100%');
+    expect(video.getAttribute('src')).toBeNull();
+
+    // 3. Slid: the next preview loads, and fades in once it plays.
+    vi.advanceTimersByTime(HomeHeroComponent.SLIDE_MS);
+    fixture.detectChanges();
+    expect(video.getAttribute('src')).toContain('local-scene-2');
+    video.dispatchEvent(new Event('playing'));
+    fixture.detectChanges();
+    expect(video.classList).toContain('is-playing');
   });
 
   it('moves on anyway when a preview never starts, and dots jump to a scene', async () => {

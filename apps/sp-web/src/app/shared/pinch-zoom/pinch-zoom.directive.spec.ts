@@ -208,6 +208,26 @@ describe('PinchZoomDirective', () => {
     expect(parseFloat(photo.style.width) / parseFloat(photo.style.height)).toBeCloseTo(2);
   });
 
+  it('zoomed all the way in, the picture keeps its shape and stays within GPU limits', () => {
+    const { stage, photo } = render();
+
+    for (let i = 0; i < 30; i++) {
+      stage.dispatchEvent(
+        new WheelEvent('wheel', { deltaY: -400, clientX: 400, clientY: 300, cancelable: true }),
+      );
+      vi.advanceTimersByTime(20);
+    }
+    vi.advanceTimersByTime(SETTLED);
+
+    const width = parseFloat(photo.style.width);
+    const height = parseFloat(photo.style.height);
+    expect(width).toBeLessThanOrEqual(PinchZoomDirective.MAX_LAYER_PX);
+    expect(width).toBeGreaterThan(6000);
+    expect(width / height).toBeCloseTo(400 / 300);
+    // Laid out, not stretched by a leftover transform.
+    expect(photo.style.transform).toBe('none');
+  });
+
   it('a mouse click on the photo zooms and unzooms; the wheel zooms too', () => {
     const { host, stage, photo, tap } = render();
 

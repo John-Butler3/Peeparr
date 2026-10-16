@@ -83,7 +83,8 @@ describe('GalleryPageComponent image viewer', () => {
       element.querySelectorAll<HTMLButtonElement>('.image-tile')[index].click();
       fixture.detectChanges();
     };
-    const full = () => element.querySelector<HTMLImageElement>('.viewer-full')!;
+    const current = '.viewer-panel.is-current';
+    const full = () => element.querySelector<HTMLImageElement>(`${current} .viewer-full`)!;
     return { fixture, element, open, full };
   }
 
@@ -91,7 +92,7 @@ describe('GalleryPageComponent image viewer', () => {
     const { fixture, element, open, full } = await render();
     open(1);
 
-    expect(element.querySelector('.viewer-thumb')?.getAttribute('src')).toBe(
+    expect(element.querySelector('.is-current .viewer-thumb')?.getAttribute('src')).toBe(
       '/api/media/stash/images/2/thumbnail',
     );
     expect(full().getAttribute('src')).toBe('/api/media/stash/images/2/full');
@@ -104,32 +105,43 @@ describe('GalleryPageComponent image viewer', () => {
     fixture.detectChanges();
 
     expect(full().classList).toContain('ready');
-    expect(element.querySelector('.viewer-thumb')).toBeNull();
+    expect(element.querySelector('.is-current .viewer-thumb')).toBeNull();
     expect(element.querySelector('.viewer-loading')).toBeNull();
   });
 
-  it('waits again for the next picture, and preloads the neighbours', async () => {
-    const created: HTMLImageElement[] = [];
-    const RealImage = window.Image;
-    vi.spyOn(window, 'Image').mockImplementation(function () {
-      const img = new RealImage();
-      created.push(img);
-      return img;
-    } as unknown as () => HTMLImageElement);
+  it('the pictures either side wait off screen and slide in, already loaded', async () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    });
     const { fixture, element, open, full } = await render();
     open(1);
-    expect(created.map((img) => img.getAttribute('src'))).toEqual([
-      '/api/media/stash/images/3/full',
-      '/api/media/stash/images/1/full',
-    ]);
+    const panel = (side: string) =>
+      element.querySelector<HTMLImageElement>(`.viewer-panel.is-${side} .viewer-full`)!;
+    expect(panel('previous').getAttribute('src')).toBe('/api/media/stash/images/1/full');
+    expect(panel('next').getAttribute('src')).toBe('/api/media/stash/images/3/full');
 
-    loadFull(full(), 6000, 4000);
+    // The next one finishes loading while waiting off screen.
+    const nextImage = panel('next');
+    loadFull(nextImage, 6000, 4000);
     fixture.detectChanges();
+    Object.defineProperty(element.querySelector('.viewer-stage'), 'clientWidth', { value: 800 });
+
     element.querySelector<HTMLButtonElement>('.viewer-next')!.click();
+    const track = element.querySelector<HTMLElement>('.viewer-track')!;
+    vi.advanceTimersByTime(100);
+    // Sliding: the strip moves (both pictures go across together).
+    expect(track.style.transform).toMatch(/translate3d\(-\d+/);
+    vi.advanceTimersByTime(400);
     fixture.detectChanges();
 
-    expect(full().getAttribute('src')).toBe('/api/media/stash/images/3/full');
-    expect(full().classList).not.toContain('ready');
+    // Arrived: the same picture element is now the current one, ready at
+    // once (no reload, no thumbnail), and the strip is back in place.
+    expect(full()).toBe(nextImage);
+    expect(full().classList).toContain('ready');
+    expect(element.querySelector('.is-current .viewer-thumb')).toBeNull();
+    expect(track.style.transform).toBe('');
+    expect(element.querySelector('.viewer-panel.is-next')).toBeNull();
+    vi.useRealTimers();
   });
 
   it('grid tiles keep the shape of each picture, so none is cropped', async () => {

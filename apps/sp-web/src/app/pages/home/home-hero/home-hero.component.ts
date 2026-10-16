@@ -51,6 +51,13 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   /** Share of the hero on screen for it to count as being looked at. */
   static readonly ON_SCREEN_SHARE = 0.25;
   static readonly PREVIEW_LOOP_SECONDS = 20;
+  /**
+   * Moving on: the preview fades back to the picture (FADE_OUT_MS, matching
+   * the stylesheet), the banner slides to the next scene (SLIDE_MS, ditto),
+   * and only then does the next preview load and fade in.
+   */
+  static readonly FADE_OUT_MS = 300;
+  static readonly SLIDE_MS = 700;
 
   @Input() items: readonly HomeRailItem[] = [];
   @Output() play = new EventEmitter<string>();
@@ -74,6 +81,8 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   protected readonly progress = signal<{ run: number; ms: number } | null>(null);
 
   private advanceTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The fade-out or slide step of moving on. */
+  private stepTimer: ReturnType<typeof setTimeout> | null = null;
   private sourceSubscription: Subscription | null = null;
   private source: ScenePreviewSource | null = null;
   private clipMode = false;
@@ -87,9 +96,12 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1000px)') : null;
   private readonly observer =
     typeof IntersectionObserver === 'function'
-      ? new IntersectionObserver((entries) => this.setOnScreen(entries[0]?.isIntersecting ?? true), {
-          threshold: HomeHeroComponent.ON_SCREEN_SHARE,
-        })
+      ? new IntersectionObserver(
+          (entries) => this.setOnScreen(entries[0]?.isIntersecting ?? true),
+          {
+            threshold: HomeHeroComponent.ON_SCREEN_SHARE,
+          },
+        )
       : null;
   private readonly onVisibility = () => {
     if (document.hidden) {
@@ -108,7 +120,8 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   ngOnChanges(): void {
     const next = this.items.slice(0, HomeHeroComponent.SLIDES);
     const sameScenes =
-      next.length === this.slides().length && next.every((item, i) => item.id === this.slides()[i]?.id);
+      next.length === this.slides().length &&
+      next.every((item, i) => item.id === this.slides()[i]?.id);
     this.slides.set(next);
     if (!sameScenes) {
       this.index.set(0);
@@ -122,22 +135,25 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     this.observer?.disconnect();
     this.autoplay.releaseHold(this.host);
     this.clearTimer();
+    this.clearStep();
     this.sourceSubscription?.unsubscribe();
     this.dropVideo();
   }
 
+  // Chosen (dots, swipes): straight there; the preview fades as it slides.
   protected goTo(index: number): void {
     if (index === this.index()) {
       return;
     }
-    this.index.set(index);
-    this.loadPreview();
+    this.slideTo(index);
   }
 
   protected onTouchStart(event: TouchEvent): void {
     const touch = event.touches[0];
     this.touchStart =
-      touch && event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY, sideways: null } : null;
+      touch && event.touches.length === 1
+        ? { x: touch.clientX, y: touch.clientY, sideways: null }
+        : null;
   }
 
   protected onTouchMove(event: TouchEvent): void {
@@ -172,12 +188,19 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   }
 
   protected link(item: HomeRailItem): readonly unknown[] {
-    return item.activeCatalogSceneId ? ['/scene', item.activeCatalogSceneId] : ['/library/scene', item.id];
+    return item.activeCatalogSceneId
+      ? ['/scene', item.activeCatalogSceneId]
+      : ['/library/scene', item.id];
   }
 
   protected onVideoMetadata(video: HTMLVideoElement): void {
     video.muted = true;
-    if (!this.clipMode && !this.previewStart && Number.isFinite(video.duration) && video.duration > 0) {
+    if (
+      !this.clipMode &&
+      !this.previewStart &&
+      Number.isFinite(video.duration) &&
+      video.duration > 0
+    ) {
       this.previewStart = Math.floor(video.duration / 2);
       video.currentTime = this.previewStart;
     }
@@ -198,7 +221,10 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   }
 
   protected onVideoTimeUpdate(video: HTMLVideoElement): void {
-    if (!this.clipMode && video.currentTime > this.previewStart + HomeHeroComponent.PREVIEW_LOOP_SECONDS) {
+    if (
+      !this.clipMode &&
+      video.currentTime > this.previewStart + HomeHeroComponent.PREVIEW_LOOP_SECONDS
+    ) {
       video.currentTime = this.previewStart;
     }
     this.syncAmbient(video);
@@ -221,7 +247,10 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       return HomeHeroComponent.PREVIEW_HOLD_MS;
     }
     return Math.round(
-      Math.min(HomeHeroComponent.CLIP_HOLD_MAX_MS, Math.max(HomeHeroComponent.CLIP_HOLD_MIN_MS, clipMs)),
+      Math.min(
+        HomeHeroComponent.CLIP_HOLD_MAX_MS,
+        Math.max(HomeHeroComponent.CLIP_HOLD_MIN_MS, clipMs),
+      ),
     );
   }
 
@@ -236,7 +265,10 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     if (!ambient || !ambient.getAttribute('src')) {
       return;
     }
-    if (start || Math.abs(ambient.currentTime - main.currentTime) > HomeHeroComponent.AMBIENT_MAX_DRIFT_S) {
+    if (
+      start ||
+      Math.abs(ambient.currentTime - main.currentTime) > HomeHeroComponent.AMBIENT_MAX_DRIFT_S
+    ) {
       ambient.currentTime = main.currentTime;
     }
     if (ambient.paused && !main.paused) {
@@ -267,21 +299,55 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
 
   private pause(): void {
     this.clearTimer();
+    this.clearStep();
     this.sourceSubscription?.unsubscribe();
     this.videoRef?.nativeElement.pause();
     this.ambientVideoRef?.nativeElement.pause();
   }
 
+  // On its own: fade the preview back to the picture first, then slide.
   private next(): void {
     const count = this.slides().length;
-    if (count > 1) {
-      this.index.set((this.index() + 1) % count);
+    const nextIndex = count > 1 ? (this.index() + 1) % count : this.index();
+    this.clearTimer();
+    this.clearStep();
+    this.sourceSubscription?.unsubscribe();
+    if (!this.videoPlaying()) {
+      this.slideTo(nextIndex);
+      return;
     }
-    this.loadPreview();
+    this.videoPlaying.set(false);
+    this.stepTimer = setTimeout(() => this.slideTo(nextIndex), HomeHeroComponent.FADE_OUT_MS);
+  }
+
+  /** Slides to a scene, and loads its preview once the slide has finished. */
+  private slideTo(index: number): void {
+    this.clearTimer();
+    this.clearStep();
+    this.sourceSubscription?.unsubscribe();
+    this.videoPlaying.set(false);
+    if (index === this.index()) {
+      this.loadPreview();
+      return;
+    }
+    this.dropVideo();
+    this.index.set(index);
+    this.stepTimer = setTimeout(() => {
+      this.stepTimer = null;
+      this.loadPreview();
+    }, HomeHeroComponent.SLIDE_MS);
+  }
+
+  private clearStep(): void {
+    if (this.stepTimer) {
+      clearTimeout(this.stepTimer);
+      this.stepTimer = null;
+    }
   }
 
   private loadPreview(): void {
     this.clearTimer();
+    this.clearStep();
     this.sourceSubscription?.unsubscribe();
     this.videoPlaying.set(false);
     this.stopAmbient();
@@ -293,17 +359,19 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
 
     // Moves on even if the preview never plays (the bar waits for it to).
     this.scheduleAdvance(HomeHeroComponent.NO_PREVIEW_ADVANCE_MS);
-    this.sourceSubscription = this.previewService.local(item.id, item.duration).subscribe((source) => {
-      this.source = source;
-      const clip = source?.clipUrl;
-      if (clip && !this.missingClips.has(clip)) {
-        this.clipMode = true;
-        this.previewStart = 0;
-        this.setVideoSource(clip);
-      } else {
-        this.playFullFile();
-      }
-    });
+    this.sourceSubscription = this.previewService
+      .local(item.id, item.duration)
+      .subscribe((source) => {
+        this.source = source;
+        const clip = source?.clipUrl;
+        if (clip && !this.missingClips.has(clip)) {
+          this.clipMode = true;
+          this.previewStart = 0;
+          this.setVideoSource(clip);
+        } else {
+          this.playFullFile();
+        }
+      });
   }
 
   private playFullFile(): void {
