@@ -10,9 +10,9 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Subscription, catchError, finalize, of } from 'rxjs';
+import { Subscription, catchError, filter, finalize, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SearchSuggestComponent } from '../../shared/search-suggest/search-suggest.component';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
@@ -111,14 +111,23 @@ export class HomePageComponent implements OnInit, OnDestroy {
   static readonly RESUME_REFRESH_AFTER_MS = 15_000;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private lastRefreshAt = 0;
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  /** On screen: not asleep (left, kept alive) and the app not in the background. */
+  private awake(): boolean {
+    return document.visibilityState === 'visible' && this.host.isConnected;
+  }
   private readonly onVisibilityChange = (): void => {
     if (
-      document.visibilityState === 'visible' &&
+      this.awake() &&
       Date.now() - this.lastRefreshAt > HomePageComponent.RESUME_REFRESH_AFTER_MS
     ) {
       this.refreshLibraryRows();
     }
   };
+  // Back on Home after a while away (the page was kept, asleep): catch up.
+  private readonly navigationWatch = inject(Router)
+    .events.pipe(filter((event) => event instanceof NavigationEnd))
+    .subscribe(() => this.onVisibilityChange());
 
   ngOnInit(): void {
     this.runtimeHealthService.ensureStarted();
@@ -126,7 +135,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.loadPopular();
     // New scenes in Stash show up without reloading the page.
     this.refreshTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (this.awake()) {
         this.refreshLibraryRows();
       }
     }, HomePageComponent.REFRESH_MS);
@@ -161,6 +170,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.navigationWatch.unsubscribe();
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }

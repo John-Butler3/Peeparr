@@ -4,9 +4,6 @@
   [class.is-dragging]="dragOffset() > 0"
   [style.--drag]="dragOffset()"
   (touchstart)="onDragStart($event)"
-  (touchmove)="onDragMove($event)"
-  (touchend)="onDragEnd()"
-  (touchcancel)="onDragEnd()"
 >
   @if (status() === 'ready' && source()) {
     <!-- The shared video (SharedVideoService) is placed here: the same

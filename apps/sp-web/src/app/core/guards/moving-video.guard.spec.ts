@@ -11,7 +11,10 @@ describe('fadeOutUnderMovingVideoGuard', () => {
     const fadeOut = vi.fn(() => Promise.resolve());
     TestBed.configureTestingModule({
       providers: [
-        { provide: SharedVideoService, useValue: { liftIfPlaying: () => playing } },
+        {
+          provide: SharedVideoService,
+          useValue: { isLifted: () => false, liftIfPlaying: () => playing },
+        },
         { provide: PageFadeService, useValue: { fadeOut } },
       ],
     });

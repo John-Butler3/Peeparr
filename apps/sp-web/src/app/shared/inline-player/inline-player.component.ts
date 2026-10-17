@@ -11,17 +11,23 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { NavigationStart, Router } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Observable, Subscription } from 'rxjs';
 import { ScenePlaybackSource } from '../../core/api/discover.types';
+import { PageFadeService } from '../../core/navigation/page-fade.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
 
-// YouTube's watch-page player. A thumbnail with a play button that
-// turns into the video in place. Leaving the page while it plays hands the
-// video to the global miniplayer at the same moment. Swiping down on the
-// playing video asks the page to do that (`minimize`).
+// The watch-page player. A thumbnail with a play button that turns into the
+// video in place. Leaving the page while it plays hands the video to the
+// global miniplayer at the same moment. Swiping down on the playing video
+// lifts it out of the page to follow the finger, and far enough asks the
+// page to go (`minimize`), the video carrying on into the miniplayer.
+//
+// Pages are kept alive when left (KeepAliveRouteStrategy): asleep, this
+// player has handed its video on; woken (back on the page), it takes it
+// back from the miniplayer if that's still playing it.
 @Component({
   selector: 'app-inline-player',
   imports: [ProgressSpinner],
@@ -32,11 +38,22 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private static readonly PROGRESS_SAVE_INTERVAL_MS = 20_000;
   // A saved position this close to the end counts as finished: start over.
   private static readonly RESUME_END_MARGIN_S = 10;
-  /** How far down a swipe must go to minimise. */
+  /** How far down a swipe must go to minimise... */
   private static readonly MINIMIZE_DRAG_PX = 110;
+  /** ...or a flick this fast (px/ms) and this far. */
+  private static readonly MINIMIZE_FLICK_SPEED = 0.5;
+  private static readonly MINIMIZE_FLICK_PX = 40;
 
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly playerService = inject(PlayerService);
   private readonly sharedVideo = inject(SharedVideoService);
+  private readonly pageFade = inject(PageFadeService);
+  /** Its page was left (kept alive, out of the document). */
+  private asleep = false;
+  /** Asleep, its video went on to the miniplayer. */
+  private handedOff = false;
+  private slotElement: HTMLElement | null = null;
+  private dragListeners: AbortController | null = null;
   /**
    * Where the video was on screen as navigation away began (the page is
    * gone by the time this player is destroyed): the miniplayer's video
@@ -46,6 +63,13 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private readonly navigationWatch = inject(Router).events.subscribe((event) => {
     if (event instanceof NavigationStart) {
       this.leavingRect = this.video?.getBoundingClientRect() ?? null;
+    } else if (event instanceof NavigationEnd) {
+      // Its page left (kept, asleep) or back on screen.
+      if (!this.host.isConnected && !this.asleep) {
+        this.sleep();
+      } else if (this.host.isConnected && this.asleep) {
+        this.wake();
+      }
     }
   });
   private sourceSubscription: Subscription | null = null;
@@ -87,7 +111,17 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
   protected readonly source = signal<ScenePlaybackSource | null>(null);
   protected readonly dragOffset = signal(0);
-  private drag: { x: number; y: number; down: boolean | null } | null = null;
+  private drag: {
+    x: number;
+    y: number;
+    down: boolean | null;
+    /** The video lifted out of the page, following the finger. */
+    lifted: boolean;
+    dy: number;
+    time: number;
+    /** Downward speed lately (px/ms), for a flick. */
+    speed: number;
+  } | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
     const sceneChanged = changes['localSceneId'] || changes['catalogStashId'] || changes['copyId'];
@@ -101,30 +135,75 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    const video = this.video;
-    const source = this.source();
-    if (video && source && !video.paused && !video.ended) {
-      this.playerService.saveProgress(
-        source.stashSceneId,
-        video.currentTime,
-        this.videoDuration(video),
-      );
-      // Still playing: the miniplayer takes the same video (it waits in the
-      // page meanwhile), so it doesn't stop, here or on an Apple TV.
-      this.listeners?.abort();
-      this.sharedVideo.park(this, this.leavingRect, this.posterUrl);
-      this.playerService.handOff({
-        title: this.title,
-        imageUrl: this.posterUrl,
-        source: { ...source, resumeSeconds: video.currentTime },
-        details: this.details,
-      });
-    } else {
+    if (!this.handOffIfPlaying()) {
       this.saveProgress();
       this.sharedVideo.release(this);
     }
     this.navigationWatch.unsubscribe();
     this.cleanup();
+  }
+
+  /**
+   * Leaving while it plays: the miniplayer takes the same video (it waits on
+   * screen meanwhile), so it doesn't stop, here or on an Apple TV.
+   */
+  private handOffIfPlaying(): boolean {
+    const video = this.video;
+    const source = this.source();
+    if (!video || !source || video.paused || video.ended) {
+      return false;
+    }
+    this.playerService.saveProgress(
+      source.stashSceneId,
+      video.currentTime,
+      this.videoDuration(video),
+    );
+    this.listeners?.abort();
+    this.sharedVideo.park(this, this.leavingRect, this.posterUrl);
+    this.playerService.handOff({
+      title: this.title,
+      imageUrl: this.posterUrl,
+      source: { ...source, resumeSeconds: video.currentTime },
+      details: this.details,
+    });
+    return true;
+  }
+
+  private sleep(): void {
+    this.asleep = true;
+    this.handedOff = this.handOffIfPlaying();
+    this.stopInterval();
+    if (!this.handedOff) {
+      // Not playing: stopped, and the poster for when it's back.
+      this.saveProgress();
+      this.sharedVideo.release(this);
+      this.listeners?.abort();
+      this.source.set(null);
+      this.status.set('idle');
+    }
+  }
+
+  private wake(): void {
+    this.asleep = false;
+    const source = this.source();
+    const slot = this.slotElement;
+    const takeBack =
+      this.handedOff && !!source && !!slot && this.sharedVideo.isPlaying(source.stashSceneId);
+    this.handedOff = false;
+    if (takeBack && source && slot) {
+      // Still playing in the miniplayer: it comes back (flying up) here.
+      this.attachVideo(slot);
+      this.playerService.close();
+      return;
+    }
+    if (!this.sharedVideo.isOwner(this)) {
+      this.listeners?.abort();
+      this.source.set(null);
+      this.status.set('idle');
+      if (this.autoplay) {
+        this.start();
+      }
+    }
   }
 
   /** The page's own Play button: start, or carry on if already loaded. */
@@ -145,8 +224,26 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     const touch = event.touches[0];
     this.drag =
       video && !video.paused && touch && event.touches.length === 1
-        ? { x: touch.clientX, y: touch.clientY, down: null }
+        ? {
+            x: touch.clientX,
+            y: touch.clientY,
+            down: null,
+            lifted: false,
+            dy: 0,
+            time: event.timeStamp,
+            speed: 0,
+          }
         : null;
+    if (this.drag) {
+      // Followed on the document: once lifted, the video (where the touch
+      // began, and where its events keep going) is no longer in this player.
+      this.dragListeners?.abort();
+      this.dragListeners = new AbortController();
+      const signal = this.dragListeners.signal;
+      document.addEventListener('touchmove', (e) => this.onDragMove(e), { passive: false, signal });
+      document.addEventListener('touchend', () => this.onDragEnd(), { signal });
+      document.addEventListener('touchcancel', () => this.onDragEnd(), { signal });
+    }
   }
 
   protected onDragMove(event: TouchEvent): void {
@@ -165,17 +262,41 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       if (event.cancelable) {
         event.preventDefault();
       }
-      this.dragOffset.set(Math.max(0, dy));
+      const elapsed = Math.max(1, event.timeStamp - drag.time);
+      drag.speed = (dy - drag.dy) / elapsed;
+      drag.dy = dy;
+      drag.time = event.timeStamp;
+      // The video comes out of the page, in front of everything, and
+      // follows the finger down, shrinking; the page dims behind it.
+      drag.lifted ||= this.sharedVideo.liftIfPlaying();
+      if (drag.lifted) {
+        this.sharedVideo.moveLifted(dy);
+        this.pageFade.setProgress(dy / (InlinePlayerComponent.MINIMIZE_DRAG_PX * 3));
+      } else {
+        this.dragOffset.set(Math.max(0, dy));
+      }
     }
   }
 
   protected onDragEnd(): void {
-    const minimise =
-      !!this.drag?.down && this.dragOffset() > InlinePlayerComponent.MINIMIZE_DRAG_PX;
+    const drag = this.drag;
     this.drag = null;
+    this.dragListeners?.abort();
+    this.dragListeners = null;
     this.dragOffset.set(0);
+    if (!drag?.down) {
+      return;
+    }
+    const minimise =
+      drag.dy > InlinePlayerComponent.MINIMIZE_DRAG_PX ||
+      (drag.speed > InlinePlayerComponent.MINIMIZE_FLICK_SPEED &&
+        drag.dy > InlinePlayerComponent.MINIMIZE_FLICK_PX);
     if (minimise) {
+      // Leaves the page; the video carries on from where the finger left it.
       this.minimize.emit();
+    } else if (drag.lifted) {
+      this.sharedVideo.dropBack();
+      this.pageFade.cancel();
     }
   }
 
@@ -207,6 +328,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     if (!source) {
       return;
     }
+    this.slotElement = slot;
     const carriedOn = this.sharedVideo.attach(this, slot, source.stashSceneId, source.streamUrl, {
       controls: true,
       poster: this.posterUrl,
@@ -301,6 +423,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   private cleanup(): void {
+    this.dragListeners?.abort();
     this.listeners?.abort();
     this.listeners = null;
     this.sourceSubscription?.unsubscribe();

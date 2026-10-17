@@ -12,7 +12,8 @@ import { SharedVideoService } from '../player/shared-video.service';
 export const fadeOutUnderMovingVideoGuard: CanDeactivateFn<unknown> = async () => {
   const sharedVideo = inject(SharedVideoService);
   const pageFade = inject(PageFadeService);
-  if (sharedVideo.liftIfPlaying()) {
+  // Already lifted by a swipe down, or lifted now.
+  if (sharedVideo.isLifted() || sharedVideo.liftIfPlaying()) {
     await pageFade.fadeOut();
   }
   return true;

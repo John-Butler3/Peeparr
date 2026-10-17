@@ -21,6 +21,9 @@ export interface SharedVideoOptions {
 @Injectable({ providedIn: 'root' })
 export class SharedVideoService {
   static readonly FLIGHT_MS = 340;
+  /** Dragging the lifted video down this far shrinks it to DRAG_MIN_SCALE. */
+  static readonly DRAG_SHRINK_PX = 400;
+  static readonly DRAG_MIN_SCALE = 0.5;
   /** Longest a flight waits for its page to show (pages load hidden). */
   static readonly WAIT_FOR_PAGE_MS = 1500;
   /**
@@ -41,6 +44,8 @@ export class SharedVideoService {
   /** Lifted out of its player's slot (still its player's), and that slot. */
   private liftedFrom: HTMLElement | null = null;
   private liftedControls = false;
+  /** Where it was when lifted (dragging moves it from there). */
+  private liftRect: DOMRect | null = null;
   private flight: number | null = null;
   private unclaimedTimer: ReturnType<typeof setTimeout> | null = null;
   /** Playing, as far as you're concerned (kept through an AirPlay switch). */
@@ -114,7 +119,8 @@ export class SharedVideoService {
   /**
    * Leaving a page while its video plays: lifts the video out of the page,
    * on screen exactly where it is, so the page can fade out under it before
-   * it flies. True if it did.
+   * it flies (and so it isn't taken out of the document with a page that's
+   * kept, which would pause it). True if it did.
    */
   liftIfPlaying(): boolean {
     const video = this.element;
@@ -125,8 +131,7 @@ export class SharedVideoService {
       this.owner === null ||
       video.paused ||
       video.ended ||
-      slot === this.holder ||
-      prefersReducedMotion()
+      slot === this.holder
     ) {
       return false;
     }
@@ -135,6 +140,7 @@ export class SharedVideoService {
       return false;
     }
     this.liftedFrom = slot;
+    this.liftRect = rect;
     this.liftedControls = video.controls;
     video.controls = false;
     this.waitingOnScreen = true;
@@ -147,14 +153,49 @@ export class SharedVideoService {
     return true;
   }
 
+  isLifted(): boolean {
+    return this.liftedFrom !== null;
+  }
+
+  /**
+   * A lifted video following a downward drag: moves down with the finger,
+   * shrinking as it goes.
+   */
+  moveLifted(dy: number): void {
+    const rect = this.liftRect;
+    if (!this.liftedFrom || !rect) {
+      return;
+    }
+    const down = Math.max(0, dy);
+    const scale = Math.max(
+      SharedVideoService.DRAG_MIN_SCALE,
+      1 - (down / SharedVideoService.DRAG_SHRINK_PX) * (1 - SharedVideoService.DRAG_MIN_SCALE),
+    );
+    const width = rect.width * scale;
+    const height = rect.height * scale;
+    this.stopFlight();
+    this.placeHolder(rect.left + (rect.width - width) / 2, rect.top + down, width, height);
+  }
+
+  /** A drag let go short of the miniplayer: glides back into its player. */
+  dropBack(): void {
+    const slot = this.liftedFrom;
+    if (!slot) {
+      return;
+    }
+    this.flyTo(slot, () => this.putBack());
+  }
+
   /** The page change didn't happen after all: back into its player. */
   putBack(): void {
     const video = this.element;
     const slot = this.liftedFrom;
     this.liftedFrom = null;
+    this.liftRect = null;
     if (!video || !slot || !slot.isConnected || this.owner === null) {
       return;
     }
+    this.stopFlight();
     slot.appendChild(video);
     video.controls = this.liftedControls;
     this.hideHolder();
@@ -287,9 +328,10 @@ export class SharedVideoService {
         land();
         return;
       }
-      // Its page is still loading (hidden): stay put, showing, until it
-      // appears, rather than landing somewhere invisible.
-      if (start === null && slot.closest('.is-pending')) {
+      // Its page is still loading (hidden), or the page before it is still
+      // on its way out (pushing it down): stay put, showing, until it's
+      // settled, rather than flying to where it isn't going to be.
+      if (start === null && (slot.closest('.is-pending') || pageStillLeaving(slot))) {
         waitingSince ??= now;
         if (now - waitingSince < SharedVideoService.WAIT_FOR_PAGE_MS) {
           this.flight = requestAnimationFrame(step);
@@ -375,6 +417,12 @@ export class SharedVideoService {
 // display:none: that can stop a video's picture updating.
 const HIDDEN_HOLDER =
   'position:fixed;left:0;bottom:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
+
+/** Another page is still in the page area alongside the slot's (leaving). */
+function pageStillLeaving(slot: HTMLElement): boolean {
+  const area = slot.closest('.route-view');
+  return !!area && area.querySelectorAll(':scope > :not(router-outlet)').length > 1;
+}
 
 function isWireless(video: HTMLVideoElement): boolean {
   return !!(video as HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })

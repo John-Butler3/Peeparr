@@ -1,8 +1,10 @@
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import {
-  ApplicationConfig,
-  provideBrowserGlobalErrorListeners,
-} from '@angular/core';
-import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
+  PreloadAllModules,
+  RouteReuseStrategy,
+  provideRouter,
+  withPreloading,
+} from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -10,6 +12,7 @@ import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 
 import { authRedirectInterceptor } from './core/interceptors/auth-redirect.interceptor';
+import { KeepAliveRouteStrategy } from './core/navigation/keep-alive-route.strategy';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -20,6 +23,8 @@ export const appConfig: ApplicationConfig = {
     // Pages loaded on demand are fetched in the background after start-up,
     // so going to them never waits for their code.
     provideRouter(routes, withPreloading(PreloadAllModules)),
+    // Pages you leave stay alive (asleep), so going back is instant.
+    { provide: RouteReuseStrategy, useClass: KeepAliveRouteStrategy },
     provideHttpClient(withInterceptors([authRedirectInterceptor])),
     provideAnimationsAsync(),
     providePrimeNG({
