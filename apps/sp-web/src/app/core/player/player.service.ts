@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, Subject, catchError, map, of } from 'rxjs';
 import { DiscoverService } from '../api/discover.service';
 import { ScenePlaybackSource } from '../api/discover.types';
 import { VideoQualityService } from './video-quality.service';
@@ -63,6 +63,8 @@ export class PlayerService {
   private readonly router = inject(Router);
   private readonly videoQuality = inject(VideoQualityService);
   private readonly originalHeights = new Map<string, number | null>();
+  /** A scene's place has been saved (Continue Watching may have changed): its Stash id. */
+  readonly progressSaved = new Subject<string>();
   private pendingHandBack: { stashSceneId: string; seconds: number } | null = null;
 
   /** The miniplayer's video, while there is one. */
@@ -193,8 +195,15 @@ export class PlayerService {
         resumeSeconds,
         ...(playDuration !== null ? { playDuration } : {}),
       })
-      .pipe(catchError(() => of(undefined)))
-      .subscribe();
+      .pipe(
+        map(() => true),
+        catchError(() => of(false)),
+      )
+      .subscribe((saved) => {
+        if (saved) {
+          this.progressSaved.next(stashSceneId);
+        }
+      });
   }
 
   private openScenePage(

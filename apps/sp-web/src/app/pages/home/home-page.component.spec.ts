@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { DiscoverService } from '../../core/api/discover.service';
@@ -183,6 +183,7 @@ describe('HomePageComponent', () => {
     };
     const playerService = {
       openByLocalSceneId: vi.fn(),
+      progressSaved: new Subject<string>(),
     };
 
     await TestBed.configureTestingModule({
@@ -475,5 +476,15 @@ describe('HomePageComponent', () => {
       '412',
       '411',
     ]);
+  });
+
+  it("follows a scene's place being saved: Continue Watching updates straight away", async () => {
+    const { homeService, playerService } = await renderPage();
+    expect(homeService.getContinueWatching).toHaveBeenCalledTimes(1);
+
+    // Left a scene (or closed the miniplayer): its place saved.
+    playerService.progressSaved.next('411');
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(homeService.getContinueWatching).toHaveBeenCalledTimes(2);
   });
 });

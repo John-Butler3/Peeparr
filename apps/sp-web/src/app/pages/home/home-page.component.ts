@@ -12,7 +12,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Subscription, catchError, filter, finalize, of } from 'rxjs';
+import { Subscription, catchError, debounceTime, filter, finalize, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SearchSuggestComponent } from '../../shared/search-suggest/search-suggest.component';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
@@ -117,14 +117,30 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private awake(): boolean {
     return document.visibilityState === 'visible' && onShowingPage(this.host);
   }
+  /** A place was saved while Home was away: Continue Watching is out of date. */
+  private continueWatchingStale = false;
   private readonly onVisibilityChange = (): void => {
-    if (
-      this.awake() &&
-      Date.now() - this.lastRefreshAt > HomePageComponent.RESUME_REFRESH_AFTER_MS
-    ) {
-      this.refreshLibraryRows();
+    if (!this.awake()) {
+      return;
     }
+    if (Date.now() - this.lastRefreshAt > HomePageComponent.RESUME_REFRESH_AFTER_MS) {
+      this.refreshLibraryRows();
+    } else if (this.continueWatchingStale) {
+      this.loadContinueWatching();
+    }
+    this.continueWatchingStale = false;
   };
+  // A scene's place saved (watching it, leaving it, closing the miniplayer):
+  // Continue Watching follows straight away, or as soon as Home is back.
+  private readonly progressWatch = inject(PlayerService)
+    .progressSaved.pipe(debounceTime(300))
+    .subscribe(() => {
+      if (this.awake()) {
+        this.loadContinueWatching();
+      } else {
+        this.continueWatchingStale = true;
+      }
+    });
   // Back on Home after a while away (the page was kept, asleep): catch up.
   private readonly navigationWatch = inject(Router)
     .events.pipe(filter((event) => event instanceof NavigationEnd))
@@ -172,6 +188,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.navigationWatch.unsubscribe();
+    this.progressWatch.unsubscribe();
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
