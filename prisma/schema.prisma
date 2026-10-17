@@ -282,6 +282,8 @@ model AppSettings {
   id                        String   @id @default(cuid())
   singletonKey              Int      @unique @default(1)
   hideAmateurNetworkResults Boolean  @default(false)
+  /// Scenes from Pornhub (per their catalog link) play in Peeparr via Pornhub's embed player.
+  streamFromPornhub         Boolean  @default(false)
   /// Saved Whisparr defaults used to submit a request immediately on click,
   /// skipping the manual options modal. defaultRootFolderPath and
   /// defaultQualityProfileId must both be set for quick-submit to engage.

@@ -1,3 +1,4 @@
+import { PORNHUB_EMBED_ORIGIN } from '../scenes/streaming/pornhub-embed.util';
 import { Logger } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
@@ -18,12 +19,16 @@ const logger = new Logger('HttpSecurity');
  * addresses ("10.0.0.2", "172.16.0.0/12"). Unset: no proxy is trusted.
  * "true" would trust addresses anyone can fake, so it's read as one hop.
  */
-export function trustProxySetting(env: NodeJS.ProcessEnv = process.env): number | string | false {
+export function trustProxySetting(
+  env: NodeJS.ProcessEnv = process.env,
+): number | string | false {
   return parseTrustProxy(env.PEEPARR_TRUST_PROXY);
 }
 
 /** A trust-proxy value as Express takes it: hops, addresses, or false. */
-export function parseTrustProxy(value: string | null | undefined): number | string | false {
+export function parseTrustProxy(
+  value: string | null | undefined,
+): number | string | false {
   const raw = value?.trim();
   if (!raw || raw.toLowerCase() === 'false' || raw === '0') {
     return false;
@@ -48,13 +53,17 @@ export function trustProxyProblem(value: string): string | null {
   }
   if (/^\d+$/.test(raw)) {
     const hops = Number(raw);
-    return hops >= 1 && hops <= 5 ? null : 'Use a number of proxies from 1 to 5.';
+    return hops >= 1 && hops <= 5
+      ? null
+      : 'Use a number of proxies from 1 to 5.';
   }
   for (const part of raw.split(',').map((p) => p.trim())) {
     const [address, prefix, extra] = part.split('/');
     const family = isIP(address ?? '');
     const maxPrefix = family === 4 ? 32 : 128;
-    const prefixOk = prefix === undefined || (/^\d+$/.test(prefix) && Number(prefix) <= maxPrefix);
+    const prefixOk =
+      prefix === undefined ||
+      (/^\d+$/.test(prefix) && Number(prefix) <= maxPrefix);
     if (!family || !prefixOk || extra !== undefined) {
       return `"${part}" isn't an IP address or network (like 10.0.0.2 or 172.16.0.0/12).`;
     }
@@ -118,7 +127,9 @@ const FORWARDING_HEADERS = [
  * Headers a client can fake are never believed on their own.
  */
 export function isFromPrivateNetwork(request: Request): boolean {
-  const forwarded = FORWARDING_HEADERS.some((header) => request.headers[header] !== undefined);
+  const forwarded = FORWARDING_HEADERS.some(
+    (header) => request.headers[header] !== undefined,
+  );
   if (!forwarded) {
     return isPrivateAddress(request.socket.remoteAddress);
   }
@@ -128,7 +139,11 @@ export function isFromPrivateNetwork(request: Request): boolean {
 }
 
 /** Security headers on every response. */
-export function securityHeaders(request: Request, response: Response, next: NextFunction): void {
+export function securityHeaders(
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): void {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('X-Frame-Options', 'DENY');
   // Nothing about what you were looking at goes to other sites you open.
@@ -152,6 +167,9 @@ export function securityHeaders(request: Request, response: Response, next: Next
       "connect-src 'self'",
       "manifest-src 'self'",
       "worker-src 'self' blob:",
+      // Pornhub's embed player, for scenes streamed from Pornhub (an
+      // optional setting); no other site can be framed.
+      `frame-src ${PORNHUB_EMBED_ORIGIN}`,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -171,13 +189,25 @@ const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
  * (on top of the SameSite session cookie). Same-site browser requests, and
  * anything not from a browser (no Origin header), are let through.
  */
-export function rejectCrossSiteWrites(request: Request, response: Response, next: NextFunction): void {
-  if (!UNSAFE_METHODS.has(request.method) || !request.path.startsWith('/api/')) {
+export function rejectCrossSiteWrites(
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): void {
+  if (
+    !UNSAFE_METHODS.has(request.method) ||
+    !request.path.startsWith('/api/')
+  ) {
     next();
     return;
   }
   if (request.headers['sec-fetch-site'] === 'cross-site') {
-    response.status(403).json({ statusCode: 403, message: 'Cross-site requests are not allowed.' });
+    response
+      .status(403)
+      .json({
+        statusCode: 403,
+        message: 'Cross-site requests are not allowed.',
+      });
     return;
   }
   const origin = request.headers.origin;
@@ -190,11 +220,19 @@ export function rejectCrossSiteWrites(request: Request, response: Response, next
     }
     // The address the browser used: Host, or the proxy's X-Forwarded-Host
     // (a cross-site page can't set that header without failing CORS).
-    const hosts = [request.headers.host, firstValue(request.headers['x-forwarded-host'])]
+    const hosts = [
+      request.headers.host,
+      firstValue(request.headers['x-forwarded-host']),
+    ]
       .filter((value): value is string => Boolean(value))
       .map((value) => value.toLowerCase());
     if (!originHost || !hosts.includes(originHost)) {
-      response.status(403).json({ statusCode: 403, message: 'Cross-site requests are not allowed.' });
+      response
+        .status(403)
+        .json({
+          statusCode: 403,
+          message: 'Cross-site requests are not allowed.',
+        });
       return;
     }
   }
@@ -211,7 +249,9 @@ export function applyHttpSecurity(app: NestExpressApplication): void {
   express.disable('x-powered-by');
   const trust = trustProxySetting();
   if (/^(true|\*)$/i.test(process.env.PEEPARR_TRUST_PROXY?.trim() ?? '')) {
-    logger.warn('PEEPARR_TRUST_PROXY=true would trust any sender; treating it as one proxy hop (1).');
+    logger.warn(
+      'PEEPARR_TRUST_PROXY=true would trust any sender; treating it as one proxy hop (1).',
+    );
   }
   // From the environment now; otherwise the Remote access setting is applied
   // once the app has started (NetworkSettingsService).

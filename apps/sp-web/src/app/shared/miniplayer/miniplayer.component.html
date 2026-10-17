@@ -26,16 +26,19 @@
       ></button>
     </div>
 
-    <div
-      class="mini-progress"
-      role="progressbar"
-      aria-label="Playback progress"
-      aria-valuemin="0"
-      aria-valuemax="100"
-      [attr.aria-valuenow]="(progress() * 100).toFixed(0)"
-    >
-      <div class="mini-progress-fill" [style.transform]="'scaleX(' + progress() + ')'"></div>
-    </div>
+    <!-- Streams (Pornhub's player) don't tell us where they are. -->
+    @if (!streaming()) {
+      <div
+        class="mini-progress"
+        role="progressbar"
+        aria-label="Playback progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="(progress() * 100).toFixed(0)"
+      >
+        <div class="mini-progress-fill" [style.transform]="'scaleX(' + progress() + ')'"></div>
+      </div>
+    }
 
     <div class="mini-bar">
       <button type="button" class="mini-text" (click)="openScenePage()">
@@ -44,14 +47,17 @@
           <span class="mini-sub">{{ sub }}</span>
         }
       </button>
-      <button
-        type="button"
-        class="mini-icon"
-        [attr.aria-label]="paused() ? 'Play' : 'Pause'"
-        (click)="togglePlayback()"
-      >
-        <i [class]="paused() ? 'pi pi-play' : 'pi pi-pause'" aria-hidden="true"></i>
-      </button>
+      <!-- Play/pause for a stream is in Pornhub's player (on the scene page). -->
+      @if (!streaming()) {
+        <button
+          type="button"
+          class="mini-icon"
+          [attr.aria-label]="paused() ? 'Play' : 'Pause'"
+          (click)="togglePlayback()"
+        >
+          <i [class]="paused() ? 'pi pi-play' : 'pi pi-pause'" aria-hidden="true"></i>
+        </button>
+      }
       <button type="button" class="mini-icon" aria-label="Close player" (click)="closePlayer()">
         <i class="pi pi-times" aria-hidden="true"></i>
       </button>

@@ -144,6 +144,20 @@ p {
 
 // One compact line under the title: status · site ★ · date · length. It
 // stays one line; only the site name gives way (with "…") on narrow screens.
+// A scene not in the library that plays, streamed from Pornhub.
+.watch-stream-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ff9000 18%, transparent);
+  color: #ffb547;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .watch-meta {
   display: flex;
   align-items: center;

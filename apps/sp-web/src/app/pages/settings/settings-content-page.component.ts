@@ -52,6 +52,7 @@ export class SettingsContentPageComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly saveError = signal<string | null>(null);
   protected readonly hideAmateurNetworkResults = signal(false);
+  protected readonly streamFromPornhub = signal(false);
 
   protected readonly downloadProfileOptions = signal<DownloadProfileOptions | null>(null);
   protected readonly downloadProfileOptionsError = signal<string | null>(null);
@@ -124,9 +125,28 @@ export class SettingsContentPageComponent implements OnInit {
       .subscribe({
         next: (settings) => {
           this.hideAmateurNetworkResults.set(settings.hideAmateurNetworkResults);
+          this.streamFromPornhub.set(settings.streamFromPornhub);
         },
         error: () => {
           this.hideAmateurNetworkResults.set(previousValue);
+          this.saveError.set('Failed to save. Please try again.');
+        },
+      });
+  }
+
+  protected onStreamFromPornhubChanged(nextValue: boolean): void {
+    const previousValue = this.streamFromPornhub();
+    this.streamFromPornhub.set(nextValue);
+    this.saving.set(true);
+    this.saveError.set(null);
+
+    this.appSettingsService
+      .updatePreferences({ streamFromPornhub: nextValue })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (settings) => this.streamFromPornhub.set(settings.streamFromPornhub),
+        error: () => {
+          this.streamFromPornhub.set(previousValue);
           this.saveError.set('Failed to save. Please try again.');
         },
       });
@@ -182,6 +202,7 @@ export class SettingsContentPageComponent implements OnInit {
       .subscribe({
         next: ({ settings, downloadProfileOptions }) => {
           this.hideAmateurNetworkResults.set(settings.hideAmateurNetworkResults);
+          this.streamFromPornhub.set(settings.streamFromPornhub);
           this.downloadProfileOptions.set(downloadProfileOptions);
           this.patchDownloadProfileForm(settings);
         },

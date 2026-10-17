@@ -1,0 +1,24 @@
+<div class="inline-player stream-player">
+  @if (status() === 'ready') {
+    <!-- Pornhub's player is laid over this spot (EmbedPlayerService). -->
+    <div #spot class="stream-spot"></div>
+  } @else {
+    <button
+      type="button"
+      class="poster"
+      [attr.aria-label]="'Play ' + title"
+      data-testid="stream-player-poster"
+      (click)="start()"
+    >
+      @if (posterUrl) {
+        <img class="poster-image" [src]="posterUrl" alt="" />
+      }
+      <span class="poster-center play-badge" aria-hidden="true">
+        <i class="pi pi-play"></i>
+      </span>
+      @if (durationLabel(); as duration) {
+        <span class="poster-duration">{{ duration }}</span>
+      }
+    </button>
+  }
+</div>

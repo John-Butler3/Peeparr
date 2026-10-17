@@ -51,18 +51,17 @@ export class AuthIntroDirective {
     this.measureOffsetToCentre(place);
     this.card.classList.add('auth-leaving');
 
-    return new Promise((resolve) => {
-      const until = performance.now() + AuthIntroDirective.LEAVE_MS;
-      const follow = (now: number) => {
-        this.measureOffsetToCentre(place);
-        if (now < until) {
-          requestAnimationFrame(follow);
-        } else {
-          resolve();
-        }
-      };
-      requestAnimationFrame(follow);
-    });
+    // Re-aimed every frame until it lands; done after LEAVE_MS (a timer,
+    // not frames, so it ends on time even when frames come slowly).
+    const until = performance.now() + AuthIntroDirective.LEAVE_MS;
+    const follow = (now: number) => {
+      this.measureOffsetToCentre(place);
+      if (now < until) {
+        requestAnimationFrame(follow);
+      }
+    };
+    requestAnimationFrame(follow);
+    return new Promise((resolve) => setTimeout(resolve, AuthIntroDirective.LEAVE_MS));
   }
 
   /**

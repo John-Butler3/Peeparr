@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { pornhubEmbedUrl } from './streaming/pornhub-embed.util';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PerformerFavoritesService } from '../performers/performer-favorites.service';
@@ -126,12 +131,15 @@ export class ScenesService {
     let providerFavorites = favorites;
     let providerStudioIds = normalizedStudioIds;
     if (favorites === 'STUDIO') {
-      const localFavoriteStudioIds = await this.studioFavoritesService.listAllFavoriteIds();
+      const localFavoriteStudioIds =
+        await this.studioFavoritesService.listAllFavoriteIds();
       if (localFavoriteStudioIds.length > 0) {
         providerFavorites = undefined;
         providerStudioIds =
           normalizedStudioIds.length > 0
-            ? normalizedStudioIds.filter((id) => localFavoriteStudioIds.includes(id))
+            ? normalizedStudioIds.filter((id) =>
+                localFavoriteStudioIds.includes(id),
+              )
             : localFavoriteStudioIds;
         if (providerStudioIds.length === 0) {
           return { total: 0, page, perPage, hasMore: false, items: [] };
@@ -193,23 +201,25 @@ export class ScenesService {
     // newest scenes are often almost all ManyVids), which left pages near
     // empty: read ahead until there's a full page to show.
     if (appSettings.hideAmateurNetworkResults) {
-      return withNotice(await this.getFilteredScenesFeed(
-        JSON.stringify([
-          catalogProvider.integrationType,
+      return withNotice(
+        await this.getFilteredScenesFeed(
+          JSON.stringify([
+            catalogProvider.integrationType,
+            perPage,
+            sort,
+            direction,
+            normalizedTagIds,
+            tagMode,
+            favorites ?? null,
+            normalizedStudioIds,
+            titleQuery?.trim() ?? '',
+          ]),
+          page,
           perPage,
-          sort,
-          direction,
-          normalizedTagIds,
-          tagMode,
-          favorites ?? null,
-          normalizedStudioIds,
-          titleQuery?.trim() ?? '',
-        ]),
-        page,
-        perPage,
-        catalogProvider.integrationType,
-        fetchProviderPage,
-      ));
+          catalogProvider.integrationType,
+          fetchProviderPage,
+        ),
+      );
     }
 
     const scenes = await fetchProviderPage(page);
@@ -252,7 +262,8 @@ export class ScenesService {
    * when the catalog isn't TPDB or no working website login is saved.
    */
   async getPopularScenes(): Promise<ScenesFeedResponseDto> {
-    const catalogProvider = await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
     const empty = { total: 0, page: 1, perPage: 0, hasMore: false, items: [] };
     if (catalogProvider.integrationType !== 'TPDB') {
       return empty;
@@ -287,8 +298,14 @@ export class ScenesService {
     integrationType: CatalogProviderIntegrationType,
     hideAmateurNetworkResults: boolean,
   ): Promise<ScenesFeedResponseDto> {
-    const allStatuses = await this.sceneStatusService.resolveForScenes(scenes.map((scene) => scene.id));
-    const visible = filterExcludedNetworkScenes(scenes, allStatuses, hideAmateurNetworkResults);
+    const allStatuses = await this.sceneStatusService.resolveForScenes(
+      scenes.map((scene) => scene.id),
+    );
+    const visible = filterExcludedNetworkScenes(
+      scenes,
+      allStatuses,
+      hideAmateurNetworkResults,
+    );
     const pageScenes = visible.slice((page - 1) * perPage, page * perPage);
     return {
       total: visible.length,
@@ -297,7 +314,12 @@ export class ScenesService {
       hasMore: visible.length > page * perPage,
       items: pageScenes.map((scene) => {
         const status = allStatuses.get(scene.id) ?? { state: 'NOT_REQUESTED' };
-        return this.toScenesFeedItem(scene, integrationType, status, isSceneStatusRequestable(status));
+        return this.toScenesFeedItem(
+          scene,
+          integrationType,
+          status,
+          isSceneStatusRequestable(status),
+        );
       }),
     };
   }
@@ -312,7 +334,9 @@ export class ScenesService {
     page: number,
     perPage: number,
     integrationType: CatalogProviderIntegrationType,
-    fetchProviderPage: (providerPage: number) => Promise<{ total: number; scenes: StashdbScene[] }>,
+    fetchProviderPage: (
+      providerPage: number,
+    ) => Promise<{ total: number; scenes: StashdbScene[] }>,
   ): Promise<ScenesFeedResponseDto> {
     const now = Date.now();
     let state = this.filteredFeeds.get(feedKey);
@@ -342,7 +366,9 @@ export class ScenesService {
         { length: batchSize },
         (_, index) => state!.nextProviderPage + index,
       );
-      const results = await Promise.all(providerPages.map((providerPage) => fetchProviderPage(providerPage)));
+      const results = await Promise.all(
+        providerPages.map((providerPage) => fetchProviderPage(providerPage)),
+      );
       fetchedPages += batchSize;
       state.nextProviderPage += batchSize;
 
@@ -353,11 +379,18 @@ export class ScenesService {
       results.forEach((result, index) => {
         state!.providerTotal = result.total;
         const pageNumber = providerPages[index];
-        if (result.scenes.length === 0 || pageNumber * perPage >= result.total) {
+        if (
+          result.scenes.length === 0 ||
+          pageNumber * perPage >= result.total
+        ) {
           state!.exhausted = true;
         }
       });
-      for (const scene of filterExcludedNetworkScenes(batchScenes, statuses, true)) {
+      for (const scene of filterExcludedNetworkScenes(
+        batchScenes,
+        statuses,
+        true,
+      )) {
         // Pages can shift as new scenes arrive upstream: skip repeats.
         if (!state.seen.has(scene.id)) {
           state.seen.add(scene.id);
@@ -379,13 +412,20 @@ export class ScenesService {
     );
     return {
       // Unknown until the end is reached: the provider's count is an upper bound.
-      total: state.exhausted ? state.scenes.length : Math.max(state.providerTotal, state.scenes.length),
+      total: state.exhausted
+        ? state.scenes.length
+        : Math.max(state.providerTotal, state.scenes.length),
       page,
       perPage,
       hasMore: state.scenes.length > page * perPage || !state.exhausted,
       items: pageScenes.map((scene) => {
         const status = statuses.get(scene.id) ?? { state: 'NOT_REQUESTED' };
-        return this.toScenesFeedItem(scene, integrationType, status, isSceneStatusRequestable(status));
+        return this.toScenesFeedItem(
+          scene,
+          integrationType,
+          status,
+          isSceneStatusRequestable(status),
+        );
       }),
     };
   }
@@ -405,7 +445,8 @@ export class ScenesService {
     titleQuery: string | undefined,
     tagFilter: { tagIds: string[]; mode: SceneTagMatchMode },
   ): Promise<ScenesFeedResponseDto> {
-    const favoriteIds = await this.performerFavoritesService.listAllFavoriteIds();
+    const favoriteIds =
+      await this.performerFavoritesService.listAllFavoriteIds();
     if (favoriteIds.length === 0) {
       return { total: 0, page, perPage, hasMore: false, items: [] };
     }
@@ -567,16 +608,20 @@ export class ScenesService {
     // A scene credit only carries a single imageUrl (no full images[] list
     // to validate against, unlike getPerformerById) -- trusted as-is, same
     // tradeoff as the performers feed.
-    const mainImageOverrides = await this.performerImagePreferenceService.getMainImageUrls(
-      scene.performers.map((performer) => performer.id),
-    );
+    const mainImageOverrides =
+      await this.performerImagePreferenceService.getMainImageUrls(
+        scene.performers.map((performer) => performer.id),
+      );
     // Favorites are kept locally (TPDB never reports them on scene credits),
     // so a credit counts as a favorite if either source says so.
-    const localFavoriteIds = await this.performerFavoritesService.getFavoriteIds(
-      scene.performers.map((performer) => performer.id),
-    );
+    const localFavoriteIds =
+      await this.performerFavoritesService.getFavoriteIds(
+        scene.performers.map((performer) => performer.id),
+      );
     const studioFavoritedLocally = scene.studioId
-      ? (await this.studioFavoritesService.getFavoriteIds([scene.studioId])).has(scene.studioId)
+      ? (
+          await this.studioFavoritesService.getFavoriteIds([scene.studioId])
+        ).has(scene.studioId)
       : false;
 
     return {
@@ -594,15 +639,20 @@ export class ScenesService {
       duration: scene.duration,
       tags: scene.tags,
       performers: scene.performers.map((performer) => {
-        const imageUrl = mainImageOverrides.get(performer.id) ?? performer.imageUrl;
+        const imageUrl =
+          mainImageOverrides.get(performer.id) ?? performer.imageUrl;
         return {
           ...performer,
-          isFavorite: performer.isFavorite || localFavoriteIds.has(performer.id),
+          isFavorite:
+            performer.isFavorite || localFavoriteIds.has(performer.id),
           imageUrl,
           cardImageUrl: withStashImageSize(imageUrl, 300),
         };
       }),
       sourceUrls: scene.sourceUrls,
+      streamEmbedUrl: (await this.appSettingsService.get()).streamFromPornhub
+        ? pornhubEmbedUrl(scene.sourceUrls)
+        : null,
       source: catalogProvider.integrationType,
       status,
       stash,
@@ -763,7 +813,10 @@ export class ScenesService {
       throw new BadRequestException('Studio id is required.');
     }
 
-    const result = await this.studioFavoritesService.setFavorite(normalizedStudioId, favorite);
+    const result = await this.studioFavoritesService.setFavorite(
+      normalizedStudioId,
+      favorite,
+    );
 
     // Best-effort only: Peeparr's own list is what counts (TPDB can't keep
     // studio favorites), so the provider never blocks the toggle.

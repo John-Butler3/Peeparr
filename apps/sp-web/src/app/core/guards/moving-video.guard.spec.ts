@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { PageFadeService } from '../navigation/page-fade.service';
+import { EmbedPlayerService } from '../player/embed-player.service';
 import { SharedVideoService } from '../player/shared-video.service';
 import { fadeOutUnderMovingVideoGuard } from './moving-video.guard';
 
@@ -14,6 +15,10 @@ describe('fadeOutUnderMovingVideoGuard', () => {
         {
           provide: SharedVideoService,
           useValue: { isLifted: () => false, liftIfPlaying: () => playing },
+        },
+        {
+          provide: EmbedPlayerService,
+          useValue: { isLifted: () => false, liftFromPage: () => false },
         },
         { provide: PageFadeService, useValue: { fadeOut } },
       ],

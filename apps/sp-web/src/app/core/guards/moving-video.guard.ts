@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanDeactivateFn } from '@angular/router';
 import { PageFadeService } from '../navigation/page-fade.service';
+import { EmbedPlayerService } from '../player/embed-player.service';
 import { SharedVideoService } from '../player/shared-video.service';
 
 /**
@@ -11,9 +12,16 @@ import { SharedVideoService } from '../player/shared-video.service';
  */
 export const fadeOutUnderMovingVideoGuard: CanDeactivateFn<unknown> = async () => {
   const sharedVideo = inject(SharedVideoService);
+  const embedPlayer = inject(EmbedPlayerService);
   const pageFade = inject(PageFadeService);
-  // Already lifted by a swipe down, or lifted now.
-  if (sharedVideo.isLifted() || sharedVideo.liftIfPlaying()) {
+  // Already lifted by a swipe down, or lifted now (Stash's video, or a
+  // stream from Pornhub).
+  if (
+    sharedVideo.isLifted() ||
+    sharedVideo.liftIfPlaying() ||
+    embedPlayer.isLifted() ||
+    embedPlayer.liftFromPage()
+  ) {
     await pageFade.fadeOut();
   }
   return true;

@@ -63,6 +63,11 @@ export class SceneDetailsDto {
   tags!: SceneTagDto[];
   performers!: ScenePerformerDto[];
   sourceUrls!: SceneUrlDto[];
+  /**
+   * Pornhub's embed player for this scene, when it's a Pornhub video and
+   * streaming from Pornhub is on (Settings); otherwise null.
+   */
+  streamEmbedUrl!: string | null;
   source!: CatalogProviderKey;
   status!: SceneStatusDto;
   stash!: SceneStashAvailabilityDto | null;

@@ -138,6 +138,8 @@ export interface SceneDetails {
   tags: SceneTag[];
   performers: ScenePerformer[];
   sourceUrls: SceneUrl[];
+  /** Pornhub's embed player, when it's a Pornhub video and streaming from Pornhub is on. */
+  streamEmbedUrl?: string | null;
   source: CatalogProviderType;
   status: SceneStatus;
   stash: SceneStashAvailability | null;
@@ -369,4 +371,6 @@ export interface ScenePlaybackSource {
   stashSceneId: string;
   resumeSeconds: number;
   duration: number | null;
+  /** Streamed from Pornhub (its embed player) rather than Stash. */
+  embedUrl?: string;
 }

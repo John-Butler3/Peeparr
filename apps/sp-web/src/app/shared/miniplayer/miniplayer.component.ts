@@ -14,6 +14,7 @@ import { RouteReuseStrategy, Router } from '@angular/router';
 import { PlayerService } from '../../core/player/player.service';
 import { KeepAliveRouteStrategy } from '../../core/navigation/keep-alive-route.strategy';
 import { PageFadeService } from '../../core/navigation/page-fade.service';
+import { EmbedPlayerService } from '../../core/player/embed-player.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
 
 /**
@@ -35,6 +36,9 @@ export class MiniplayerComponent implements OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly sharedVideo = inject(SharedVideoService);
   private readonly pageFade = inject(PageFadeService);
+  private readonly embedPlayer = inject(EmbedPlayerService);
+  /** Streamed from Pornhub (its player, laid over this spot): no play/pause or progress here. */
+  protected readonly streaming = computed(() => !!this.state()?.source.embedUrl);
   private readonly reuseStrategy = inject(RouteReuseStrategy);
   /** A swipe up on the miniplayer, towards its scene's page. */
   private swipe: {
@@ -121,16 +125,23 @@ export class MiniplayerComponent implements OnDestroy {
     const link = this.playerService.details()?.detailsLink;
     const current = this.state();
     const video = this.video;
-    if (!link || !current || !video) {
+    if (!link || !current) {
       return;
     }
-
-    this.saveCurrentProgress();
-    this.playerService.handBack(current.source.stashSceneId, video.currentTime);
-    this.stopProgressSaveInterval();
-    this.listeners?.abort();
-    // It stays where it is, showing, then grows into the page's player.
-    this.sharedVideo.park(this, video.getBoundingClientRect(), current.imageUrl);
+    if (current.source.embedUrl) {
+      // A stream: Pornhub's player waits where it is, then grows into the page's.
+      this.embedPlayer.park(this, this.embedPlayer.rect());
+    } else {
+      if (!video) {
+        return;
+      }
+      this.saveCurrentProgress();
+      this.playerService.handBack(current.source.stashSceneId, video.currentTime);
+      this.stopProgressSaveInterval();
+      this.listeners?.abort();
+      // It stays where it is, showing, then grows into the page's player.
+      this.sharedVideo.park(this, video.getBoundingClientRect(), current.imageUrl);
+    }
     // The page on screen fades out under the video first.
     void this.pageFade.fadeOut().then(() =>
       this.router.navigate([...link.commands], {
@@ -150,10 +161,15 @@ export class MiniplayerComponent implements OnDestroy {
   // it fades; far enough, or a flick, and it opens; otherwise it settles back.
   protected onSwipeStart(event: TouchEvent): void {
     const touch = event.touches[0];
-    if (!touch || event.touches.length !== 1 || !this.video) {
+    const from = this.streaming()
+      ? this.embedPlayer.isOwner(this)
+        ? this.embedPlayer.rect()
+        : null
+      : this.video?.getBoundingClientRect();
+    if (!touch || event.touches.length !== 1 || !from) {
       return;
     }
-    const height = this.video.getBoundingClientRect().top;
+    const height = from.top;
     this.swipe = {
       x: touch.clientX,
       y: touch.clientY,
@@ -195,22 +211,30 @@ export class MiniplayerComponent implements OnDestroy {
     swipe.dy = dy;
     swipe.time = event.timeStamp;
     if (!swipe.lifted) {
-      const from = this.video?.getBoundingClientRect();
-      if (!from || !this.sharedVideo.liftForDrag()) {
+      const streaming = this.streaming();
+      const from = streaming ? this.embedPlayer.rect() : this.video?.getBoundingClientRect();
+      const lifted = streaming ? this.embedPlayer.lift(this) : this.sharedVideo.liftForDrag();
+      if (!from || !lifted) {
         this.swipe = null;
         return;
       }
       swipe.lifted = true;
       const url = this.sceneUrl();
       const page = url ? this.pageFade.revealPage(url) : null;
-      const slot = page?.querySelector<HTMLElement>('.video-slot')?.getBoundingClientRect();
+      const slot = page
+        ?.querySelector<HTMLElement>('.video-slot, .stream-spot')
+        ?.getBoundingClientRect();
       if (slot && slot.width > 0) {
         swipe.target = slot;
       }
       swipe.distance = Math.max(1, from.top - swipe.target.top);
     }
     swipe.progress = Math.min(1, Math.max(0, dy / swipe.distance));
-    this.sharedVideo.moveLiftedTo(swipe.target, swipe.progress);
+    if (this.streaming()) {
+      this.embedPlayer.moveLiftedTo(swipe.target, swipe.progress);
+    } else {
+      this.sharedVideo.moveLiftedTo(swipe.target, swipe.progress);
+    }
     this.pageFade.setProgress(swipe.progress);
   }
 
@@ -226,8 +250,7 @@ export class MiniplayerComponent implements OnDestroy {
     if (open) {
       this.goToScene();
     } else {
-      this.sharedVideo.dropBack();
-      this.pageFade.cancel();
+      this.dropBack();
     }
   }
 
@@ -237,22 +260,35 @@ export class MiniplayerComponent implements OnDestroy {
     const current = this.state();
     const video = this.sharedVideo.video;
     if (!link || !current) {
-      this.sharedVideo.dropBack();
-      this.pageFade.cancel();
+      this.dropBack();
       return;
     }
-    this.saveCurrentProgress();
-    this.playerService.handBack(current.source.stashSceneId, video.currentTime);
-    this.stopProgressSaveInterval();
-    this.listeners?.abort();
     // Handed on where it is, for the scene page's player to take (closing
     // the miniplayer then can't stop it).
-    this.sharedVideo.park(this, video.getBoundingClientRect(), current.imageUrl);
+    if (current.source.embedUrl) {
+      this.embedPlayer.park(this, this.embedPlayer.rect());
+    } else {
+      this.saveCurrentProgress();
+      this.playerService.handBack(current.source.stashSceneId, video.currentTime);
+      this.stopProgressSaveInterval();
+      this.listeners?.abort();
+      this.sharedVideo.park(this, video.getBoundingClientRect(), current.imageUrl);
+    }
     void this.pageFade.fadeOut().then(() =>
       this.router.navigate([...link.commands], {
         queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
       }),
     );
+  }
+
+  /** A swipe up let go short: back into the miniplayer. */
+  private dropBack(): void {
+    if (this.streaming()) {
+      this.embedPlayer.dropBack();
+    } else {
+      this.sharedVideo.dropBack();
+    }
+    this.pageFade.cancel();
   }
 
   protected togglePlayback(): void {
@@ -273,6 +309,15 @@ export class MiniplayerComponent implements OnDestroy {
     if (!current || !this.slot) {
       return;
     }
+    if (current.source.embedUrl) {
+      // A stream: Pornhub's player, laid over this spot (taps pass through
+      // to the miniplayer).
+      this.listeners?.abort();
+      this.sharedVideo.release(this);
+      this.embedPlayer.attach(this, this.slot, current.source.embedUrl, 'mini');
+      return;
+    }
+    this.embedPlayer.release(this);
     const carriedOn = this.sharedVideo.attach(
       this,
       this.slot,
@@ -311,6 +356,7 @@ export class MiniplayerComponent implements OnDestroy {
     this.listeners = null;
     this.stopProgressSaveInterval();
     this.sharedVideo.release(this);
+    this.embedPlayer.release(this);
   }
 
   protected onVideoLoadedMetadata(): void {

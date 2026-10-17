@@ -18,11 +18,11 @@
   } @else if (scene(); as scene) {
     <div
       class="watch-layout"
-      [class.is-catalog-only]="!hasStashCopy(scene)"
-      [appWatchDock]="!hasStashCopy(scene)"
+      [class.is-catalog-only]="!canPlay(scene)"
+      [appWatchDock]="!canPlay(scene)"
     >
       <div class="watch-primary">
-        @if (!hasStashCopy(scene)) {
+        @if (!canPlay(scene)) {
           <!-- The docked header: the title beside the shrunken picture
                (watch-dock.directive). -->
           <div class="watch-dock">
@@ -49,11 +49,13 @@
               </span>
             }
           </div>
-          <div class="watch-dock-marker" aria-hidden="true"><span class="watch-dock-probe"></span></div>
+          <div class="watch-dock-marker" aria-hidden="true">
+            <span class="watch-dock-probe"></span>
+          </div>
         }
 
         <div class="watch-media">
-          @if (!hasStashCopy(scene)) {
+          @if (!canPlay(scene)) {
             <button
               type="button"
               class="watch-dock-hit"
@@ -62,18 +64,31 @@
               (click)="scrollToTop()"
             ></button>
           }
-          <app-inline-player
-            #player
-            [title]="scene.title"
-            [posterUrl]="scene.imageUrl"
-            [durationSeconds]="scene.duration"
-            [localSceneId]="selectedStashCopyId(scene)"
-            [details]="playerDetails(scene)"
-            [playable]="hasStashCopy(scene)"
-            [autoplay]="autoplay()"
-            (ended)="playNextUp()"
-            (minimize)="leaveToMiniplayer()"
-          />
+          @if (streamUrl(scene); as embedUrl) {
+            <!-- Not in the library, but a Pornhub video: streamed from Pornhub. -->
+            <app-stream-player
+              [title]="scene.title"
+              [posterUrl]="scene.imageUrl"
+              [durationSeconds]="scene.duration"
+              [embedUrl]="embedUrl"
+              [details]="playerDetails(scene)"
+              [autoplay]="autoplay()"
+              (minimize)="leaveToMiniplayer()"
+            />
+          } @else {
+            <app-inline-player
+              #player
+              [title]="scene.title"
+              [posterUrl]="scene.imageUrl"
+              [durationSeconds]="scene.duration"
+              [localSceneId]="selectedStashCopyId(scene)"
+              [details]="playerDetails(scene)"
+              [playable]="hasStashCopy(scene)"
+              [autoplay]="autoplay()"
+              (ended)="playNextUp()"
+              (minimize)="leaveToMiniplayer()"
+            />
+          }
         </div>
 
         <div class="watch-info">
@@ -116,6 +131,11 @@
                with its favourite star), release date and length. -->
           <div class="watch-meta">
             <app-scene-status-badge [status]="scene.status" />
+            @if (streamUrl(scene)) {
+              <span class="watch-stream-chip">
+                <i class="pi pi-globe" aria-hidden="true"></i> Streams from Pornhub
+              </span>
+            }
             @if (scene.studio) {
               <span class="watch-site">
                 @if (scene.studioId) {
@@ -124,7 +144,8 @@
                     [routerLink]="['/studio', scene.studioId]"
                     [queryParams]="{ returnTo: currentRouteUrl() }"
                     [attr.aria-label]="studioLogoAriaLabel(scene)"
-                  >{{ scene.studio }}</a>
+                    >{{ scene.studio }}</a
+                  >
                   <button
                     type="button"
                     class="site-favorite"
@@ -135,7 +156,10 @@
                     [title]="studioFavoriteTitle(scene)"
                     (click)="toggleFavoriteStudio(scene)"
                   >
-                    <i [class]="scene.studioIsFavorite ? 'pi pi-star-fill' : 'pi pi-star'" aria-hidden="true"></i>
+                    <i
+                      [class]="scene.studioIsFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+                      aria-hidden="true"
+                    ></i>
                   </button>
                 } @else if (scene.studioUrl) {
                   <a
@@ -144,7 +168,8 @@
                     target="_blank"
                     rel="noopener noreferrer"
                     [attr.aria-label]="studioLogoAriaLabel(scene)"
-                  >{{ scene.studio }}</a>
+                    >{{ scene.studio }}</a
+                  >
                 } @else {
                   <span>{{ scene.studio }}</span>
                 }
@@ -177,7 +202,9 @@
                           loading="lazy"
                         />
                       } @else {
-                        <span class="performer-image placeholder">{{ performerInitial(performer.name) }}</span>
+                        <span class="performer-image placeholder">{{
+                          performerInitial(performer.name)
+                        }}</span>
                       }
                       <span class="performer-name">{{ performer.name }}</span>
                     </a>
@@ -247,7 +274,9 @@
                   [href]="viewUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  [attr.aria-label]="'View in Stash (' + selectedStashLabel(scene) + ') in a new tab'"
+                  [attr.aria-label]="
+                    'View in Stash (' + selectedStashLabel(scene) + ') in a new tab'
+                  "
                 >
                   <i class="pi pi-external-link" aria-hidden="true"></i> Stash
                 </a>
@@ -315,7 +344,8 @@
                       [routerLink]="['/scenes']"
                       [queryParams]="{ tags: tag.id, tagNames: tag.name }"
                       [attr.aria-label]="'Open scenes tagged ' + tag.name"
-                    >#{{ tag.name }}</a>
+                      >#{{ tag.name }}</a
+                    >
                   }
                 </div>
               }
@@ -342,7 +372,6 @@
               </div>
             </section>
           }
-
 
           <!-- In the library, Up next is library picks; the catalog's similar
                scenes (requestable) get their own shelf. -->

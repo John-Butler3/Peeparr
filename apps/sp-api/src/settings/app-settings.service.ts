@@ -24,6 +24,9 @@ export class AppSettingsService {
       ...(patch.hideAmateurNetworkResults !== undefined
         ? { hideAmateurNetworkResults: patch.hideAmateurNetworkResults }
         : {}),
+      ...(patch.streamFromPornhub !== undefined
+        ? { streamFromPornhub: patch.streamFromPornhub }
+        : {}),
       ...(patch.defaultRootFolderPath !== undefined
         ? { defaultRootFolderPath: patch.defaultRootFolderPath }
         : {}),
@@ -36,7 +39,9 @@ export class AppSettingsService {
       ...(patch.defaultSearchForMovie !== undefined
         ? { defaultSearchForMovie: patch.defaultSearchForMovie }
         : {}),
-      ...(patch.defaultTagIds !== undefined ? { defaultTagIds: patch.defaultTagIds } : {}),
+      ...(patch.defaultTagIds !== undefined
+        ? { defaultTagIds: patch.defaultTagIds }
+        : {}),
     };
 
     const settings = await this.prisma.appSettings.upsert({
@@ -51,6 +56,7 @@ export class AppSettingsService {
   private toDto(settings: AppSettings): AppSettingsDto {
     return {
       hideAmateurNetworkResults: settings.hideAmateurNetworkResults,
+      streamFromPornhub: settings.streamFromPornhub,
       defaultRootFolderPath: settings.defaultRootFolderPath,
       defaultQualityProfileId: settings.defaultQualityProfileId,
       defaultMonitored: settings.defaultMonitored,

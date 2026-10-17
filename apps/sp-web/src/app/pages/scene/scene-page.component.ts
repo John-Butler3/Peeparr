@@ -1,4 +1,14 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal, effect } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+  effect,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Subscription, catchError, combineLatest, finalize, of } from 'rxjs';
@@ -42,13 +52,15 @@ interface SceneLifecycleStep {
   tone: 'complete' | 'active' | 'pending';
 }
 
+import { StreamPlayerComponent } from '../../shared/stream-player/stream-player.component';
 import { WatchDockDirective } from './watch-dock.directive';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
 @Component({
   selector: 'app-scene-page',
-  imports: [BackLinkDirective, 
+  imports: [
+    BackLinkDirective,
     WatchDockDirective,
     RouterLink,
     FormsModule,
@@ -61,13 +73,13 @@ import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
     SceneRequestModalComponent,
     AddToSeriesDialogComponent,
     InlinePlayerComponent,
+    StreamPlayerComponent,
     UpNextListComponent,
   ],
   templateUrl: './scene-page.component.html',
   styleUrl: './scene-page.component.scss',
 })
 export class ScenePageComponent implements OnInit, OnDestroy {
-
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly discoverService = inject(DiscoverService);
@@ -91,7 +103,9 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly scene = signal<SceneDetails | null>(null);
   protected readonly navigationHistory = inject(NavigationHistoryService);
   // Names this screen for the next one's "Back to ..." button.
-  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.scene()?.title));
+  private readonly nameForBackButton = effect(() =>
+    this.navigationHistory.setLabel(this.scene()?.title),
+  );
   protected readonly descriptionExpanded = signal(false);
   protected readonly selectedStashCopyUrl = signal<string | null>(null);
   protected readonly markingUnwatched = signal(false);
@@ -155,7 +169,6 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     this.descriptionExpanded.update((value) => !value);
   }
 
-
   // What the miniplayer shows if playback carries on after leaving the page.
   protected playerDetails(scene: SceneDetails): PlayerDetails {
     return {
@@ -210,6 +223,16 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       default:
         return null;
     }
+  }
+
+  /** Pornhub's embed player, when the scene isn't in the library but streams from Pornhub. */
+  protected streamUrl(scene: SceneDetails): string | null {
+    return this.hasStashCopy(scene) ? null : (scene.streamEmbedUrl ?? null);
+  }
+
+  /** Playable here: from the library, or streamed. */
+  protected canPlay(scene: SceneDetails): boolean {
+    return this.hasStashCopy(scene) || !!this.streamUrl(scene);
   }
 
   protected hasStashCopy(scene: SceneDetails): boolean {
@@ -742,7 +765,9 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     this.seriesUpNextSubscription = this.groupsService
       .getSeriesDetail(series.id)
       .pipe(catchError(() => of(null)))
-      .subscribe((detail) => this.seriesUpNext.set(detail ? seriesUpNextItems(detail, copyId) : []));
+      .subscribe((detail) =>
+        this.seriesUpNext.set(detail ? seriesUpNextItems(detail, copyId) : []),
+      );
   }
 
   // Up next: library scenes with all-female performers. In the library, from

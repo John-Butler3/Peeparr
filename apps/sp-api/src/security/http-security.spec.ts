@@ -8,7 +8,9 @@ import {
   trustProxySetting,
 } from './http-security';
 
-function request(overrides: Partial<Request> & { remoteAddress?: string } = {}): Request {
+function request(
+  overrides: Partial<Request> & { remoteAddress?: string } = {},
+): Request {
   const { remoteAddress, ...rest } = overrides;
   return {
     method: 'GET',
@@ -68,8 +70,12 @@ describe('HTTP security', () => {
 
   describe('isFromPrivateNetwork', () => {
     it('uses the connection address when nothing is forwarded', () => {
-      expect(isFromPrivateNetwork(request({ remoteAddress: '10.0.0.5' }))).toBe(true);
-      expect(isFromPrivateNetwork(request({ remoteAddress: '203.0.113.9' }))).toBe(false);
+      expect(isFromPrivateNetwork(request({ remoteAddress: '10.0.0.5' }))).toBe(
+        true,
+      );
+      expect(
+        isFromPrivateNetwork(request({ remoteAddress: '203.0.113.9' })),
+      ).toBe(false);
     });
 
     it('refuses proxied requests when no proxy is trusted, even from the proxy on the LAN', () => {
@@ -79,26 +85,50 @@ describe('HTTP security', () => {
       });
       expect(isFromPrivateNetwork(proxied)).toBe(false);
       // A forged header can't turn an outside caller into a local one either.
-      const forged = request({ remoteAddress: '203.0.113.9', headers: { 'x-forwarded-for': '10.0.0.1' } });
+      const forged = request({
+        remoteAddress: '203.0.113.9',
+        headers: { 'x-forwarded-for': '10.0.0.1' },
+      });
       expect(isFromPrivateNetwork(forged)).toBe(false);
     });
 
     it('with a trusted proxy, judges the client address it reports', () => {
       applyTrustProxy(expressApp, 1);
       expect(expressApp.set).toHaveBeenCalledWith('trust proxy', 1);
-      const outside = request({ remoteAddress: '172.18.0.3', ip: '203.0.113.9', headers: { 'x-forwarded-for': '203.0.113.9' } });
-      const home = request({ remoteAddress: '172.18.0.3', ip: '192.168.1.50', headers: { 'x-forwarded-for': '192.168.1.50' } });
+      const outside = request({
+        remoteAddress: '172.18.0.3',
+        ip: '203.0.113.9',
+        headers: { 'x-forwarded-for': '203.0.113.9' },
+      });
+      const home = request({
+        remoteAddress: '172.18.0.3',
+        ip: '192.168.1.50',
+        headers: { 'x-forwarded-for': '192.168.1.50' },
+      });
       expect(isFromPrivateNetwork(outside)).toBe(false);
       expect(isFromPrivateNetwork(home)).toBe(true);
     });
   });
 
   describe('trustProxyProblem', () => {
-    it.each(['', '1', '2', '10.0.0.2', '172.16.0.0/12', '10.0.0.2, 192.168.1.0/24', 'fd00::/8'])(
-      'accepts %p',
-      (value) => expect(trustProxyProblem(value)).toBeNull(),
-    );
-    it.each(['0', '9', 'true', '*', 'proxy.local', '10.0.0.0/40', '10.0.0.300'])('refuses %p', (value) =>
+    it.each([
+      '',
+      '1',
+      '2',
+      '10.0.0.2',
+      '172.16.0.0/12',
+      '10.0.0.2, 192.168.1.0/24',
+      'fd00::/8',
+    ])('accepts %p', (value) => expect(trustProxyProblem(value)).toBeNull());
+    it.each([
+      '0',
+      '9',
+      'true',
+      '*',
+      'proxy.local',
+      '10.0.0.0/40',
+      '10.0.0.300',
+    ])('refuses %p', (value) =>
       expect(trustProxyProblem(value)).toEqual(expect.any(String)),
     );
   });
@@ -115,12 +145,20 @@ describe('HTTP security', () => {
         'Referrer-Policy': 'no-referrer',
       });
       expect(headers['Content-Security-Policy']).toContain("script-src 'self'");
-      expect(headers['Content-Security-Policy']).toContain("frame-ancestors 'none'");
+      expect(headers['Content-Security-Policy']).toContain(
+        "frame-ancestors 'none'",
+      );
+      // Only Pornhub's embed player may be framed (streamed scenes).
+      expect(headers['Content-Security-Policy']).toContain(
+        'frame-src https://www.pornhub.com',
+      );
       expect(headers['Strict-Transport-Security']).toBeUndefined();
 
       const secure = response();
       securityHeaders(request({ secure: true }), secure.res, vi_fn());
-      expect(secure.headers['Strict-Transport-Security']).toBe('max-age=15552000');
+      expect(secure.headers['Strict-Transport-Security']).toBe(
+        'max-age=15552000',
+      );
     });
   });
 
@@ -136,13 +174,21 @@ describe('HTTP security', () => {
       expect(run(request()).next).toHaveBeenCalled();
       const sameSite = request({
         method: 'POST',
-        headers: { origin: 'https://peeparr.example.com', host: 'peeparr.example.com', 'sec-fetch-site': 'same-origin' },
+        headers: {
+          origin: 'https://peeparr.example.com',
+          host: 'peeparr.example.com',
+          'sec-fetch-site': 'same-origin',
+        },
       });
       expect(run(sameSite).next).toHaveBeenCalled();
       // Proxy forwarding the public name while Host is internal.
       const proxied = request({
         method: 'POST',
-        headers: { origin: 'https://peeparr.example.com', host: 'peeparr-app:3000', 'x-forwarded-host': 'peeparr.example.com' },
+        headers: {
+          origin: 'https://peeparr.example.com',
+          host: 'peeparr-app:3000',
+          'x-forwarded-host': 'peeparr.example.com',
+        },
       });
       expect(run(proxied).next).toHaveBeenCalled();
       // Not a browser (no Origin): e.g. scripts, Whisparr.
@@ -150,12 +196,23 @@ describe('HTTP security', () => {
     });
 
     it('refuses writes from another site', () => {
-      const bySite = run(request({ method: 'POST', headers: { 'sec-fetch-site': 'cross-site' } }));
+      const bySite = run(
+        request({
+          method: 'POST',
+          headers: { 'sec-fetch-site': 'cross-site' },
+        }),
+      );
       expect(bySite.next).not.toHaveBeenCalled();
       expect(bySite.res.statusCode).toBe(403);
 
       const byOrigin = run(
-        request({ method: 'DELETE', headers: { origin: 'https://evil.example', host: 'peeparr.example.com' } }),
+        request({
+          method: 'DELETE',
+          headers: {
+            origin: 'https://evil.example',
+            host: 'peeparr.example.com',
+          },
+        }),
       );
       expect(byOrigin.next).not.toHaveBeenCalled();
       expect(byOrigin.res.statusCode).toBe(403);

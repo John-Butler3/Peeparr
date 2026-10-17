@@ -1,7 +1,17 @@
-import { IsArray, IsBoolean, IsInt, IsOptional, IsPositive, IsString, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class AppSettingsDto {
   hideAmateurNetworkResults!: boolean;
+  /** Scenes from Pornhub play in Peeparr (Pornhub's embed player). */
+  streamFromPornhub!: boolean;
   defaultRootFolderPath!: string | null;
   defaultQualityProfileId!: number | null;
   defaultMonitored!: boolean;
@@ -13,6 +23,10 @@ export class UpdateAppSettingsDto {
   @IsOptional()
   @IsBoolean()
   hideAmateurNetworkResults?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  streamFromPornhub?: boolean;
 
   // Nullable so the frontend can explicitly clear a saved default; @IsOptional()
   // skips validation for both undefined (field omitted) and null (field cleared).

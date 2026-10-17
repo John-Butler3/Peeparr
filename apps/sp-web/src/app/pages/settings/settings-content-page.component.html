@@ -30,9 +30,9 @@
         <p class="eyebrow">Browsing</p>
         <h2>Hide non-library ManyVids and FansDB results</h2>
         <p class="summary-copy">
-          When enabled, scenes sourced from amateur/creator platforms (ManyVids, FansDB) are
-          hidden from Scenes, Performer, and Site browsing unless you've already imported them
-          into your library.
+          When enabled, scenes sourced from amateur/creator platforms (ManyVids, FansDB) are hidden
+          from Scenes, Performer, and Site browsing unless you've already imported them into your
+          library.
         </p>
 
         <label class="toggle-row">
@@ -47,6 +47,26 @@
       </article>
 
       <article class="summary-card">
+        <p class="eyebrow">Watching</p>
+        <h2>Stream scenes from Pornhub</h2>
+        <p class="summary-copy">
+          Scenes that are Pornhub videos (from creators' Pornhub channels) can be watched in Peeparr
+          without being in your library, in Pornhub's own player. They work like your own scenes
+          (the miniplayer, swiping), though play and pause are in Pornhub's player.
+        </p>
+
+        <label class="toggle-row">
+          <p-toggleswitch
+            inputId="stream-from-pornhub"
+            [ngModel]="streamFromPornhub()"
+            [disabled]="saving()"
+            (ngModelChange)="onStreamFromPornhubChanged($event)"
+          />
+          <span>{{ streamFromPornhub() ? 'Enabled' : 'Disabled' }}</span>
+        </label>
+      </article>
+
+      <article class="summary-card">
         <p class="eyebrow">This device</p>
         <h2>Discreet logo</h2>
         <p class="summary-copy">
@@ -54,8 +74,8 @@
           sign-in page, at launch and on the browser tab, on this device only.
         </p>
         <p class="summary-copy">
-          It's also the icon when you add Peeparr to your home screen. Already added? Remove
-          it from your home screen and add it again to change the icon.
+          It's also the icon when you add Peeparr to your home screen. Already added? Remove it from
+          your home screen and add it again to change the icon.
         </p>
         <div class="logo-choice" aria-hidden="true">
           <app-brand-mark class="logo-choice-mark" />
@@ -74,9 +94,9 @@
         <p class="eyebrow">Requests</p>
         <h2>Default request options</h2>
         <p class="summary-copy">
-          Set a default root folder and quality profile so clicking Request submits straight
-          to Whisparr instead of opening the options dialog. Leave either as "None" to keep
-          asking every time.
+          Set a default root folder and quality profile so clicking Request submits straight to
+          Whisparr instead of opening the options dialog. Leave either as "None" to keep asking
+          every time.
         </p>
 
         @if (downloadProfileOptionsError()) {
