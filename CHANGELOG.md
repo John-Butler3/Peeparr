@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.6.0](https://github.com/John-Butler3/Peeparr/compare/v1.5.0...v1.6.0) (2026-10-17)
+
+
+### Features
+
+* **home:** banner mixes new scenes with random unwatched ones ([1c52571](https://github.com/John-Butler3/Peeparr/commit/1c52571c1592245afb1f98f30bab978b3e02f061))
+* **player:** pages fade under the moving video, which stays in front ([35180ac](https://github.com/John-Butler3/Peeparr/commit/35180acc50c8482cd10a2260853832f0caab5d94))
+* **player:** swipe a paused scene away; swipe the miniplayer back up ([1bbf271](https://github.com/John-Butler3/Peeparr/commit/1bbf271cb73d4eba330e2b1f24e6087aa90e7ca3))
+* **player:** the video flies into and out of the miniplayer ([5b06df3](https://github.com/John-Butler3/Peeparr/commit/5b06df3989d74014c55b3fbca941de58eb3e7cfb))
+* stream Pornhub scenes in Peeparr, like library scenes ([7c786fc](https://github.com/John-Butler3/Peeparr/commit/7c786fcb2f6d878dd8abd9ed195ab181287427b3))
+* **web:** on Performers and Sites, the search icon types in the page's own filter ([ee3d1b4](https://github.com/John-Butler3/Peeparr/commit/ee3d1b43d5cec7ad26759dcb5004c2af4a687d70))
+* **web:** pages stay alive; swipe the video down by hand, in front ([26a46d5](https://github.com/John-Butler3/Peeparr/commit/26a46d5272d96bc95f86f482405ece20cfcc4271))
+* **web:** Pornhub's controls fade, swipe down anywhere; orange Play on streamable cards; one-box studio filter ([b9fd390](https://github.com/John-Butler3/Peeparr/commit/b9fd390e3a214bf648e5eba278e52f5bacd11187))
+* **web:** swipe heads for the miniplayer over the page you came from ([97d50da](https://github.com/John-Butler3/Peeparr/commit/97d50da763e526061c09586af8259d6ce962ea3a))
+
+
+### Bug Fixes
+
+* **api:** a performer's scenes filter by every site picked, not just the first ([6006da9](https://github.com/John-Butler3/Peeparr/commit/6006da9fbf707d2c9e2f4175a2f1acae478b6b39))
+* **home:** the banner's unwatched picks were all being dropped ([0aa78a3](https://github.com/John-Butler3/Peeparr/commit/0aa78a3c65e48aed9f36b8ba1eaec4b914377df7))
+* **player:** AirPlay keeps playing into and out of the miniplayer ([e78de94](https://github.com/John-Butler3/Peeparr/commit/e78de941607e93c9e24dbc59576996c0932b1701))
+* **player:** AirPlay to Apple TV ([ee0f8d7](https://github.com/John-Butler3/Peeparr/commit/ee0f8d7b8e024a1cfe3bd92ceff2733af201c36f))
+* **player:** keep playing when AirPlay starts; miniplayer flights that show ([601c562](https://github.com/John-Butler3/Peeparr/commit/601c562adee179eaaba118ec406233cb0a342367))
+* **web:** no jolt from the sign-in logo into the launch splash ([55c7307](https://github.com/John-Butler3/Peeparr/commit/55c7307c4281abff79dd0422b73d31c837e1e324))
+* **web:** picking a site no longer jumps to the top, and clears the search ([59109b3](https://github.com/John-Butler3/Peeparr/commit/59109b361d559cf548839d39f1272949a92e0227))
+* **web:** streamed scenes play with one tap and shrink cleanly into the miniplayer ([58b9c5c](https://github.com/John-Butler3/Peeparr/commit/58b9c5c8e295288132f95947324094f841cc9e54))
+* **web:** streamed scenes' label and layers stop crowding other things ([86e6cf6](https://github.com/John-Butler3/Peeparr/commit/86e6cf6206978db02326494517164981b42f6d15))
+* **web:** studio filter: clear the whole selection, results float, focus stays in the box ([863a85b](https://github.com/John-Butler3/Peeparr/commit/863a85b80386329a615bb8033f0317ab9f2c6c1a))
+* **web:** swiping a video down no longer drags the whole page down with a black gap ([017c732](https://github.com/John-Butler3/Peeparr/commit/017c732a0a785002ed3971045465800fcde2fe9e))
+* **web:** the search icon types straight away again; Clear filters on Performers and Sites ([250cd31](https://github.com/John-Butler3/Peeparr/commit/250cd317f3440f61507dde50dd58039e058f9944))
+
 ## [1.5.0](https://github.com/John-Butler3/Peeparr/compare/v1.4.0...v1.5.0) (2026-10-16)
 
 
