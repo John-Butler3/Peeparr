@@ -1,11 +1,19 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { NavigationStart, RouteReuseStrategy, Router } from '@angular/router';
+import { KeepAliveRouteStrategy } from './keep-alive-route.strategy';
+import { NavigationHistoryService } from './navigation-history.service';
+import { ScrollMemoryService } from './scroll-memory.service';
 
 /**
  * Fading the page on screen out, just before a page change that moves the
  * playing video (down into the miniplayer, or back up): the video, lifted
- * out of the page, glides over the fade rather than a cut. While the video
- * is dragged down by hand the page dims with it (setProgress). The next
- * page then fades in a touch more gently (read by the page transition).
+ * out of the page, glides over the fade rather than a cut. The next page
+ * then fades in a touch more gently (read by the page transition).
+ *
+ * Swiping the video down by hand: the page you came from (kept alive) is put
+ * back behind this one, scrolled as you left it, and this page fades with
+ * the drag to reveal it (setProgress). Let go and it's simply there --
+ * the router takes that same element back -- or, cancelled, it's put away.
  *
  * Pages are kept alive when left, so a faded page is reset as the next one
  * comes in: it must show normally when it's returned to.
@@ -13,34 +21,103 @@ import { Injectable } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class PageFadeService {
   static readonly FADE_OUT_MS = 200;
-  /** How far a drag dims the page (at its full distance). */
+  /** How far a drag dims the page (at its full distance), with nothing behind. */
   static readonly DRAG_DIM = 0.5;
+  /** With the page before revealed behind it: almost gone. */
+  static readonly DRAG_REVEAL = 0.9;
+
+  private readonly reuseStrategy = inject(RouteReuseStrategy);
+  private readonly history = inject(NavigationHistoryService);
+  private readonly scrollMemory = inject(ScrollMemoryService);
 
   private area: HTMLElement | null = null;
   private page: HTMLElement | null = null;
+  /** The page before, put back behind this one while dragging. */
+  private behind: HTMLElement | null = null;
   private fading: Animation | null = null;
   private soft = false;
+  /**
+   * Where each page left started down the document (pages under the top
+   * bar start lower than a scene's, which has none on phones), so one put
+   * back behind sits where it'll be.
+   */
+  private readonly pageTops = new Map<string, number>();
+
+  constructor() {
+    const router = inject(Router);
+    router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        const page = this.currentPage();
+        if (page) {
+          this.pageTops.set(pathOf(router.url), page.getBoundingClientRect().top + window.scrollY);
+        }
+      }
+    });
+  }
 
   /** The page area (the page transition's host). */
   setArea(area: HTMLElement | null): void {
     this.area = area;
   }
 
-  /** Dims the page with a drag (0 to 1 of the way). */
-  setProgress(progress: number): void {
+  /**
+   * Puts the page you came from back behind this one (if it's been kept), as
+   * it was. True if it's there.
+   */
+  revealBehind(): boolean {
+    if (this.behind) {
+      return true;
+    }
+    const area = this.area;
     const page = this.currentPage();
+    const previous = this.history.previous();
+    const strategy =
+      this.reuseStrategy instanceof KeepAliveRouteStrategy ? this.reuseStrategy : null;
+    const behind = previous ? strategy?.peekPage(previous.url) : null;
+    if (!area || !page || !behind || !previous || behind.isConnected) {
+      return false;
+    }
+    // Where it'll be once you're back: where it started, scrolled as you left it.
+    const rect = page.getBoundingClientRect();
+    const pageTop = this.pageTops.get(pathOf(previous.url)) ?? rect.top + window.scrollY;
+    const top = pageTop - this.scrollMemory.savedPosition(previous.url);
+    behind.classList.add('page-behind');
+    Object.assign(behind.style, {
+      position: 'fixed',
+      top: `${top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      zIndex: '0',
+      pointerEvents: 'none',
+    });
+    // This page in front of it, covering it until it fades.
+    Object.assign(page.style, {
+      position: 'relative',
+      zIndex: '1',
+      background: 'var(--app-bg)',
+    });
+    this.page = page;
+    area.appendChild(behind);
+    this.behind = behind;
+    return true;
+  }
+
+  /** Fades the page with a drag (0 to 1 of the way). */
+  setProgress(progress: number): void {
+    const page = this.page ?? this.currentPage();
     if (!page) {
       return;
     }
     this.page = page;
     const clamped = Math.min(1, Math.max(0, progress));
-    page.style.opacity = clamped > 0 ? String(1 - clamped * PageFadeService.DRAG_DIM) : '';
+    const depth = this.behind ? PageFadeService.DRAG_REVEAL : PageFadeService.DRAG_DIM;
+    page.style.opacity = clamped > 0 ? String(1 - clamped * depth) : '';
   }
 
   /** Fades the page on screen out (from wherever a drag left it); resolves when it has. */
   fadeOut(): Promise<void> {
     this.soft = true;
-    const page = this.currentPage();
+    const page = this.page ?? this.currentPage();
     if (!page || typeof page.animate !== 'function') {
       return Promise.resolve();
     }
@@ -61,8 +138,32 @@ export class PageFadeService {
 
   /** The drag or page change didn't happen: the page shows again. */
   cancel(): void {
+    this.putBehindAway();
     this.reset();
     this.soft = false;
+  }
+
+  /**
+   * After a page change: if the page revealed behind is the one the router
+   * brought back, it's simply there now (true: no page-in needed); if not,
+   * it's put away. Either way the page left is reset.
+   */
+  finishReveal(): boolean {
+    const behind = this.behind;
+    if (!behind) {
+      return false;
+    }
+    this.behind = null;
+    const strategy =
+      this.reuseStrategy instanceof KeepAliveRouteStrategy ? this.reuseStrategy : null;
+    const arrived = !!strategy?.wasJustRetrieved(behind);
+    clearBehindStyles(behind);
+    if (!arrived) {
+      behind.remove();
+    }
+    this.soft = false;
+    this.reset();
+    return arrived;
   }
 
   /**
@@ -76,16 +177,41 @@ export class PageFadeService {
     return soft;
   }
 
+  private putBehindAway(): void {
+    const behind = this.behind;
+    this.behind = null;
+    if (behind) {
+      clearBehindStyles(behind);
+      behind.remove();
+    }
+  }
+
   private reset(): void {
     this.fading?.cancel();
     this.fading = null;
     if (this.page) {
-      this.page.style.opacity = '';
+      for (const property of ['opacity', 'position', 'zIndex', 'background'] as const) {
+        this.page.style[property] = '';
+      }
       this.page = null;
     }
   }
 
   private currentPage(): HTMLElement | null {
-    return this.area?.querySelector<HTMLElement>(':scope > :not(router-outlet)') ?? null;
+    return (
+      this.area?.querySelector<HTMLElement>(':scope > :not(router-outlet):not(.page-behind)') ??
+      null
+    );
   }
+}
+
+function clearBehindStyles(behind: HTMLElement): void {
+  behind.classList.remove('page-behind');
+  for (const property of ['position', 'top', 'left', 'width', 'zIndex', 'pointerEvents'] as const) {
+    behind.style[property] = '';
+  }
+}
+
+function pathOf(url: string): string {
+  return url.split(/[?#]/)[0];
 }

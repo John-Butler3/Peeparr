@@ -5,11 +5,13 @@
 }
 
 .miniplayer {
-  // Floating just above the phone's glass navigation bar (62px tall, 10px up).
+  // Floating just above the phone's glass navigation bar.
   position: fixed;
   left: calc(12px + env(safe-area-inset-left, 0px));
   right: calc(12px + env(safe-area-inset-right, 0px));
-  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  // Just above the bar (its height 62px + 8px, from where it sits; see
+  // --shell-mobile-nav-bottom in the app shell).
+  bottom: calc(70px + max(10px, env(safe-area-inset-bottom, 0px) - 12px));
   z-index: 1300;
   display: flex;
   align-items: center;
@@ -176,6 +178,28 @@
 .mini-icon:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+// Invisible: where the video sits in the miniplayer (just inside its
+// border), for a video swiped down from a scene page to head for.
+.mini-target {
+  position: fixed;
+  left: calc(13px + env(safe-area-inset-left, 0px));
+  bottom: calc(71px + max(10px, env(safe-area-inset-bottom, 0px) - 12px));
+  width: 100px;
+  height: 54px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (min-width: 721px) {
+  .mini-target {
+    left: auto;
+    right: 16px;
+    bottom: calc(16px + 64px);
+    width: 400px;
+    height: 225px;
+  }
 }
 
 // Desktop: a floating card in the bottom-right corner.

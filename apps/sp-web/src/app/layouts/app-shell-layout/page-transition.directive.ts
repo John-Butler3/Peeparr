@@ -68,6 +68,12 @@ export class PageTransitionDirective {
         this.fromPath = this.pathOf(event.urlAfterRedirects);
         if (this.changingPage) {
           this.changingPage = false;
+          // Already showing (revealed behind a video swiped down): no page-in.
+          if (this.pageFade.finishReveal()) {
+            this.clearTimers();
+            this.host.classList.remove('is-pending', 'is-entering', 'is-soft');
+            return;
+          }
           void this.enter();
         }
       } else if (event instanceof NavigationCancel || event instanceof NavigationError) {

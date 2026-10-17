@@ -1586,14 +1586,14 @@ describe('HomeService', () => {
         apiKey: 'stash-secret',
       });
 
-    it('alternates the newest scenes with random unwatched ones, marking which is which', async () => {
+    it('alternates the newest scenes with older random unwatched ones, marking which is which', async () => {
       configureStash();
       libraryGetScenesPreviewMock.mockResolvedValue(
         ['n1', 'n2', 'n3', 'n4'].map(libraryScene),
       );
-      // n1 is both new and unwatched: shown once, as new.
+      // n4 is unwatched but in the Recently Added row: not an unwatched pick.
       stashGetRandomUnwatchedScenesMock.mockResolvedValue(
-        ['u1', 'n1', 'u2', 'u3'].map(stashScene),
+        ['u1', 'n4', 'u2', 'u3'].map(stashScene),
       );
 
       const hero = await service.getHero();
@@ -1603,7 +1603,7 @@ describe('HomeService', () => {
       );
       expect(stashGetRandomUnwatchedScenesMock).toHaveBeenCalledWith(
         expect.objectContaining({ baseUrl: 'http://stash.local' }),
-        HomeService.HERO_SLIDES,
+        HomeService.HERO_UNWATCHED_CANDIDATES,
         'STASHDB',
       );
     });

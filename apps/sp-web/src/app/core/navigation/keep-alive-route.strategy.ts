@@ -37,6 +37,19 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
   ]);
 
   private readonly pages = new Map<string, DetachedRouteHandle>();
+  /** The page element most recently handed back to the router. */
+  private retrievedElement: HTMLElement | null = null;
+
+  /** A kept page's element (out of the document), by URL; null if not kept. */
+  peekPage(url: string): HTMLElement | null {
+    const key = url.split(/[?#]/)[0].replace(/^\/+/, '');
+    return elementOf(this.pages.get(key) ?? null);
+  }
+
+  /** Whether this element is the page the router has just brought back. */
+  wasJustRetrieved(element: HTMLElement): boolean {
+    return this.retrievedElement === element;
+  }
 
   override shouldDetach(route: ActivatedRouteSnapshot): boolean {
     return KeepAliveRouteStrategy.KEPT_PATHS.has(route.routeConfig?.path ?? '');
@@ -64,13 +77,21 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
   }
 
   override retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null {
-    return this.pages.get(pageKey(route)) ?? null;
+    const handle = this.pages.get(pageKey(route)) ?? null;
+    this.retrievedElement = elementOf(handle);
+    return handle;
   }
 }
 
 /** The page's path with its ids filled in (no query parameters). */
 function pageKey(route: ActivatedRouteSnapshot): string {
   return route.pathFromRoot.flatMap((part) => part.url.map((segment) => segment.path)).join('/');
+}
+
+function elementOf(handle: DetachedRouteHandle | null): HTMLElement | null {
+  const element = (handle as { componentRef?: ComponentRef<unknown> } | null)?.componentRef
+    ?.location?.nativeElement;
+  return element instanceof HTMLElement ? element : null;
 }
 
 function destroy(handle: DetachedRouteHandle): void {

@@ -268,7 +268,11 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       drag.time = event.timeStamp;
       // The video comes out of the page, in front of everything, and
       // follows the finger down, shrinking; the page dims behind it.
-      drag.lifted ||= this.sharedVideo.liftIfPlaying();
+      if (!drag.lifted && this.sharedVideo.liftIfPlaying()) {
+        drag.lifted = true;
+        // The page you came from, behind this one, revealed as it fades.
+        this.pageFade.revealBehind();
+      }
       if (drag.lifted) {
         this.sharedVideo.moveLifted(dy);
         this.pageFade.setProgress(dy / (InlinePlayerComponent.MINIMIZE_DRAG_PX * 3));

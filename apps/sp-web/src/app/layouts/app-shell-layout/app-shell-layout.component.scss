@@ -3,17 +3,21 @@
 :host {
   display: block;
   min-height: 100dvh;
-  // The floating glass bar: its height, and its gap above the screen's
-  // bottom edge (plus the home-indicator area).
+  // The floating glass bar: its height, and how far up from the screen's
+  // bottom edge. On phones with a home indicator it sits low, into that
+  // area (clear of the indicator itself), as the system's own tab bars do
+  // -- especially added to the home screen; elsewhere a small gap.
   --shell-mobile-nav-height: 62px;
   --shell-mobile-nav-gap: 10px;
+  --shell-mobile-nav-bottom: max(
+    var(--shell-mobile-nav-gap),
+    calc(env(safe-area-inset-bottom, 0px) - 12px)
+  );
   // The phone's bars (and what follows them) hide and show on one smooth,
   // decelerating curve.
   --bars-duration: 340ms;
   --bars-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --shell-mobile-nav-offset: calc(
-    var(--shell-mobile-nav-height) + var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px)
-  );
+  --shell-mobile-nav-offset: calc(var(--shell-mobile-nav-height) + var(--shell-mobile-nav-bottom));
   --shell-masthead-h: var(--yt-masthead-h, 56px);
   --shell-guide-w: var(--yt-guide-w, 240px);
 }
@@ -96,8 +100,6 @@
   color: var(--text-primary);
   text-decoration: none;
 }
-
-
 
 .logo-text {
   font-size: 1.2rem;
@@ -462,7 +464,7 @@
 .mobile-bottom-nav {
   position: fixed;
   right: calc(12px + env(safe-area-inset-right, 0px));
-  bottom: calc(var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px));
+  bottom: var(--shell-mobile-nav-bottom);
   left: calc(12px + env(safe-area-inset-left, 0px));
   z-index: 55;
   display: grid;
@@ -488,7 +490,7 @@
 // Like the masthead: slides away while scrolling down (fading a little as it
 // goes), back on scrolling up.
 .mobile-bottom-nav.is-hidden {
-  transform: translateY(calc(100% + var(--shell-mobile-nav-gap) + env(safe-area-inset-bottom, 0px) + 12px));
+  transform: translateY(calc(100% + var(--shell-mobile-nav-bottom) + 12px));
   opacity: 0.4;
 }
 

@@ -153,6 +153,8 @@ export class HomeService {
 
   /** Scenes in the Home banner. */
   static readonly HERO_SLIDES = 5;
+  /** Random unwatched scenes fetched, to leave enough once recent ones are out. */
+  static readonly HERO_UNWATCHED_CANDIDATES = 24;
   /** How long the banner's random unwatched picks are kept. */
   static readonly HERO_UNWATCHED_TTL_MS = 30 * 60 * 1000;
   private unwatchedPicks: { at: number; items: HomeRailItemDto[] } | null =
@@ -244,16 +246,18 @@ export class HomeService {
   /**
    * The Home banner: the newest scenes in the library, alternating with
    * random ones not watched yet (new, unwatched, new, ...), each marked
-   * with why it's there. A kind that runs short is filled by the other.
+   * with why it's there. The unwatched ones are older scenes: none from the
+   * Recently Added row. A kind that runs short is filled by the other.
    */
   async getHero(): Promise<HomeHeroDto> {
     const [recent, unwatched] = await Promise.all([
       this.getRecentlyAdded(),
       this.getUnwatchedPicks(),
     ]);
+    const recentIds = new Set(recent.items.map((item) => item.id));
     const queues: Record<HomeHeroItemDto['heroReason'], HomeRailItemDto[]> = {
       NEW: [...recent.items],
-      UNWATCHED: [...unwatched],
+      UNWATCHED: unwatched.filter((item) => !recentIds.has(item.id)),
     };
     const items: HomeHeroItemDto[] = [];
     const seen = new Set<string>();
@@ -297,9 +301,10 @@ export class HomeService {
       return [];
     }
     try {
+      // Plenty, as the ones in the Recently Added row are left out.
       const scenes = await this.stashAdapter.getRandomUnwatchedScenes(
         config,
-        HomeService.HERO_SLIDES,
+        HomeService.HERO_UNWATCHED_CANDIDATES,
         await this.getOptionalCatalogProviderKey(),
       );
       const items = scenes.map((scene) =>

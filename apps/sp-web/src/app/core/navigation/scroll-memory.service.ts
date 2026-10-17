@@ -25,6 +25,11 @@ export class ScrollMemoryService {
   private restoreRun = 0;
   private started = false;
 
+  /** Where a page was scrolled when it was left (0 if unknown). */
+  savedPosition(url: string): number {
+    return this.positions.get(url) ?? 0;
+  }
+
   start(): void {
     if (this.started) {
       return;

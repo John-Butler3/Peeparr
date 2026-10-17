@@ -21,7 +21,7 @@ export interface SharedVideoOptions {
 @Injectable({ providedIn: 'root' })
 export class SharedVideoService {
   static readonly FLIGHT_MS = 340;
-  /** Dragging the lifted video down this far shrinks it to DRAG_MIN_SCALE. */
+  /** With no miniplayer spot to head for: dragging this far shrinks it to DRAG_MIN_SCALE. */
   static readonly DRAG_SHRINK_PX = 400;
   static readonly DRAG_MIN_SCALE = 0.5;
   /** Longest a flight waits for its page to show (pages load hidden). */
@@ -159,7 +159,8 @@ export class SharedVideoService {
 
   /**
    * A lifted video following a downward drag: moves down with the finger,
-   * shrinking as it goes.
+   * and on its way it slides across and shrinks towards the miniplayer's
+   * spot, arriving as the finger reaches it.
    */
   moveLifted(dy: number): void {
     const rect = this.liftRect;
@@ -167,6 +168,18 @@ export class SharedVideoService {
       return;
     }
     const down = Math.max(0, dy);
+    const target = document.querySelector('.mini-target')?.getBoundingClientRect();
+    if (target && target.width > 0 && target.top > rect.top) {
+      const t = Math.min(1, down / (target.top - rect.top));
+      this.stopFlight();
+      this.placeHolder(
+        rect.left + (target.left - rect.left) * t,
+        rect.top + (target.top - rect.top) * t,
+        rect.width + (target.width - rect.width) * t,
+        rect.height + (target.height - rect.height) * t,
+      );
+      return;
+    }
     const scale = Math.max(
       SharedVideoService.DRAG_MIN_SCALE,
       1 - (down / SharedVideoService.DRAG_SHRINK_PX) * (1 - SharedVideoService.DRAG_MIN_SCALE),
