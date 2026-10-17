@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 /**
  * The one <video> element a scene plays in, wherever it's shown: the scene
@@ -37,6 +37,8 @@ export class SharedVideoService {
   static readonly UNCLAIMED_MS = 8000;
 
   private element: HTMLVideoElement | null = null;
+  /** The scene loaded in it (for showing what can be done with it). */
+  readonly loadedScene = signal<string | null>(null);
   private holder: HTMLElement | null = null;
   private owner: object | null = null;
   /** The Stash scene loaded into it. */
@@ -73,6 +75,36 @@ export class SharedVideoService {
       this.element = video;
     }
     return this.element;
+  }
+
+  /** Whether this browser can float the video in a picture-in-picture window. */
+  pictureInPictureSupported(): boolean {
+    const video = this.video as WebKitVideo;
+    return (
+      document.pictureInPictureEnabled === true ||
+      (typeof video.webkitSupportsPresentationMode === 'function' &&
+        video.webkitSupportsPresentationMode('picture-in-picture'))
+    );
+  }
+
+  /**
+   * Floats the video in a picture-in-picture window, where it carries on
+   * when the app is left. Only from a tap (browsers require it), and once
+   * the video has loaded.
+   */
+  enterPictureInPicture(): void {
+    const video = this.element as WebKitVideo | null;
+    if (!video || !video.getAttribute('src')) {
+      return;
+    }
+    if (video.paused) {
+      void video.play().catch(() => undefined);
+    }
+    if (typeof video.webkitSetPresentationMode === 'function') {
+      video.webkitSetPresentationMode('picture-in-picture');
+    } else {
+      void video.requestPictureInPicture?.().catch(() => undefined);
+    }
   }
 
   /**
@@ -115,6 +147,7 @@ export class SharedVideoService {
       this.sceneId === sceneId && sameStream(video.getAttribute('src'), src) && !video.ended;
     if (!carriesOn) {
       this.sceneId = sceneId;
+      this.loadedScene.set(sceneId);
       video.src = src;
     }
     if (options.poster) {
@@ -374,6 +407,7 @@ export class SharedVideoService {
     this.stopFlight();
     this.clearUnclaimed();
     this.sceneId = null;
+    this.loadedScene.set(null);
     video.pause();
     video.removeAttribute('src');
     video.removeAttribute('poster');
@@ -555,3 +589,9 @@ function sameStream(current: string | null, next: string): boolean {
   };
   return withoutToken(current) === withoutToken(next);
 }
+
+/** Safari's own picture-in-picture calls (iPhone). */
+type WebKitVideo = HTMLVideoElement & {
+  webkitSupportsPresentationMode?: (mode: string) => boolean;
+  webkitSetPresentationMode?: (mode: string) => void;
+};

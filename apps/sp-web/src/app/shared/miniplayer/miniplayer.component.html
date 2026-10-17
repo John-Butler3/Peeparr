@@ -7,7 +7,12 @@
      where the page's player picks up from the same moment. -->
 @if (state(); as s) {
   <!-- Swipe up: back to the scene's page (see onSwipeStart). -->
-  <div class="miniplayer" data-testid="miniplayer" (touchstart)="onSwipeStart($event)" (touchmove)="claimSwipe($event)">
+  <div
+    class="miniplayer"
+    data-testid="miniplayer"
+    (touchstart)="onSwipeStart($event)"
+    (touchmove)="claimSwipe($event)"
+  >
     <div
       class="mini-video"
       [class.is-wireless]="wireless()"
@@ -47,6 +52,17 @@
           <span class="mini-sub">{{ sub }}</span>
         }
       </button>
+      @if (!streaming() && pictureInPicture) {
+        <button
+          type="button"
+          class="mini-icon"
+          aria-label="Picture in picture"
+          title="Keep watching in a floating window, outside the app too"
+          (click)="sharedVideo.enterPictureInPicture()"
+        >
+          <i class="pi pi-clone" aria-hidden="true"></i>
+        </button>
+      }
       <!-- Play/pause for a stream is in Pornhub's player (on the scene page). -->
       @if (!streaming()) {
         <button

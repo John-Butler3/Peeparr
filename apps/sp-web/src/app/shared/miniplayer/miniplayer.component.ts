@@ -34,7 +34,8 @@ export class MiniplayerComponent implements OnDestroy {
   private static readonly ARTWORK_SIZES = ['96x96', '192x192', '256x256', '384x384', '512x512'];
 
   private readonly playerService = inject(PlayerService);
-  private readonly sharedVideo = inject(SharedVideoService);
+  protected readonly sharedVideo = inject(SharedVideoService);
+  protected readonly pictureInPicture = this.sharedVideo.pictureInPictureSupported();
   private readonly pageFade = inject(PageFadeService);
   private readonly embedPlayer = inject(EmbedPlayerService);
   /** Streamed from Pornhub (its player, laid over this spot): no play/pause or progress here. */

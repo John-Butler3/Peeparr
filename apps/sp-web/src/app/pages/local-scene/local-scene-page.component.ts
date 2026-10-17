@@ -24,11 +24,13 @@ import { NavigationHistoryService } from '../../core/navigation/navigation-histo
 // Scene page for a library scene with no catalog match ("Local only"): built
 // from the local library index, with a link out to the scene in Stash.
 // Scenes that do match the catalog use the regular /scene/:stashId page.
+import { PipPillComponent } from '../../shared/pip-pill/pip-pill.component';
 import { QualityPillComponent } from '../../shared/quality-pill/quality-pill.component';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
     QualityPillComponent,
+    PipPillComponent,
     RouterLink,
     Message,
     ProgressSpinner,
@@ -57,7 +59,9 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   protected readonly scene = signal<LibrarySceneDetail | null>(null);
   protected readonly navigationHistory = inject(NavigationHistoryService);
   // Names this screen for the next one's "Back to ..." button.
-  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.scene()?.title));
+  private readonly nameForBackButton = effect(() =>
+    this.navigationHistory.setLabel(this.scene()?.title),
+  );
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly series = signal<SceneSeriesMembership[]>([]);
@@ -100,7 +104,9 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   }
 
   protected backLinkLabel(): string {
-    return this.navigationHistory.backLabel(this.backLink() === '/library' ? 'Back to Library' : 'Back');
+    return this.navigationHistory.backLabel(
+      this.backLink() === '/library' ? 'Back to Library' : 'Back',
+    );
   }
 
   // Swiped down on the playing video: back to where the page came from, the
@@ -118,7 +124,6 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     }
     void this.router.navigateByUrl(this.backLink());
   }
-
 
   // Inline player hand-off details (the miniplayer's "Details" returns here).
   protected playerDetails(scene: LibrarySceneDetail): PlayerDetails {
@@ -249,6 +254,8 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     this.seriesUpNextSubscription = this.groupsService
       .getSeriesDetail(series.id)
       .pipe(catchError(() => of(null)))
-      .subscribe((detail) => this.seriesUpNext.set(detail ? seriesUpNextItems(detail, sceneId) : []));
+      .subscribe((detail) =>
+        this.seriesUpNext.set(detail ? seriesUpNextItems(detail, sceneId) : []),
+      );
   }
 }

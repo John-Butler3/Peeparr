@@ -242,6 +242,7 @@
 
             @if (hasStashCopy(scene)) {
               <app-quality-pill />
+              <app-pip-pill [sceneIds]="stashCopyIds(scene)" />
               <button
                 type="button"
                 class="pill"
