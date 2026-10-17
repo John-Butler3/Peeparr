@@ -9,7 +9,15 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router,
+} from '@angular/router';
+import { PageFadeService } from '../../core/navigation/page-fade.service';
+import { SharedVideoService } from '../../core/player/shared-video.service';
 
 /**
  * YouTube-style page changes. Moving to another page keeps the new page
@@ -18,6 +26,10 @@ import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Rout
  * at once, rising slightly into place with a quick fade -- instead of the
  * page appearing and filling in piece by piece. Waits at most WAIT_MAX_MS.
  * Changes within a page (filters, search text) aren't page changes.
+ *
+ * When the playing video moves with the page change (down into the
+ * miniplayer, or back up), the page being left has faded out first
+ * (PageFadeService) and the new one fades in a touch more gently.
  */
 @Directive({
   selector: '[appPageTransition]',
@@ -30,11 +42,15 @@ export class PageTransitionDirective {
   static readonly PROGRESS_DELAY_MS = 150;
   /** Matches the page-in animation. */
   static readonly ENTER_MS = 260;
+  /** Matches the gentler page-in (.is-soft) while a video moves. */
+  static readonly SOFT_ENTER_MS = 360;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly router = inject(Router);
   private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
+  private readonly sharedVideo = inject(SharedVideoService);
+  private readonly pageFade = inject(PageFadeService);
   private run = 0;
   private fromPath = this.pathOf(this.router.url);
   private changingPage = false;
@@ -56,9 +72,16 @@ export class PageTransitionDirective {
         }
       } else if (event instanceof NavigationCancel || event instanceof NavigationError) {
         this.changingPage = false;
+        // Stayed on this page: it shows again, its video back in its player.
+        this.pageFade.cancel();
+        this.sharedVideo.putBack();
       }
     });
-    inject(DestroyRef).onDestroy(() => this.clearTimers());
+    this.pageFade.setArea(this.host);
+    inject(DestroyRef).onDestroy(() => {
+      this.clearTimers();
+      this.pageFade.setArea(null);
+    });
   }
 
   private async enter(): Promise<void> {
@@ -67,7 +90,10 @@ export class PageTransitionDirective {
     // Hidden before the new page's first paint.
     this.host.classList.remove('is-entering');
     this.host.classList.add('is-pending');
-    this.progressTimer = setTimeout(() => this.loading.set(true), PageTransitionDirective.PROGRESS_DELAY_MS);
+    this.progressTimer = setTimeout(
+      () => this.loading.set(true),
+      PageTransitionDirective.PROGRESS_DELAY_MS,
+    );
 
     const deadline = Date.now() + PageTransitionDirective.WAIT_MAX_MS;
     await this.withDeadline(this.ready(), deadline);
@@ -79,16 +105,20 @@ export class PageTransitionDirective {
     this.loading.set(false);
     this.host.classList.remove('is-pending');
     this.host.classList.add('is-entering');
+    const soft = this.pageFade.takeSoftEnter();
+    this.host.classList.toggle('is-soft', soft);
     this.enterTimer = setTimeout(
-      () => this.host.classList.remove('is-entering'),
-      PageTransitionDirective.ENTER_MS,
+      () => this.host.classList.remove('is-entering', 'is-soft'),
+      soft ? PageTransitionDirective.SOFT_ENTER_MS : PageTransitionDirective.ENTER_MS,
     );
   }
 
   // The page has rendered, its requests have finished, and the pictures now
   // on screen have loaded.
   private async ready(): Promise<void> {
-    await new Promise<void>((resolve) => afterNextRender(() => resolve(), { injector: this.injector }));
+    await new Promise<void>((resolve) =>
+      afterNextRender(() => resolve(), { injector: this.injector }),
+    );
     await this.appRef.whenStable();
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     await Promise.all(this.picturesOnScreen().map((image) => this.loaded(image)));

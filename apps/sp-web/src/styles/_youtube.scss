@@ -8,8 +8,8 @@
 // ============================================================================
 
 :root {
-  --yt-font: Roboto, 'YouTube Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial,
-    sans-serif;
+  --yt-font:
+    Roboto, 'YouTube Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --yt-red: #ff0033;
   --yt-radius-sm: 8px;
   --yt-radius: 12px;
@@ -175,6 +175,13 @@ h3 {
 
 .route-view.is-entering > :not(router-outlet) {
   animation: yt-page-in 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+// While the playing video moves with the page change (to or from the
+// miniplayer): a gentler fade in.
+.route-view.is-entering.is-soft > :not(router-outlet) {
+  animation-duration: 340ms;
+  animation-timing-function: ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -405,16 +412,16 @@ textarea:focus {
 // tonal. (!important because component styles otherwise win.)
 
 :is(
-    .primary-button,
-    .text-button,
-    .secondary-link,
-    .primary-link,
-    .hero-action-button,
-    .hero-actions .p-button,
-    .create-button,
-    .toggle-button,
-    .degraded-action
-  ) {
+  .primary-button,
+  .text-button,
+  .secondary-link,
+  .primary-link,
+  .hero-action-button,
+  .hero-actions .p-button,
+  .create-button,
+  .toggle-button,
+  .degraded-action
+) {
   border: 0 !important;
   border-radius: 18px !important;
   background: var(--button-bg) !important;
@@ -430,7 +437,13 @@ textarea:focus {
   color: var(--yt-chip-active-text) !important;
 }
 
-:is(.text-button, .secondary-link, .hero-action-button, .hero-actions .p-button, .toggle-button):not(:disabled):hover {
+:is(
+    .text-button,
+    .secondary-link,
+    .hero-action-button,
+    .hero-actions .p-button,
+    .toggle-button
+  ):not(:disabled):hover {
   background: var(--yt-chip-hover) !important;
 }
 

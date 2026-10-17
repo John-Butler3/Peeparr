@@ -38,6 +38,9 @@ export class SharedVideoService {
   private sceneId: string | null = null;
   /** Waiting on screen to fly to the next player. */
   private waitingOnScreen = false;
+  /** Lifted out of its player's slot (still its player's), and that slot. */
+  private liftedFrom: HTMLElement | null = null;
+  private liftedControls = false;
   private flight: number | null = null;
   private unclaimedTimer: ReturnType<typeof setTimeout> | null = null;
   /** Playing, as far as you're concerned (kept through an AirPlay switch). */
@@ -72,6 +75,7 @@ export class SharedVideoService {
   ): boolean {
     const video = this.video;
     this.owner = owner;
+    this.liftedFrom = null;
     this.clearUnclaimed();
     const carriesOn = this.sceneId === sceneId && !!video.getAttribute('src') && !video.ended;
     if (!carriesOn) {
@@ -107,6 +111,55 @@ export class SharedVideoService {
     return this.owner === owner;
   }
 
+  /**
+   * Leaving a page while its video plays: lifts the video out of the page,
+   * on screen exactly where it is, so the page can fade out under it before
+   * it flies. True if it did.
+   */
+  liftIfPlaying(): boolean {
+    const video = this.element;
+    const slot = video?.parentElement ?? null;
+    if (
+      !video ||
+      !slot ||
+      this.owner === null ||
+      video.paused ||
+      video.ended ||
+      slot === this.holder ||
+      prefersReducedMotion()
+    ) {
+      return false;
+    }
+    const rect = video.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return false;
+    }
+    this.liftedFrom = slot;
+    this.liftedControls = video.controls;
+    video.controls = false;
+    this.waitingOnScreen = true;
+    const holder = this.parkingSpot();
+    if (holder.nextElementSibling) {
+      document.body.appendChild(holder);
+    }
+    this.placeHolder(rect.left, rect.top, rect.width, rect.height);
+    holder.appendChild(video);
+    return true;
+  }
+
+  /** The page change didn't happen after all: back into its player. */
+  putBack(): void {
+    const video = this.element;
+    const slot = this.liftedFrom;
+    this.liftedFrom = null;
+    if (!video || !slot || !slot.isConnected || this.owner === null) {
+      return;
+    }
+    slot.appendChild(video);
+    video.controls = this.liftedControls;
+    this.hideHolder();
+  }
+
   /** Whether this scene is loaded and playing (worth handing over). */
   isPlaying(sceneId: string): boolean {
     const video = this.element;
@@ -123,8 +176,13 @@ export class SharedVideoService {
       return;
     }
     this.owner = null;
+    this.liftedFrom = null;
     this.stopFlight();
     const holder = this.parkingSpot();
+    if (holder.nextElementSibling) {
+      // Last in the page, so nothing added since (dialogs, toasts) is above.
+      document.body.appendChild(holder);
+    }
     if (from && from.width > 0 && from.height > 0 && !prefersReducedMotion()) {
       this.waitingOnScreen = true;
       video.controls = false;
@@ -282,9 +340,15 @@ export class SharedVideoService {
       height: `${height}px`,
       opacity: '1',
       borderRadius: '12px',
-      background: '#000',
+      backgroundColor: '#000',
       boxShadow: '0 10px 30px rgb(0 0 0 / 40%)',
-      zIndex: '1400',
+      // In front of everything (pages, the bars, the miniplayer). Its own
+      // layer: Safari can draw an animating page (its own layer) over a
+      // fixed element that isn't one, whatever the z-index.
+      zIndex: '2500',
+      transform: 'translateZ(0)',
+      willChange: 'transform',
+      isolation: 'isolate',
     });
   }
 

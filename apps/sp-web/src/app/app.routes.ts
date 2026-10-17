@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { fadeOutUnderMovingVideoGuard } from './core/guards/moving-video.guard';
 import {
   bootstrapOnlyWhenRequiredGuard,
   loginOnlyWhenLoggedOutGuard,
@@ -61,6 +62,7 @@ export const routes: Routes = [
       {
         path: 'scene/:stashId',
         component: ScenePageComponent,
+        canDeactivate: [fadeOutUnderMovingVideoGuard],
       },
       {
         path: 'scenes',
@@ -92,6 +94,7 @@ export const routes: Routes = [
       },
       {
         path: 'library/scene/:sceneId',
+        canDeactivate: [fadeOutUnderMovingVideoGuard],
         loadComponent: () =>
           import('./pages/local-scene/local-scene-page.component').then(
             (module) => module.LocalScenePageComponent,

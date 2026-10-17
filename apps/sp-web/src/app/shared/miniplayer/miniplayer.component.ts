@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { PlayerService } from '../../core/player/player.service';
+import { PageFadeService } from '../../core/navigation/page-fade.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
 
 /**
@@ -32,6 +33,7 @@ export class MiniplayerComponent implements OnDestroy {
 
   private readonly playerService = inject(PlayerService);
   private readonly sharedVideo = inject(SharedVideoService);
+  private readonly pageFade = inject(PageFadeService);
   private readonly router = inject(Router);
   private progressSaveInterval: ReturnType<typeof setInterval> | null = null;
   private listeners: AbortController | null = null;
@@ -103,9 +105,12 @@ export class MiniplayerComponent implements OnDestroy {
     this.listeners?.abort();
     // It stays where it is, showing, then grows into the page's player.
     this.sharedVideo.park(this, video.getBoundingClientRect(), current.imageUrl);
-    void this.router.navigate([...link.commands], {
-      queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
-    });
+    // The page on screen fades out under the video first.
+    void this.pageFade.fadeOut().then(() =>
+      this.router.navigate([...link.commands], {
+        queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
+      }),
+    );
   }
 
   protected togglePlayback(): void {

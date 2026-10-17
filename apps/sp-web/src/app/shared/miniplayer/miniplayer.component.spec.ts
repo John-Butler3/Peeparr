@@ -399,6 +399,9 @@ describe('MiniplayerComponent', () => {
 
     (element.querySelector('[aria-label="Back to the scene"]') as HTMLButtonElement).click();
     fixture.detectChanges();
+    // The page fades out first (at once here: no animations in tests).
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(playerService.handBack).toHaveBeenCalledWith('411', 42);
     expect(navigate).toHaveBeenCalledWith(['/library/scene', '411'], {
