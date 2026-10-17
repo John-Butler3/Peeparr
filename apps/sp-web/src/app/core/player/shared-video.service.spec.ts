@@ -59,4 +59,54 @@ describe('SharedVideoService', () => {
     expect(service.video.getAttribute('src')).toBeNull();
     expect(service.video.isConnected).toBe(true);
   });
+
+  it('flies: waits on screen where it was, then moves and resizes into the next player', () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    });
+    const pageSlot = slot();
+    service.attach(scenePage, pageSlot, '411', '/a', { controls: true });
+    const video = service.video;
+    expect(video.controls).toBe(true);
+
+    // Leaving the page: shown where it was, without controls, above everything.
+    service.park(scenePage, new DOMRect(0, 60, 400, 225));
+    const holder = video.parentElement!;
+    expect(holder).not.toBe(pageSlot);
+    expect(holder.style.opacity).toBe('1');
+    expect(holder.style.width).toBe('400px');
+    expect(video.controls).toBe(false);
+
+    const miniSlot = slot();
+    miniSlot.getBoundingClientRect = () => new DOMRect(12, 700, 100, 56);
+    holder.getBoundingClientRect = () => new DOMRect(0, 60, 400, 225);
+    expect(service.attach(miniplayer, miniSlot, '411', '/a', { controls: false })).toBe(true);
+
+    // Part way: still flying, smaller and lower.
+    vi.advanceTimersByTime(SharedVideoService.FLIGHT_MS / 3);
+    expect(video.parentElement).toBe(holder);
+    expect(parseFloat(holder.style.width)).toBeLessThan(400);
+    expect(parseFloat(holder.style.width)).toBeGreaterThan(100);
+    expect(parseFloat(holder.style.top)).toBeGreaterThan(60);
+
+    // Landed in the miniplayer; the holder hides again.
+    vi.advanceTimersByTime(SharedVideoService.FLIGHT_MS);
+    expect(video.parentElement).toBe(miniSlot);
+    expect(holder.style.opacity).toBe('0');
+    expect(pause).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('stops a parked video that no player takes', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    service.attach(scenePage, slot(), '411', '/a');
+    service.park(scenePage, new DOMRect(0, 0, 400, 225));
+
+    vi.advanceTimersByTime(SharedVideoService.UNCLAIMED_MS);
+
+    expect(pause).toHaveBeenCalled();
+    expect(service.video.getAttribute('src')).toBeNull();
+    expect(service.video.parentElement!.style.opacity).toBe('0');
+    vi.useRealTimers();
+  });
 });

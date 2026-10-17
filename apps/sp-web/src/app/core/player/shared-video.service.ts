@@ -7,16 +7,32 @@ import { Injectable } from '@angular/core';
  * buffering); the same element carries on, on the Apple TV too.
  *
  * Between hosts (leaving the page, before the miniplayer appears) it waits
- * in a hidden holder that's always in the page: a video taken out of the
- * page pauses.
+ * in a holder that's always in the page: a video taken out of the page
+ * pauses. Given where it was on screen, it waits there, still showing, and
+ * then flies -- moving and shrinking or growing -- into the next player's
+ * spot (followed as it moves, e.g. the miniplayer sliding in).
  */
+export interface SharedVideoOptions {
+  /** Native controls (the page's player) or none (the miniplayer). */
+  controls: boolean;
+  poster?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SharedVideoService {
+  static readonly FLIGHT_MS = 340;
+  /** Parked this long with no player taking it: stop it. */
+  static readonly UNCLAIMED_MS = 8000;
+
   private element: HTMLVideoElement | null = null;
   private holder: HTMLElement | null = null;
   private owner: object | null = null;
   /** The Stash scene loaded into it. */
   private sceneId: string | null = null;
+  /** Waiting on screen to fly to the next player. */
+  private waitingOnScreen = false;
+  private flight: number | null = null;
+  private unclaimedTimer: ReturnType<typeof setTimeout> | null = null;
 
   get video(): HTMLVideoElement {
     if (!this.element) {
@@ -25,6 +41,7 @@ export class SharedVideoService {
       video.preload = 'auto';
       video.setAttribute('playsinline', '');
       video.setAttribute('x-webkit-airplay', 'allow');
+      video.style.cssText = 'display:block;width:100%;height:100%;background:#000;';
       this.element = video;
     }
     return this.element;
@@ -35,18 +52,43 @@ export class SharedVideoService {
    * (handed over from the other player) it carries on as it is and this
    * returns true; otherwise it loads `src` and returns false.
    */
-  attach(owner: object, slot: HTMLElement, sceneId: string, src: string): boolean {
+  attach(
+    owner: object,
+    slot: HTMLElement,
+    sceneId: string,
+    src: string,
+    options: SharedVideoOptions = { controls: false },
+  ): boolean {
     const video = this.video;
     this.owner = owner;
-    if (video.parentElement !== slot) {
-      slot.appendChild(video);
+    this.clearUnclaimed();
+    const carriesOn = this.sceneId === sceneId && !!video.getAttribute('src') && !video.ended;
+    if (!carriesOn) {
+      this.sceneId = sceneId;
+      video.src = src;
     }
-    if (this.sceneId === sceneId && video.getAttribute('src') && !video.ended) {
-      return true;
+    if (options.poster) {
+      video.poster = options.poster;
+    } else {
+      video.removeAttribute('poster');
     }
-    this.sceneId = sceneId;
-    video.src = src;
-    return false;
+    const land = () => {
+      if (this.owner !== owner) {
+        return;
+      }
+      if (video.parentElement !== slot) {
+        slot.appendChild(video);
+      }
+      video.controls = options.controls;
+      this.hideHolder();
+    };
+    if (carriesOn && this.waitingOnScreen && video.parentElement === this.holder) {
+      this.flyTo(slot, land);
+    } else {
+      this.stopFlight();
+      land();
+    }
+    return carriesOn;
   }
 
   isOwner(owner: object): boolean {
@@ -59,22 +101,51 @@ export class SharedVideoService {
     return !!video && this.sceneId === sceneId && !video.paused && !video.ended;
   }
 
-  /** Keeps it playing, in the hidden holder, until the next player takes it. */
-  park(owner: object): void {
-    if (this.owner !== owner || !this.element) {
-      return;
-    }
-    this.owner = null;
-    this.parkingSpot().appendChild(this.element);
-  }
-
-  /** Stops it: its player is done with it. */
-  release(owner: object): void {
+  /**
+   * Keeps it playing until the next player takes it. Given where it is on
+   * screen (`from`), it stays there, showing, to fly to that player.
+   */
+  park(owner: object, from?: DOMRect | null): void {
     const video = this.element;
     if (this.owner !== owner || !video) {
       return;
     }
     this.owner = null;
+    this.stopFlight();
+    const holder = this.parkingSpot();
+    if (from && from.width > 0 && from.height > 0 && !prefersReducedMotion()) {
+      this.waitingOnScreen = true;
+      video.controls = false;
+      this.placeHolder(from.left, from.top, from.width, from.height);
+    } else {
+      this.hideHolder();
+    }
+    holder.appendChild(video);
+    this.clearUnclaimed();
+    this.unclaimedTimer = setTimeout(() => {
+      this.unclaimedTimer = null;
+      if (this.owner === null) {
+        this.stop();
+      }
+    }, SharedVideoService.UNCLAIMED_MS);
+  }
+
+  /** Stops it: its player is done with it. */
+  release(owner: object): void {
+    if (this.owner !== owner || !this.element) {
+      return;
+    }
+    this.owner = null;
+    this.stop();
+  }
+
+  private stop(): void {
+    const video = this.element;
+    if (!video) {
+      return;
+    }
+    this.stopFlight();
+    this.clearUnclaimed();
     this.sceneId = null;
     video.pause();
     video.removeAttribute('src');
@@ -84,20 +155,98 @@ export class SharedVideoService {
     } catch {
       // Not implemented everywhere (tests); the source is gone either way.
     }
+    this.hideHolder();
     this.parkingSpot().appendChild(video);
+  }
+
+  /**
+   * Moves and resizes the holder (with the video in it) from where it is to
+   * `slot`, following the slot if it moves meanwhile, then lands it there.
+   */
+  private flyTo(slot: HTMLElement, land: () => void): void {
+    this.stopFlight();
+    const from = this.parkingSpot().getBoundingClientRect();
+    let start: number | null = null;
+    const step = (now: number) => {
+      if (!slot.isConnected) {
+        this.flight = null;
+        land();
+        return;
+      }
+      start ??= now;
+      const t = Math.min(1, (now - start) / SharedVideoService.FLIGHT_MS);
+      const e = 1 - Math.pow(1 - t, 3);
+      const to = slot.getBoundingClientRect();
+      this.placeHolder(
+        from.left + (to.left - from.left) * e,
+        from.top + (to.top - from.top) * e,
+        from.width + (to.width - from.width) * e,
+        from.height + (to.height - from.height) * e,
+      );
+      if (t < 1) {
+        this.flight = requestAnimationFrame(step);
+      } else {
+        this.flight = null;
+        land();
+      }
+    };
+    this.flight = requestAnimationFrame(step);
+  }
+
+  private stopFlight(): void {
+    if (this.flight !== null) {
+      cancelAnimationFrame(this.flight);
+      this.flight = null;
+    }
+  }
+
+  private clearUnclaimed(): void {
+    if (this.unclaimedTimer) {
+      clearTimeout(this.unclaimedTimer);
+      this.unclaimedTimer = null;
+    }
+  }
+
+  /** The holder on screen at this spot, above everything, showing the video. */
+  private placeHolder(left: number, top: number, width: number, height: number): void {
+    Object.assign(this.parkingSpot().style, {
+      left: `${left}px`,
+      top: `${top}px`,
+      bottom: 'auto',
+      width: `${width}px`,
+      height: `${height}px`,
+      opacity: '1',
+      borderRadius: '12px',
+      background: '#000',
+      boxShadow: '0 10px 30px rgb(0 0 0 / 40%)',
+      zIndex: '1400',
+    });
+  }
+
+  private hideHolder(): void {
+    this.waitingOnScreen = false;
+    if (this.holder) {
+      this.holder.style.cssText = HIDDEN_HOLDER;
+    }
   }
 
   private parkingSpot(): HTMLElement {
     if (!this.holder || !this.holder.isConnected) {
       const holder = document.createElement('div');
       holder.setAttribute('aria-hidden', 'true');
-      // In the page (so it keeps playing) but out of sight. Not display:none:
-      // that can stop a video's picture updating.
-      holder.style.cssText =
-        'position:fixed;left:0;bottom:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
+      holder.style.cssText = HIDDEN_HOLDER;
       document.body.appendChild(holder);
       this.holder = holder;
     }
     return this.holder;
   }
+}
+
+// In the page (so the video keeps playing) but out of sight. Not
+// display:none: that can stop a video's picture updating.
+const HIDDEN_HOLDER =
+  'position:fixed;left:0;bottom:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
+
+function prefersReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

@@ -97,7 +97,8 @@ export class MiniplayerComponent implements OnDestroy {
     this.playerService.handBack(current.source.stashSceneId, video.currentTime);
     this.stopProgressSaveInterval();
     this.listeners?.abort();
-    this.sharedVideo.park(this);
+    // It stays where it is, showing, then grows into the page's player.
+    this.sharedVideo.park(this, video.getBoundingClientRect());
     void this.router.navigate([...link.commands], {
       queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
     });
@@ -126,9 +127,9 @@ export class MiniplayerComponent implements OnDestroy {
       this.slot,
       current.source.stashSceneId,
       current.source.streamUrl,
+      { controls: false },
     );
     const video = this.sharedVideo.video;
-    video.controls = false;
     this.listeners?.abort();
     this.listeners = new AbortController();
     const signal = this.listeners.signal;

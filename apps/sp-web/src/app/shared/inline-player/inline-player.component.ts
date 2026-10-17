@@ -11,6 +11,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { NavigationStart, Router } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Observable, Subscription } from 'rxjs';
 import { ScenePlaybackSource } from '../../core/api/discover.types';
@@ -36,6 +37,17 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
 
   private readonly playerService = inject(PlayerService);
   private readonly sharedVideo = inject(SharedVideoService);
+  /**
+   * Where the video was on screen as navigation away began (the page is
+   * gone by the time this player is destroyed): the miniplayer's video
+   * flies down from there.
+   */
+  private leavingRect: DOMRect | null = null;
+  private readonly navigationWatch = inject(Router).events.subscribe((event) => {
+    if (event instanceof NavigationStart) {
+      this.leavingRect = this.video?.getBoundingClientRect() ?? null;
+    }
+  });
   private sourceSubscription: Subscription | null = null;
   private progressInterval: ReturnType<typeof setInterval> | null = null;
   private listeners: AbortController | null = null;
@@ -98,7 +110,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       // Still playing: the miniplayer takes the same video (it waits in the
       // page meanwhile), so it doesn't stop, here or on an Apple TV.
       this.listeners?.abort();
-      this.sharedVideo.park(this);
+      this.sharedVideo.park(this, this.leavingRect);
       this.playerService.handOff({
         title: this.title,
         imageUrl: this.posterUrl,
@@ -109,6 +121,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       this.saveProgress();
       this.sharedVideo.release(this);
     }
+    this.navigationWatch.unsubscribe();
     this.cleanup();
   }
 
@@ -192,14 +205,11 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     if (!source) {
       return;
     }
-    const carriedOn = this.sharedVideo.attach(this, slot, source.stashSceneId, source.streamUrl);
+    const carriedOn = this.sharedVideo.attach(this, slot, source.stashSceneId, source.streamUrl, {
+      controls: true,
+      poster: this.posterUrl,
+    });
     const video = this.sharedVideo.video;
-    video.controls = true;
-    if (this.posterUrl) {
-      video.poster = this.posterUrl;
-    } else {
-      video.removeAttribute('poster');
-    }
     this.listeners?.abort();
     this.listeners = new AbortController();
     const signal = this.listeners.signal;
