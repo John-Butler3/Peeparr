@@ -13,7 +13,11 @@
         <span>Filter Performer Name</span>
         <input
           pInputText
-          type="text"
+          type="search"
+          inputmode="search"
+          data-page-search
+          enterkeyhint="search"
+          (keydown.enter)="$any($event.target).blur()"
           [ngModel]="nameFilter()"
           placeholder="Search performer name"
           (ngModelChange)="onNameFilterChanged($event)"

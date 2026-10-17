@@ -381,15 +381,26 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
 
   @ViewChild('searchFocusProxy') private searchFocusProxy?: ElementRef<HTMLInputElement>;
 
-  // Search icon (phones): go straight into typing with the keyboard up.
-  protected startSearchTyping(): void {
-    const searchBox = document.querySelector<HTMLInputElement>('.search-input');
-    if (this.router.url.startsWith('/search') && searchBox) {
-      searchBox.focus();
+  // Search icon (phones): go straight into typing with the keyboard up --
+  // in the page's own search (Search, or the name filter on Performers and
+  // Sites), or on the Search page.
+  protected startSearchTyping(event: MouseEvent): void {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    const pageSearch = document.querySelector<HTMLInputElement>(
+      '.route-view > :not(.page-behind) [data-page-search]',
+    );
+    if (pageSearch) {
+      // Focused within the tap, so the keyboard comes up.
+      pageSearch.focus();
+      pageSearch.select();
       return;
     }
 
     this.searchFocusProxy?.nativeElement.focus({ preventScroll: true });
+    void this.router.navigate(['/search'], { state: { focusSearch: true } });
   }
 
   protected submitSearch(): void {

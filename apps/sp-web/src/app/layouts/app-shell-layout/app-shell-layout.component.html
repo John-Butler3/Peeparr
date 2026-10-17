@@ -65,13 +65,7 @@
 
       <div class="masthead-end">
         @if (mobileShell()) {
-          <a
-            class="masthead-icon"
-            routerLink="/search"
-            [state]="{ focusSearch: true }"
-            aria-label="Search"
-            (click)="startSearchTyping()"
-          >
+          <a class="masthead-icon" href="/search" aria-label="Search" (click)="startSearchTyping($event)">
             <i class="pi pi-search" aria-hidden="true"></i>
           </a>
         }
