@@ -15,6 +15,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Observable, Subscription } from 'rxjs';
 import { ScenePlaybackSource } from '../../core/api/discover.types';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
+import { SharedVideoService } from '../../core/player/shared-video.service';
 
 // YouTube's watch-page player. A thumbnail with a play button that
 // turns into the video in place. Leaving the page while it plays hands the
@@ -34,10 +35,22 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private static readonly MINIMIZE_DRAG_PX = 110;
 
   private readonly playerService = inject(PlayerService);
+  private readonly sharedVideo = inject(SharedVideoService);
   private sourceSubscription: Subscription | null = null;
   private progressInterval: ReturnType<typeof setInterval> | null = null;
+  private listeners: AbortController | null = null;
 
-  @ViewChild('videoEl') private videoElRef?: ElementRef<HTMLVideoElement>;
+  // The slot appears once the source is ready: the shared video goes in.
+  @ViewChild('videoSlot') private set videoSlot(slot: ElementRef<HTMLElement> | undefined) {
+    if (slot) {
+      this.attachVideo(slot.nativeElement);
+    }
+  }
+
+  /** The shared video, while this player has it. */
+  private get video(): HTMLVideoElement | null {
+    return this.sharedVideo.isOwner(this) ? this.sharedVideo.video : null;
+  }
 
   @Input({ required: true }) title = '';
   @Input() posterUrl: string | null = null;
@@ -63,8 +76,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private drag: { x: number; y: number; down: boolean | null } | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
-    const sceneChanged =
-      changes['localSceneId'] || changes['catalogStashId'] || changes['copyId'];
+    const sceneChanged = changes['localSceneId'] || changes['catalogStashId'] || changes['copyId'];
     if (sceneChanged && !sceneChanged.firstChange) {
       this.stop();
     }
@@ -75,10 +87,18 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     const source = this.source();
     if (video && source && !video.paused && !video.ended) {
-      this.playerService.saveProgress(source.stashSceneId, video.currentTime, this.videoDuration(video));
+      this.playerService.saveProgress(
+        source.stashSceneId,
+        video.currentTime,
+        this.videoDuration(video),
+      );
+      // Still playing: the miniplayer takes the same video (it waits in the
+      // page meanwhile), so it doesn't stop, here or on an Apple TV.
+      this.listeners?.abort();
+      this.sharedVideo.park(this);
       this.playerService.handOff({
         title: this.title,
         imageUrl: this.posterUrl,
@@ -87,13 +107,14 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       });
     } else {
       this.saveProgress();
+      this.sharedVideo.release(this);
     }
     this.cleanup();
   }
 
   /** The page's own Play button: start, or carry on if already loaded. */
   play(): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     if (this.status() === 'ready' && video) {
       void video.play().catch(() => undefined);
       return;
@@ -105,7 +126,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   // Swipe down on the playing video (touch only; taps and sideways drags
   // still reach the native controls).
   protected onDragStart(event: TouchEvent): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     const touch = event.touches[0];
     this.drag =
       video && !video.paused && touch && event.touches.length === 1
@@ -134,7 +155,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   protected onDragEnd(): void {
-    const minimise = !!this.drag?.down && this.dragOffset() > InlinePlayerComponent.MINIMIZE_DRAG_PX;
+    const minimise =
+      !!this.drag?.down && this.dragOffset() > InlinePlayerComponent.MINIMIZE_DRAG_PX;
     this.drag = null;
     this.dragOffset.set(0);
     if (minimise) {
@@ -165,8 +187,37 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     });
   }
 
+  private attachVideo(slot: HTMLElement): void {
+    const source = this.source();
+    if (!source) {
+      return;
+    }
+    const carriedOn = this.sharedVideo.attach(this, slot, source.stashSceneId, source.streamUrl);
+    const video = this.sharedVideo.video;
+    video.controls = true;
+    if (this.posterUrl) {
+      video.poster = this.posterUrl;
+    } else {
+      video.removeAttribute('poster');
+    }
+    this.listeners?.abort();
+    this.listeners = new AbortController();
+    const signal = this.listeners.signal;
+    video.addEventListener('loadedmetadata', () => this.onLoadedMetadata(), { signal });
+    video.addEventListener('pause', () => this.onPause(), { signal });
+    video.addEventListener('ended', () => this.onEnded(), { signal });
+    if (carriedOn) {
+      // Back from the miniplayer with the same video: it just carries on.
+      this.playerService.takeHandBack(source.stashSceneId);
+      if (video.paused) {
+        video.play().catch(() => undefined);
+      }
+      this.startedPlaying();
+    }
+  }
+
   protected onLoadedMetadata(): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     const source = this.source();
     if (!video || !source) {
       return;
@@ -180,6 +231,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     video.play().catch(() => {
       // Autoplay can be blocked; the native controls are there to press play.
     });
+    this.startedPlaying();
+  }
+
+  private startedPlaying(): void {
     this.updateMediaSession();
     this.stopInterval();
     this.progressInterval = setInterval(
@@ -206,7 +261,9 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const rest = String(Math.floor(seconds % 60)).padStart(2, '0');
-    return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
+    return hours > 0
+      ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}`
+      : `${minutes}:${rest}`;
   }
 
   private resolveSource(): Observable<ScenePlaybackSource> | null {
@@ -223,12 +280,15 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
 
   private stop(): void {
     this.saveProgress();
+    this.sharedVideo.release(this);
     this.cleanup();
     this.source.set(null);
     this.status.set('idle');
   }
 
   private cleanup(): void {
+    this.listeners?.abort();
+    this.listeners = null;
     this.sourceSubscription?.unsubscribe();
     this.sourceSubscription = null;
     this.stopInterval();
@@ -242,13 +302,17 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   private saveProgress(): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     const source = this.source();
     if (!video || !source || video.currentTime <= 0) {
       return;
     }
 
-    this.playerService.saveProgress(source.stashSceneId, video.currentTime, this.videoDuration(video));
+    this.playerService.saveProgress(
+      source.stashSceneId,
+      video.currentTime,
+      this.videoDuration(video),
+    );
   }
 
   private videoDuration(video: HTMLVideoElement): number | null {

@@ -4,17 +4,9 @@
 @if (state(); as s) {
   <div class="miniplayer" data-testid="miniplayer">
     <div class="mini-video">
-      <video
-        #videoEl
-        [src]="s.source.streamUrl"
-        autoplay
-        playsinline
-        x-webkit-airplay="allow"
-        (loadedmetadata)="onVideoLoadedMetadata()"
-        (play)="onVideoPlay()"
-        (pause)="onVideoPause()"
-        (timeupdate)="onVideoTimeUpdate()"
-      ></video>
+      <!-- The shared video (SharedVideoService): the same element as on the
+           scene page, so playback and AirPlay carry on. -->
+      <div #videoSlot class="video-slot"></div>
       <button
         type="button"
         class="mini-open-hit"

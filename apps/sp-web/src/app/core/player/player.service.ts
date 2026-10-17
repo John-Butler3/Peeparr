@@ -22,7 +22,10 @@ export interface PlayerDetails {
   performers?: readonly string[];
   description?: string | null;
   /** The scene's page in the app (where Play opens, and the miniplayer returns). */
-  detailsLink?: { commands: readonly unknown[]; queryParams?: Record<string, string> | null } | null;
+  detailsLink?: {
+    commands: readonly unknown[];
+    queryParams?: Record<string, string> | null;
+  } | null;
   stashUrl?: string | null;
 }
 
@@ -145,11 +148,7 @@ export class PlayerService {
     this.details.set(null);
   }
 
-  saveProgress(
-    stashSceneId: string,
-    resumeSeconds: number,
-    playDuration: number | null,
-  ): void {
+  saveProgress(stashSceneId: string, resumeSeconds: number, playDuration: number | null): void {
     if (!Number.isFinite(resumeSeconds) || resumeSeconds < 0) {
       return;
     }
@@ -157,13 +156,10 @@ export class PlayerService {
     this.watchProgress.record(stashSceneId, resumeSeconds, playDuration);
 
     this.http
-      .post<void>(
-        `/api/media/stash/scenes/${encodeURIComponent(stashSceneId)}/progress`,
-        {
-          resumeSeconds,
-          ...(playDuration !== null ? { playDuration } : {}),
-        },
-      )
+      .post<void>(`/api/media/stash/scenes/${encodeURIComponent(stashSceneId)}/progress`, {
+        resumeSeconds,
+        ...(playDuration !== null ? { playDuration } : {}),
+      })
       .pipe(catchError(() => of(undefined)))
       .subscribe();
   }

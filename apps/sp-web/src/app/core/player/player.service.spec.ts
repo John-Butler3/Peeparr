@@ -51,7 +51,9 @@ describe('PlayerService', () => {
     service.openByLocalSceneId({
       title: 'Library Scene',
       localSceneId: '411',
-      details: { detailsLink: { commands: ['/scene', 'catalog-9'], queryParams: { returnTo: '/home' } } },
+      details: {
+        detailsLink: { commands: ['/scene', 'catalog-9'], queryParams: { returnTo: '/home' } },
+      },
     });
 
     expect(navigate).toHaveBeenCalledWith(['/scene', 'catalog-9'], {
@@ -118,10 +120,10 @@ describe('PlayerService', () => {
 
     service.saveProgress('411', 123.4, 600);
 
-    expect(httpPostMock).toHaveBeenCalledWith(
-      '/api/media/stash/scenes/411/progress',
-      { resumeSeconds: 123.4, playDuration: 600 },
-    );
+    expect(httpPostMock).toHaveBeenCalledWith('/api/media/stash/scenes/411/progress', {
+      resumeSeconds: 123.4,
+      playDuration: 600,
+    });
   });
 
   it('omits playDuration from the save payload when unknown', () => {
@@ -129,10 +131,9 @@ describe('PlayerService', () => {
 
     service.saveProgress('411', 123.4, null);
 
-    expect(httpPostMock).toHaveBeenCalledWith(
-      '/api/media/stash/scenes/411/progress',
-      { resumeSeconds: 123.4 },
-    );
+    expect(httpPostMock).toHaveBeenCalledWith('/api/media/stash/scenes/411/progress', {
+      resumeSeconds: 123.4,
+    });
   });
 
   it('does not save progress for a negative or non-finite resume position', () => {

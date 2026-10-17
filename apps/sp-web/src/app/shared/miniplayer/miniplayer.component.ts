@@ -1,6 +1,18 @@
-import { Component, ElementRef, HostListener, ViewChild, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { PlayerService } from '../../core/player/player.service';
+import { SharedVideoService } from '../../core/player/shared-video.service';
 
 /**
  * YouTube's miniplayer: the video from a scene page carries on here after
@@ -12,17 +24,44 @@ import { PlayerService } from '../../core/player/player.service';
   templateUrl: './miniplayer.component.html',
   styleUrl: './miniplayer.component.scss',
 })
-export class MiniplayerComponent {
+export class MiniplayerComponent implements OnDestroy {
   private static readonly PROGRESS_SAVE_INTERVAL_MS = 20_000;
   // Sizes iOS/Android/desktop commonly probe for when picking a "now playing"
   // artwork entry (the OS fetches and scales the same image whichever it picks).
   private static readonly ARTWORK_SIZES = ['96x96', '192x192', '256x256', '384x384', '512x512'];
 
   private readonly playerService = inject(PlayerService);
+  private readonly sharedVideo = inject(SharedVideoService);
   private readonly router = inject(Router);
   private progressSaveInterval: ReturnType<typeof setInterval> | null = null;
+  private listeners: AbortController | null = null;
+  private slot: HTMLElement | null = null;
 
-  @ViewChild('videoEl') private videoElRef?: ElementRef<HTMLVideoElement>;
+  // Shown while there's a scene: the shared video goes in. Gone (closed, or
+  // another player started): stop it, unless it was handed on.
+  @ViewChild('videoSlot') private set videoSlot(slot: ElementRef<HTMLElement> | undefined) {
+    this.slot = slot?.nativeElement ?? null;
+    if (this.slot) {
+      this.attachVideo();
+    } else {
+      this.detachVideo();
+    }
+  }
+
+  // A different scene handed over while already open: same slot, new video.
+  private readonly onSceneChange = effect(() => {
+    this.state();
+    untracked(() => {
+      if (this.slot) {
+        this.attachVideo();
+      }
+    });
+  });
+
+  /** The shared video, while the miniplayer has it. */
+  private get video(): HTMLVideoElement | null {
+    return this.sharedVideo.isOwner(this) ? this.sharedVideo.video : null;
+  }
 
   protected readonly state = this.playerService.state;
   protected readonly paused = signal(false);
@@ -40,24 +79,32 @@ export class MiniplayerComponent {
     }
   }
 
-  // Back to the scene's own page, its player carrying on from here.
+  ngOnDestroy(): void {
+    this.detachVideo();
+  }
+
+  // Back to the scene's own page, its player carrying on from here (with
+  // the same video: it waits in the page until that player takes it).
   protected openScenePage(): void {
     const link = this.playerService.details()?.detailsLink;
     const current = this.state();
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     if (!link || !current || !video) {
       return;
     }
 
     this.saveCurrentProgress();
     this.playerService.handBack(current.source.stashSceneId, video.currentTime);
+    this.stopProgressSaveInterval();
+    this.listeners?.abort();
+    this.sharedVideo.park(this);
     void this.router.navigate([...link.commands], {
       queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
     });
   }
 
   protected togglePlayback(): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     if (!video) {
       return;
     }
@@ -69,10 +116,45 @@ export class MiniplayerComponent {
     }
   }
 
+  private attachVideo(): void {
+    const current = this.state();
+    if (!current || !this.slot) {
+      return;
+    }
+    const carriedOn = this.sharedVideo.attach(
+      this,
+      this.slot,
+      current.source.stashSceneId,
+      current.source.streamUrl,
+    );
+    const video = this.sharedVideo.video;
+    video.controls = false;
+    this.listeners?.abort();
+    this.listeners = new AbortController();
+    const signal = this.listeners.signal;
+    video.addEventListener('loadedmetadata', () => this.onVideoLoadedMetadata(), { signal });
+    video.addEventListener('play', () => this.onVideoPlay(), { signal });
+    video.addEventListener('pause', () => this.onVideoPause(), { signal });
+    video.addEventListener('timeupdate', () => this.onVideoTimeUpdate(), { signal });
+    if (carriedOn) {
+      // Handed over still playing: it just carries on.
+      this.paused.set(video.paused);
+      this.onVideoTimeUpdate();
+      this.startedPlaying();
+    }
+  }
+
+  private detachVideo(): void {
+    this.listeners?.abort();
+    this.listeners = null;
+    this.stopProgressSaveInterval();
+    this.sharedVideo.release(this);
+  }
+
   protected onVideoLoadedMetadata(): void {
     this.progress.set(0);
     const current = this.state();
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     if (!current || !video) {
       return;
     }
@@ -86,7 +168,14 @@ export class MiniplayerComponent {
       // Autoplay can be blocked by the browser; the user can press play.
     });
 
-    this.updateMediaSession(current.title, current.imageUrl);
+    this.startedPlaying();
+  }
+
+  private startedPlaying(): void {
+    const current = this.state();
+    if (current) {
+      this.updateMediaSession(current.title, current.imageUrl);
+    }
     this.startProgressSaveInterval();
   }
 
@@ -98,7 +187,7 @@ export class MiniplayerComponent {
   }
 
   protected onVideoTimeUpdate(): void {
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
       return;
     }
@@ -116,7 +205,7 @@ export class MiniplayerComponent {
 
   protected closePlayer(): void {
     this.saveCurrentProgress();
-    this.stopProgressSaveInterval();
+    this.detachVideo();
     this.playerService.close();
     this.clearMediaSession();
   }
@@ -139,25 +228,25 @@ export class MiniplayerComponent {
     });
     session.playbackState = 'playing';
     session.setActionHandler('play', () => {
-      this.videoElRef?.nativeElement.play().catch(() => undefined);
+      this.video?.play().catch(() => undefined);
     });
     session.setActionHandler('pause', () => {
-      this.videoElRef?.nativeElement.pause();
+      this.video?.pause();
     });
     session.setActionHandler('seekto', (details) => {
-      const video = this.videoElRef?.nativeElement;
+      const video = this.video;
       if (video && typeof details.seekTime === 'number') {
         video.currentTime = details.seekTime;
       }
     });
     session.setActionHandler('seekbackward', (details) => {
-      const video = this.videoElRef?.nativeElement;
+      const video = this.video;
       if (video) {
         video.currentTime = Math.max(0, video.currentTime - (details.seekOffset ?? 10));
       }
     });
     session.setActionHandler('seekforward', (details) => {
-      const video = this.videoElRef?.nativeElement;
+      const video = this.video;
       if (video) {
         video.currentTime = Math.min(
           video.duration || Infinity,
@@ -197,7 +286,7 @@ export class MiniplayerComponent {
 
   private saveCurrentProgress(): void {
     const current = this.state();
-    const video = this.videoElRef?.nativeElement;
+    const video = this.video;
     if (!current || !video) {
       return;
     }

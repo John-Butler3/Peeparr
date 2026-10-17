@@ -8,20 +8,10 @@
   (touchend)="onDragEnd()"
   (touchcancel)="onDragEnd()"
 >
-  @if (status() === 'ready' && source(); as source) {
-    <video
-      #videoEl
-      class="inline-video"
-      [src]="source.streamUrl"
-      [poster]="posterUrl ?? ''"
-      controls
-      autoplay
-      playsinline
-      x-webkit-airplay="allow"
-      (loadedmetadata)="onLoadedMetadata()"
-      (pause)="onPause()"
-      (ended)="onEnded()"
-    ></video>
+  @if (status() === 'ready' && source()) {
+    <!-- The shared video (SharedVideoService) is placed here: the same
+         element the miniplayer shows, so playback and AirPlay carry on. -->
+    <div #videoSlot class="video-slot"></div>
   } @else {
     <button
       type="button"
@@ -50,7 +40,9 @@
       }
     </button>
     @if (status() === 'error') {
-      <p class="inline-error" role="alert">Couldn't load the stream from Stash. Tap to try again.</p>
+      <p class="inline-error" role="alert">
+        Couldn't load the stream from Stash. Tap to try again.
+      </p>
     }
   }
 </div>

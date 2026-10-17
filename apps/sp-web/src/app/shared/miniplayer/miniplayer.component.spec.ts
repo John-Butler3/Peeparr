@@ -2,6 +2,7 @@ import { Router } from '@angular/router';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MiniplayerState, PlayerDetails, PlayerService } from '../../core/player/player.service';
+import { SharedVideoService } from '../../core/player/shared-video.service';
 import { MiniplayerComponent } from './miniplayer.component';
 
 describe('MiniplayerComponent', () => {
@@ -15,9 +16,7 @@ describe('MiniplayerComponent', () => {
   let originalMediaMetadata: typeof globalThis.MediaMetadata | undefined;
 
   beforeEach(() => {
-    playSpy = vi
-      .spyOn(HTMLMediaElement.prototype, 'play')
-      .mockResolvedValue(undefined);
+    playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 
     // jsdom implements neither the Media Session API nor MediaMetadata --
@@ -314,6 +313,56 @@ describe('MiniplayerComponent', () => {
     expect(playerService.close).toHaveBeenCalled();
   });
 
+  it('carries on with the video from the scene page: same element, no reload (AirPlay keeps going)', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'paused', 'get').mockReturnValue(false);
+    const { fixture, state } = await renderMiniplayer();
+    const shared = TestBed.inject(SharedVideoService);
+    const scenePage = {};
+    const pageSlot = document.createElement('div');
+    document.body.appendChild(pageSlot);
+    shared.attach(scenePage, pageSlot, '411', '/stream?st=page');
+    const video = shared.video;
+    // Leaving the scene page while it plays.
+    shared.park(scenePage);
+    state.set({
+      title: 'A Scene',
+      imageUrl: null,
+      source: {
+        streamUrl: '/stream?st=page',
+        stashSceneId: '411',
+        resumeSeconds: 30,
+        duration: 600,
+      },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('video')).toBe(video);
+    expect(video.getAttribute('src')).toBe('/stream?st=page');
+    expect(mediaSessionStub.metadata).toMatchObject({ title: 'A Scene' });
+  });
+
+  it('back to the scene page, the video waits in the page instead of stopping', async () => {
+    const { fixture, playerService } = await renderMiniplayer({
+      title: 'A Scene',
+      imageUrl: null,
+      source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 0, duration: 600 },
+    });
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    playerService.details.set({ detailsLink: { commands: ['/library/scene', '411'] } });
+    const element = fixture.nativeElement as HTMLElement;
+    const video = element.querySelector('video') as HTMLVideoElement;
+    const pause = HTMLMediaElement.prototype.pause as unknown as ReturnType<typeof vi.fn>;
+
+    (element.querySelector('[aria-label="Back to the scene"]') as HTMLButtonElement).click();
+    // The scene page's player starting closes the miniplayer.
+    playerService.state.set(null);
+    fixture.detectChanges();
+
+    expect(video.isConnected).toBe(true);
+    expect(video.getAttribute('src')).toBe('/stream');
+    expect(pause).not.toHaveBeenCalled();
+  });
+
   it('goes back to the scene page from the miniplayer, handing over the position', async () => {
     const { fixture, playerService } = await renderMiniplayer({
       title: 'A Scene',
@@ -362,7 +411,9 @@ describe('MiniplayerComponent', () => {
     });
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-    (fixture.nativeElement.querySelector('[aria-label="Back to the scene"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector('[aria-label="Back to the scene"]') as HTMLButtonElement
+    ).click();
 
     expect(navigate).not.toHaveBeenCalled();
     expect(playerService.handBack).not.toHaveBeenCalled();
