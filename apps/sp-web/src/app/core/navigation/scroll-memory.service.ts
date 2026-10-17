@@ -10,6 +10,9 @@ import { NavigationEnd, NavigationStart, Router } from '@angular/router';
  * content after the navigation, so the restore keeps trying while the page
  * grows (lists that load more as you scroll keep loading), until it gets
  * there, the user scrolls, or it gives up.
+ *
+ * Staying on the same page with only its query changed (a filter picked,
+ * a name typed) isn't a new page: it stays where it's scrolled.
  */
 @Injectable({
   providedIn: 'root',
@@ -22,6 +25,8 @@ export class ScrollMemoryService {
   /** In-app trail of visited URLs, to recognise "back to the page before". */
   private readonly trail: string[] = [];
   private goingBack = false;
+  /** This navigation only changes the query of the page you're on. */
+  private samePage = false;
   private restoreRun = 0;
   private started = false;
 
@@ -41,6 +46,7 @@ export class ScrollMemoryService {
 
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
+        this.samePage = pathOf(event.url) === pathOf(this.router.url);
         this.positions.set(this.router.url, window.scrollY);
         this.goingBack =
           event.navigationTrigger === 'popstate' ||
@@ -63,8 +69,13 @@ export class ScrollMemoryService {
     }
 
     const saved = this.goingBack ? this.positions.get(url) : undefined;
+    const samePage = this.samePage;
     this.goingBack = false;
+    this.samePage = false;
     this.restoreRun++;
+    if (samePage && saved === undefined) {
+      return;
+    }
     if (saved && saved > 0) {
       this.restore(saved);
     } else {
@@ -103,4 +114,8 @@ export class ScrollMemoryService {
     };
     requestAnimationFrame(step);
   }
+}
+
+function pathOf(url: string): string {
+  return url.split(/[?#]/)[0];
 }

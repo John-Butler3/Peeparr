@@ -54,6 +54,8 @@ export class StudioPickerComponent {
     this.selectedIdsChange.emit(
       ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id],
     );
+    // Picked: the search is done with (the box is ready for the next one).
+    this.onInput('');
   }
 
   protected remove(id: string, event: Event): void {

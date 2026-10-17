@@ -74,6 +74,15 @@ describe('ScrollMemoryService', () => {
     expect(scrollY).toBe(3000);
   });
 
+  it("stays put when only the page's filters change (its query)", async () => {
+    await go('/performer/p1');
+    scrollY = 1400;
+    await go('/performer/p1?studios=10');
+    expect(scrollY).toBe(1400);
+    await go('/performer/p1?studios=10,20');
+    expect(scrollY).toBe(1400);
+  });
+
   it('starts other pages at the top', async () => {
     await go('/performer/p1');
     scrollY = 1200;
