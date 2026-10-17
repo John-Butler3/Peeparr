@@ -57,9 +57,11 @@ import { WatchDockDirective } from './watch-dock.directive';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
+import { QualityPillComponent } from '../../shared/quality-pill/quality-pill.component';
 @Component({
   selector: 'app-scene-page',
   imports: [
+    QualityPillComponent,
     BackLinkDirective,
     WatchDockDirective,
     RouterLink,

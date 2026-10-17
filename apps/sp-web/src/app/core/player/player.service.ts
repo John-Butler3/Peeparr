@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, catchError, map, of } from 'rxjs';
 import { DiscoverService } from '../api/discover.service';
 import { ScenePlaybackSource } from '../api/discover.types';
+import { VideoQualityService } from './video-quality.service';
 import { WatchProgressService } from './watch-progress.service';
 
 /** What the miniplayer is playing (a video carried on from its scene page). */
@@ -58,6 +59,7 @@ export class PlayerService {
   private readonly watchProgress = inject(WatchProgressService);
   private readonly discoverService = inject(DiscoverService);
   private readonly router = inject(Router);
+  private readonly videoQuality = inject(VideoQualityService);
   private pendingHandBack: { stashSceneId: string; seconds: number } | null = null;
 
   /** The miniplayer's video, while there is one. */
@@ -106,12 +108,16 @@ export class PlayerService {
         resumeSeconds: info.resumeSeconds,
         duration: info.duration,
       })),
+      // At this device's quality.
+      map((source) => this.videoQuality.apply(source)),
     );
   }
 
   /** Stream source for a catalog scene (via its matching Stash copy). */
   resolveCatalogSource(catalogStashId: string, copyId?: string): Observable<ScenePlaybackSource> {
-    return this.discoverService.getSceneStreamUrl(catalogStashId, copyId);
+    return this.discoverService
+      .getSceneStreamUrl(catalogStashId, copyId)
+      .pipe(map((source) => this.videoQuality.apply(source)));
   }
 
   // A scene page's player handing its video over as you leave the page: the

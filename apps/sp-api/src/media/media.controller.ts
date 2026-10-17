@@ -14,7 +14,11 @@ import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import { AuthService } from '../auth/auth.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { StreamTokenService } from '../auth/stream-token.service';
-import { MediaService } from './media.service';
+import {
+  MediaService,
+  isHlsQuality,
+  type StashSceneStreamResponse,
+} from './media.service';
 import { SaveScenePlaybackProgressDto } from './dto/save-scene-playback-progress.dto';
 
 @Controller('api/media')
@@ -108,6 +112,75 @@ export class MediaController {
     return this.pipeSceneVideo(sceneId, request, response, 'stream');
   }
 
+  // A lower quality, converted by Stash as it's watched (HLS): the playlist,
+  // its pieces' links pointing at the route below. Signed in, or with the
+  // scene's stream token (?st=), carried on to the pieces for AirPlay.
+  @Public()
+  @Get('stash/scenes/:sceneId/hls/:playlist')
+  async getStashSceneHlsPlaylist(
+    @Param('sceneId') sceneId: string,
+    @Param('playlist') playlist: string,
+    @Req() request: Request,
+    @Res() response: Response,
+  ): Promise<void> {
+    const quality = playlist.replace(/\.m3u8$/, '');
+    if (!playlist.endsWith('.m3u8') || !isHlsQuality(quality)) {
+      response.status(404).json({ statusCode: 404, message: 'Not found.' });
+      return;
+    }
+    if (!(await this.mayStream(request, sceneId))) {
+      response
+        .status(401)
+        .json({ statusCode: 401, message: 'Authentication required.' });
+      return;
+    }
+    const token = request.query['st'];
+    const body = await this.mediaService.getSceneHlsPlaylist(
+      sceneId,
+      quality,
+      typeof token === 'string' ? token : null,
+    );
+    response
+      .status(200)
+      .setHeader('Content-Type', 'application/vnd.apple.mpegurl')
+      .setHeader('Cache-Control', 'no-cache')
+      .end(body);
+  }
+
+  @Public()
+  @Get('stash/scenes/:sceneId/hls/:quality/:segment')
+  async streamStashSceneHlsSegment(
+    @Param('sceneId') sceneId: string,
+    @Param('quality') quality: string,
+    @Param('segment') segment: string,
+    @Req() request: Request,
+    @Res() response: Response,
+  ): Promise<void> {
+    if (!isHlsQuality(quality)) {
+      response.status(404).json({ statusCode: 404, message: 'Not found.' });
+      return;
+    }
+    if (!(await this.mayStream(request, sceneId))) {
+      response
+        .status(401)
+        .json({ statusCode: 401, message: 'Authentication required.' });
+      return;
+    }
+    const headOnly = request.method === 'HEAD';
+    const result = await this.mediaService.streamSceneHlsSegment(
+      sceneId,
+      quality,
+      segment,
+      headOnly,
+    );
+    this.pipe(
+      result,
+      response,
+      headOnly,
+      `scene ${sceneId} ${quality} ${segment}`,
+    );
+  }
+
   // Stash's generated preview clip, for hover / scroll previews (404 when it
   // hasn't been generated; the web app then falls back to the full stream).
   @Get('stash/scenes/:sceneId/preview')
@@ -149,12 +222,22 @@ export class MediaController {
       kind,
     );
 
+    this.pipe(result, response, isHeadRequest, `scene ${sceneId}`);
+  }
+
+  /** Sends what Stash answered on (headers, then the body as it arrives). */
+  private pipe(
+    result: StashSceneStreamResponse,
+    response: Response,
+    headOnly: boolean,
+    what: string,
+  ): void {
     response.status(result.status);
     for (const [header, value] of Object.entries(result.headers)) {
       response.setHeader(header, value);
     }
 
-    if (!result.body || isHeadRequest) {
+    if (!result.body || headOnly) {
       response.end();
       return;
     }
@@ -171,7 +254,7 @@ export class MediaController {
     });
     upstream.on('error', (error) => {
       this.logger.error(
-        `Upstream stream error for scene ${sceneId} after ${bytesSent} bytes: ${
+        `Upstream stream error for ${what} after ${bytesSent} bytes: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

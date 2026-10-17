@@ -24,9 +24,11 @@ import { NavigationHistoryService } from '../../core/navigation/navigation-histo
 // Scene page for a library scene with no catalog match ("Local only"): built
 // from the local library index, with a link out to the scene in Stash.
 // Scenes that do match the catalog use the regular /scene/:stashId page.
+import { QualityPillComponent } from '../../shared/quality-pill/quality-pill.component';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
+    QualityPillComponent,
     RouterLink,
     Message,
     ProgressSpinner,

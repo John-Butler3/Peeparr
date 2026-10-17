@@ -26,6 +26,7 @@ type NumberSelectOption = {
 
 const NO_DEFAULT = '';
 
+import { VIDEO_QUALITIES, VideoQualityService } from '../../core/player/video-quality.service';
 @Component({
   selector: 'app-settings-content-page',
   imports: [
@@ -53,6 +54,8 @@ export class SettingsContentPageComponent implements OnInit {
   protected readonly saveError = signal<string | null>(null);
   protected readonly hideAmateurNetworkResults = signal(false);
   protected readonly streamFromPornhub = signal(false);
+  protected readonly videoQuality = inject(VideoQualityService);
+  protected readonly videoQualities = [...VIDEO_QUALITIES];
 
   protected readonly downloadProfileOptions = signal<DownloadProfileOptions | null>(null);
   protected readonly downloadProfileOptionsError = signal<string | null>(null);

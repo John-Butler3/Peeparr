@@ -269,7 +269,9 @@ describe('MediaService', () => {
     });
 
     it("proxies Stash's preview clip for previews", async () => {
-      getScenePreviewUrlMock.mockResolvedValue('http://stash.local/scene/411/preview?apikey=secret');
+      getScenePreviewUrlMock.mockResolvedValue(
+        'http://stash.local/scene/411/preview?apikey=secret',
+      );
       fetchMock.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -321,7 +323,10 @@ describe('MediaService', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        headers: new Headers({ 'content-type': 'video/mp4', 'accept-ranges': 'bytes' }),
+        headers: new Headers({
+          'content-type': 'video/mp4',
+          'accept-ranges': 'bytes',
+        }),
         body: { cancel },
       } as unknown as Response);
 
@@ -368,7 +373,10 @@ describe('MediaService', () => {
 
       expect(fetchMock).toHaveBeenCalledWith(
         'http://stash.local/scene/411/stream?apikey=secret',
-        expect.objectContaining({ method: 'GET', headers: { Range: 'bytes=0-99' } }),
+        expect.objectContaining({
+          method: 'GET',
+          headers: { Range: 'bytes=0-99' },
+        }),
       );
       expect(result.status).toBe(206);
       expect(result.headers['Content-Range']).toBe('bytes 0-99/1000');
@@ -453,12 +461,89 @@ describe('MediaService', () => {
 
       await service.saveScenePlaybackProgress('411', 245.6, 1800);
 
-      expect(saveSceneProgressMock).toHaveBeenCalledWith(
-        '411',
-        245.6,
-        1800,
-        { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      expect(saveSceneProgressMock).toHaveBeenCalledWith('411', 245.6, 1800, {
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      });
+    });
+  });
+
+  describe('lower qualities (Stash HLS)', () => {
+    beforeEach(() => {
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      });
+      getSceneStreamUrlMock.mockResolvedValue(
+        'http://stash.local/scene/12/stream?apikey=secret',
       );
+    });
+
+    it("rewrites Stash's playlist so its pieces come through here, with the stream token", async () => {
+      // As Stash answers it.
+      fetchMock.mockResolvedValueOnce(
+        new Response(
+          [
+            '#EXTM3U',
+            '#EXT-X-VERSION:3',
+            '#EXT-X-TARGETDURATION:2',
+            '#EXT-X-PLAYLIST-TYPE:VOD',
+            '#EXTINF:2.000000,',
+            '/scene/12/stream.m3u8/0.ts?resolution=STANDARD_HD&apikey=secret',
+            '#EXTINF:2.000000,',
+            '/scene/12/stream.m3u8/1.ts?resolution=STANDARD_HD&apikey=secret',
+            '#EXT-X-ENDLIST',
+          ].join('\n'),
+          { status: 200 },
+        ),
+      );
+
+      const playlist = await service.getSceneHlsPlaylist(
+        '12',
+        'STANDARD_HD',
+        'tok.en',
+      );
+
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        'http://stash.local/scene/12/stream.m3u8?apikey=secret&resolution=STANDARD_HD',
+      );
+      expect(playlist.split('\n')).toEqual([
+        '#EXTM3U',
+        '#EXT-X-VERSION:3',
+        '#EXT-X-TARGETDURATION:2',
+        '#EXT-X-PLAYLIST-TYPE:VOD',
+        '#EXTINF:2.000000,',
+        'STANDARD_HD/0.ts?st=tok.en',
+        '#EXTINF:2.000000,',
+        'STANDARD_HD/1.ts?st=tok.en',
+        '#EXT-X-ENDLIST',
+      ]);
+      // The API key never reaches the phone.
+      expect(playlist).not.toContain('secret');
+    });
+
+    it('passes a piece through from Stash, and only ever a piece', async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response('ts-bytes', {
+          status: 200,
+          headers: { 'content-type': 'video/MP2T', 'content-length': '8' },
+        }),
+      );
+
+      const piece = await service.streamSceneHlsSegment('12', 'LOW', '7.ts');
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        'http://stash.local/scene/12/stream.m3u8/7.ts?apikey=secret&resolution=LOW',
+      );
+      expect(piece.headers['Content-Type']).toBe('video/MP2T');
+      expect(piece.headers['Content-Length']).toBe('8');
+
+      await expect(
+        service.streamSceneHlsSegment('12', 'LOW', '../stream'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 });

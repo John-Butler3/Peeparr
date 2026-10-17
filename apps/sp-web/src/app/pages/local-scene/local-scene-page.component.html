@@ -51,7 +51,8 @@
                     class="site-link studio-link"
                     [routerLink]="['/library']"
                     [queryParams]="{ studios: scene.libraryStudioId, studioNames: scene.studio }"
-                  >{{ scene.studio }}</a>
+                    >{{ scene.studio }}</a
+                  >
                 } @else {
                   <span>{{ scene.studio }}</span>
                 }
@@ -76,7 +77,12 @@
                       [queryParams]="{ performers: performer.id, performerNames: performer.name }"
                       [attr.aria-label]="'Library scenes with ' + performer.name"
                     >
-                      <img class="performer-image" [src]="performer.imageUrl" alt="" loading="lazy" />
+                      <img
+                        class="performer-image"
+                        [src]="performer.imageUrl"
+                        alt=""
+                        loading="lazy"
+                      />
                       <span class="performer-name">{{ performer.name }}</span>
                     </a>
                   </div>
@@ -86,6 +92,7 @@
           }
 
           <div class="action-pills">
+            <app-quality-pill />
             <button type="button" class="pill" (click)="openSeriesDialog()">
               <i class="pi pi-list" aria-hidden="true"></i> Save to series
             </button>
@@ -138,7 +145,8 @@
                       class="tag-link"
                       [routerLink]="['/library']"
                       [queryParams]="{ tags: tag.id, tagNames: tag.name }"
-                    >#{{ tag.name }}</a>
+                      >#{{ tag.name }}</a
+                    >
                   }
                 </div>
               }
@@ -149,7 +157,6 @@
               }
             </section>
           }
-
         </div>
       </div>
 

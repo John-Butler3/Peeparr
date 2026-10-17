@@ -110,7 +110,9 @@ export class SharedVideoService {
     this.owner = owner;
     this.liftedFrom = null;
     this.clearUnclaimed();
-    const carriesOn = this.sceneId === sceneId && !!video.getAttribute('src') && !video.ended;
+    // The same scene at the same quality carries on (its token may differ).
+    const carriesOn =
+      this.sceneId === sceneId && sameStream(video.getAttribute('src'), src) && !video.ended;
     if (!carriesOn) {
       this.sceneId = sceneId;
       video.src = src;
@@ -539,4 +541,17 @@ function isWireless(video: HTMLVideoElement): boolean {
 
 function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** The same stream address, but for its access token (?st=, issued afresh each time). */
+function sameStream(current: string | null, next: string): boolean {
+  if (!current) {
+    return false;
+  }
+  const withoutToken = (url: string) => {
+    const parsed = new URL(url, 'http://x');
+    parsed.searchParams.delete('st');
+    return parsed.pathname + parsed.search;
+  };
+  return withoutToken(current) === withoutToken(next);
 }

@@ -68,6 +68,33 @@
 
       <article class="summary-card">
         <p class="eyebrow">This device</p>
+        <h2>Video quality</h2>
+        <p class="summary-copy">
+          For a slow connection, play library scenes at a lower quality: Stash converts them as you
+          watch (using its CPU -- light with hardware acceleration on). Also on each scene's page,
+          to change while watching.
+        </p>
+        @if (videoQuality.available) {
+          <p-select
+            inputId="video-quality"
+            [options]="videoQualities"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="videoQuality.quality()"
+            (ngModelChange)="videoQuality.set($event)"
+            [appendTo]="'body'"
+            panelStyleClass="app-overlay-panel"
+          />
+        } @else {
+          <p class="summary-copy">
+            This browser can't play the lower qualities (they need HLS, as Safari has): scenes play
+            at their original quality here.
+          </p>
+        }
+      </article>
+
+      <article class="summary-card">
+        <p class="eyebrow">This device</p>
         <h2>Discreet logo</h2>
         <p class="summary-copy">
           Shows a plain logo -- a dark tile with glowing almond rings -- in the top bar, on the

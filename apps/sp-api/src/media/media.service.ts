@@ -5,9 +5,31 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { StashAdapter, type StashProtectedAssetResponse } from '../providers/stash/stash.adapter';
+import {
+  StashAdapter,
+  type StashProtectedAssetResponse,
+} from '../providers/stash/stash.adapter';
 import { fetchWithTimeout } from '../providers/fetch-with-timeout';
 import { PrismaService } from '../prisma/prisma.service';
+
+/**
+ * Lower qualities Stash converts a scene to as it's watched (HLS: the video
+ * in 2-second pieces, played natively by Safari, AirPlay included).
+ */
+export const HLS_QUALITIES = [
+  'FULL_HD',
+  'STANDARD_HD',
+  'STANDARD',
+  'LOW',
+] as const;
+export type HlsQuality = (typeof HLS_QUALITIES)[number];
+
+export function isHlsQuality(value: string): value is HlsQuality {
+  return (HLS_QUALITIES as readonly string[]).includes(value);
+}
+
+/** A piece's name in Stash's playlist: "12.ts". */
+const HLS_SEGMENT = /^\d{1,6}\.ts$/;
 
 export interface StashSceneStreamResponse {
   status: number;
@@ -23,14 +45,19 @@ export class MediaService {
   private readonly logger = new Logger(MediaService.name);
   // A player makes many range requests per video (and previews more still);
   // resolving the Stash URL once per scene instead of per request.
-  private readonly videoUrlCache = new Map<string, { url: string; expiresAt: number }>();
+  private readonly videoUrlCache = new Map<
+    string,
+    { url: string; expiresAt: number }
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly stashAdapter: StashAdapter,
   ) {}
 
-  async getStashSceneScreenshot(sceneId: string): Promise<StashProtectedAssetResponse> {
+  async getStashSceneScreenshot(
+    sceneId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openSceneScreenshot(sceneId, config);
     if (!asset) {
@@ -40,7 +67,9 @@ export class MediaService {
     return asset;
   }
 
-  async getStashStudioLogo(studioId: string): Promise<StashProtectedAssetResponse> {
+  async getStashStudioLogo(
+    studioId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openStudioLogo(studioId, config);
     if (!asset) {
@@ -50,9 +79,14 @@ export class MediaService {
     return asset;
   }
 
-  async getStashPerformerPhoto(performerId: string): Promise<StashProtectedAssetResponse> {
+  async getStashPerformerPhoto(
+    performerId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
-    const asset = await this.stashAdapter.openPerformerPhoto(performerId, config);
+    const asset = await this.stashAdapter.openPerformerPhoto(
+      performerId,
+      config,
+    );
     if (!asset) {
       throw new NotFoundException('Stash media asset not found.');
     }
@@ -60,7 +94,9 @@ export class MediaService {
     return asset;
   }
 
-  async getStashGalleryCover(galleryId: string): Promise<StashProtectedAssetResponse> {
+  async getStashGalleryCover(
+    galleryId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openGalleryCover(galleryId, config);
     if (!asset) {
@@ -70,7 +106,9 @@ export class MediaService {
     return asset;
   }
 
-  async getStashGroupCover(groupId: string): Promise<StashProtectedAssetResponse> {
+  async getStashGroupCover(
+    groupId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openGroupCover(groupId, config);
     if (!asset) {
@@ -80,7 +118,9 @@ export class MediaService {
     return asset;
   }
 
-  async getStashImageThumbnail(imageId: string): Promise<StashProtectedAssetResponse> {
+  async getStashImageThumbnail(
+    imageId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openImageThumbnail(imageId, config);
     if (!asset) {
@@ -90,7 +130,9 @@ export class MediaService {
     return asset;
   }
 
-  async getStashImageFull(imageId: string): Promise<StashProtectedAssetResponse> {
+  async getStashImageFull(
+    imageId: string,
+  ): Promise<StashProtectedAssetResponse> {
     const config = await this.getStashConfig();
     const asset = await this.stashAdapter.openImageFull(imageId, config);
     if (!asset) {
@@ -120,7 +162,6 @@ export class MediaService {
     if (rangeHeader) {
       requestHeaders.Range = rangeHeader;
     }
-
 
     let response: Response;
     try {
@@ -253,6 +294,109 @@ export class MediaService {
     );
   }
 
+  /**
+   * The scene's HLS playlist at `quality`, from Stash, its pieces' links
+   * pointing back here (relative to the playlist: `<quality>/<n>.ts`),
+   * carrying `streamToken` for AirPlay receivers.
+   */
+  async getSceneHlsPlaylist(
+    sceneId: string,
+    quality: HlsQuality,
+    streamToken: string | null,
+  ): Promise<string> {
+    const cacheKey = `stream:${sceneId}`;
+    const streamUrl = await this.resolveVideoUrl(sceneId, 'stream', cacheKey);
+    if (!streamUrl) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(hlsUrl(streamUrl, quality));
+    } catch {
+      throw new BadGatewayException('Failed to reach Stash provider endpoint.');
+    }
+    if (!response.ok) {
+      response.body?.cancel().catch(() => undefined);
+      this.videoUrlCache.delete(cacheKey);
+      this.logger.error(
+        `Stash returned ${response.status} for scene ${sceneId}'s ${quality} playlist.`,
+      );
+      throw response.status === 404
+        ? new NotFoundException('Stash media asset not found.')
+        : new BadGatewayException(
+            `Stash provider returned ${response.status}.`,
+          );
+    }
+
+    const suffix = streamToken ? `?st=${encodeURIComponent(streamToken)}` : '';
+    return (await response.text())
+      .split('\n')
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) {
+          return line;
+        }
+        // e.g. /scene/12/stream.m3u8/0.ts?resolution=STANDARD_HD&apikey=...
+        const piece = /\/stream\.m3u8\/([^/?#]+)/.exec(trimmed)?.[1];
+        return piece && HLS_SEGMENT.test(piece)
+          ? `${quality}/${piece}${suffix}`
+          : '';
+      })
+      .join('\n');
+  }
+
+  /** One piece of the scene's HLS stream at `quality`, from Stash. */
+  async streamSceneHlsSegment(
+    sceneId: string,
+    quality: HlsQuality,
+    segment: string,
+    headOnly = false,
+  ): Promise<StashSceneStreamResponse> {
+    if (!HLS_SEGMENT.test(segment)) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+    const streamUrl = await this.resolveVideoUrl(
+      sceneId,
+      'stream',
+      `stream:${sceneId}`,
+    );
+    if (!streamUrl) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(hlsUrl(streamUrl, quality, segment));
+    } catch {
+      throw new BadGatewayException('Failed to reach Stash provider endpoint.');
+    }
+    if (!response.ok) {
+      response.body?.cancel().catch(() => undefined);
+      this.logger.error(
+        `Stash returned ${response.status} for scene ${sceneId}'s ${quality} piece ${segment}.`,
+      );
+      throw new BadGatewayException(
+        `Stash provider returned ${response.status}.`,
+      );
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': response.headers.get('content-type') ?? 'video/mp2t',
+      // Converted as it's asked for: the same piece again is the same.
+      'Cache-Control': 'private, max-age=3600',
+    };
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) {
+      headers['Content-Length'] = contentLength;
+    }
+    if (headOnly) {
+      response.body?.cancel().catch(() => undefined);
+      return { status: 200, headers, body: null };
+    }
+    return { status: 200, headers, body: response.body };
+  }
+
   private redactUrl(url: string): string {
     try {
       const parsed = new URL(url);
@@ -265,13 +409,21 @@ export class MediaService {
     }
   }
 
-  private async getStashConfig(): Promise<{ baseUrl: string; apiKey?: string | null }> {
+  private async getStashConfig(): Promise<{
+    baseUrl: string;
+    apiKey?: string | null;
+  }> {
     const integration = await this.prisma.integrationConfig.findUnique({
       where: { type: 'STASH' },
     });
     const baseUrl = integration?.baseUrl?.trim();
 
-    if (!integration || !integration.enabled || integration.status !== 'CONFIGURED' || !baseUrl) {
+    if (
+      !integration ||
+      !integration.enabled ||
+      integration.status !== 'CONFIGURED' ||
+      !baseUrl
+    ) {
       throw new ServiceUnavailableException('Stash media is unavailable.');
     }
 
@@ -280,4 +432,19 @@ export class MediaService {
       apiKey: integration.apiKey,
     };
   }
+}
+
+/**
+ * Stash's HLS address for a scene, from its stream address (which carries
+ * its API key): /scene/<id>/stream -> /scene/<id>/stream.m3u8[/<piece>].
+ */
+function hlsUrl(
+  streamUrl: string,
+  quality: HlsQuality,
+  segment?: string,
+): string {
+  const url = new URL(streamUrl);
+  url.pathname = `${url.pathname.replace(/\/stream$/, '')}/stream.m3u8${segment ? `/${segment}` : ''}`;
+  url.searchParams.set('resolution', quality);
+  return url.toString();
 }

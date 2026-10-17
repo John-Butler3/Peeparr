@@ -18,6 +18,7 @@ import { ScenePlaybackSource } from '../../core/api/discover.types';
 import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
+import { VideoQualityService } from '../../core/player/video-quality.service';
 
 // The watch-page player. A thumbnail with a play button that turns into the
 // video in place. Leaving the page while it plays hands the video to the
@@ -75,6 +76,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
   });
   private sourceSubscription: Subscription | null = null;
+  /** The quality changed (by hand): a playing scene switches, from where it is. */
+  private readonly qualityWatch = inject(VideoQualityService).changes.subscribe(() =>
+    this.switchQuality(),
+  );
   private progressInterval: ReturnType<typeof setInterval> | null = null;
   private prepareTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners: AbortController | null = null;
@@ -145,6 +150,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       this.sharedVideo.release(this);
     }
     this.navigationWatch.unsubscribe();
+    this.qualityWatch.unsubscribe();
     this.cleanup();
   }
 
@@ -339,6 +345,32 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       this.sharedVideo.dropBack();
       this.pageFade.cancel();
     }
+  }
+
+  /** Reloads this player's scene at the quality now chosen, carrying on from where it is. */
+  private switchQuality(): void {
+    const video = this.video;
+    const slot = this.slotElement;
+    const request = this.resolveSource();
+    if (!video || !slot || !request || this.status() !== 'ready' || this.asleep) {
+      return;
+    }
+    const at = video.currentTime;
+    const playing = !video.paused;
+    this.sourceSubscription?.unsubscribe();
+    this.sourceSubscription = request.subscribe((source) => {
+      if (!this.sharedVideo.isOwner(this)) {
+        return;
+      }
+      this.source.set({ ...source, resumeSeconds: at });
+      this.attachVideo(slot);
+      if (!playing) {
+        // Paused: stays paused, at the same moment.
+        this.sharedVideo.video.addEventListener('playing', () => this.sharedVideo.video.pause(), {
+          once: true,
+        });
+      }
+    });
   }
 
   protected start(): void {
