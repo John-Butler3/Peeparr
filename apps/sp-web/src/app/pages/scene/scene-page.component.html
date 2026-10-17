@@ -131,11 +131,6 @@
                with its favourite star), release date and length. -->
           <div class="watch-meta">
             <app-scene-status-badge [status]="scene.status" />
-            @if (streamUrl(scene)) {
-              <span class="watch-stream-chip">
-                <i class="pi pi-globe" aria-hidden="true"></i> Streams from Pornhub
-              </span>
-            }
             @if (scene.studio) {
               <span class="watch-site">
                 @if (scene.studioId) {

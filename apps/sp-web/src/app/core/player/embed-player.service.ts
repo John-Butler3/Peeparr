@@ -28,6 +28,8 @@ export class EmbedPlayerService {
   static readonly UNCLAIMED_MS = 8000;
   /** Under the top bar (60) and bottom bar (55), over the page. */
   static readonly PAGE_LAYER = '50';
+  /** In the miniplayer: just above it (1300), like its own video. */
+  static readonly MINI_LAYER = '1301';
   /** Over everything while moving between spots, or dragged. */
   static readonly TOP_LAYER = '2500';
   static readonly GRAB_STRIP_PX = 44;
@@ -218,7 +220,9 @@ export class EmbedPlayerService {
       return;
     }
     const inPage = this.spotKind === 'page';
-    this.layer.style.zIndex = inPage ? EmbedPlayerService.PAGE_LAYER : EmbedPlayerService.TOP_LAYER;
+    this.layer.style.zIndex = inPage
+      ? EmbedPlayerService.PAGE_LAYER
+      : EmbedPlayerService.MINI_LAYER;
     this.layer.style.pointerEvents = inPage ? 'auto' : 'none';
     if (this.grabStrip) {
       this.grabStrip.style.display = inPage ? 'flex' : 'none';

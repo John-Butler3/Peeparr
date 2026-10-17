@@ -144,20 +144,6 @@ p {
 
 // One compact line under the title: status · site ★ · date · length. It
 // stays one line; only the site name gives way (with "…") on narrow screens.
-// A scene not in the library that plays, streamed from Pornhub.
-.watch-stream-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, #ff9000 18%, transparent);
-  color: #ffb547;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
 .watch-meta {
   display: flex;
   align-items: center;
@@ -184,6 +170,14 @@ p {
   flex: 0 1 auto !important;
   align-items: center;
   min-width: 0;
+}
+
+// A long site name ("Pornhub: <creator>") gives way with an ellipsis rather
+// than running into the date -- linked or not.
+.watch-site > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .watch-meta ::ng-deep .badge {
@@ -557,8 +551,18 @@ p {
   min-width: 0;
 }
 
-:is(.watch-back, .site-link, .site-favorite, .pill, .series-chip, .tag-link,
-  .description-toggle, .performer-link, .performer-favorite, .scroll-button):focus-visible {
+:is(
+  .watch-back,
+  .site-link,
+  .site-favorite,
+  .pill,
+  .series-chip,
+  .tag-link,
+  .description-toggle,
+  .performer-link,
+  .performer-favorite,
+  .scroll-button
+):focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
