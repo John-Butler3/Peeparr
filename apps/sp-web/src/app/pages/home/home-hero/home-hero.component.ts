@@ -31,6 +31,7 @@ import {
  * (YouTube's ambient mode): the slide's picture, or a muted duplicate of the
  * playing preview kept in step with it.
  */
+import { onShowingPage } from '../../../core/navigation/page-fade.service';
 @Component({
   selector: 'app-home-hero',
   imports: [RouterLink],
@@ -359,6 +360,11 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     this.holdStarted = false;
     const item = this.current();
     if (!item || document.hidden || !this.onScreen) {
+      return;
+    }
+    if (!onShowingPage(this.host)) {
+      // Home only readied behind a scene: no previews until it's back.
+      this.advanceTimer = setTimeout(() => this.loadPreview(), 1000);
       return;
     }
 

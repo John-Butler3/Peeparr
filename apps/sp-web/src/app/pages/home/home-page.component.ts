@@ -41,6 +41,7 @@ import {
 
 import { HomeHeroComponent } from './home-hero/home-hero.component';
 
+import { onShowingPage } from '../../core/navigation/page-fade.service';
 @Component({
   selector: 'app-home-page',
   imports: [
@@ -114,7 +115,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   /** On screen: not asleep (left, kept alive) and the app not in the background. */
   private awake(): boolean {
-    return document.visibilityState === 'visible' && this.host.isConnected;
+    return document.visibilityState === 'visible' && onShowingPage(this.host);
   }
   private readonly onVisibilityChange = (): void => {
     if (

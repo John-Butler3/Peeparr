@@ -17,6 +17,11 @@ import { ScrollMemoryService } from './scroll-memory.service';
  *
  * Pages are kept alive when left, so a faded page is reset as the next one
  * comes in: it must show normally when it's returned to.
+ *
+ * Putting a whole page back takes a phone a moment (style, layout, paint of
+ * all of it), long enough to stall a swipe. So while a scene plays, the page
+ * you came from is readied behind it ahead of time, unseen (prepareBehind):
+ * a swipe then only has to show it.
  */
 @Injectable({ providedIn: 'root' })
 export class PageFadeService {
@@ -34,8 +39,11 @@ export class PageFadeService {
   private page: HTMLElement | null = null;
   /** The page before, put back behind this one while dragging. */
   private behind: HTMLElement | null = null;
+  private behindPath: string | null = null;
   private fading: Animation | null = null;
   private soft = false;
+  /** The page behind was readied ahead of time: a cancelled swipe hides it again. */
+  private warm = false;
   /**
    * Where each page left started down the document (pages under the top
    * bar start lower than a scene's, which has none on phones), so one put
@@ -70,14 +78,66 @@ export class PageFadeService {
   }
 
   /**
+   * Readies the page you came from behind this one, unseen, so a swipe
+   * later only has to show it. True if it's there.
+   */
+  prepareBehind(): boolean {
+    if (this.behind) {
+      return true;
+    }
+    const previous = this.history.previous();
+    const behind = previous ? this.placeBehind(previous.url) : null;
+    if (!behind) {
+      return false;
+    }
+    behind.style.opacity = '0';
+    this.warm = true;
+    return true;
+  }
+
+  /**
+   * revealBehind, just after the next frame: putting a whole page back
+   * (Home, say) takes a phone a moment, and a swipe's video should already
+   * be moving with the finger by then, not wait for it. Skipped if
+   * `stillWanted` says the swipe has ended meanwhile.
+   */
+  revealBehindSoon(stillWanted: () => boolean): void {
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        if (stillWanted()) {
+          this.revealBehind();
+        }
+      }),
+    );
+  }
+
+  /**
    * Puts a kept page (by URL) behind this one, as it was: for a page about
    * to be gone to by a drag (swiping up the miniplayer to its scene). The
    * page's element, or null if it isn't kept.
    */
   revealPage(url: string): HTMLElement | null {
-    if (this.behind) {
-      return this.behind;
+    if (this.behind && this.behindPath !== pathOf(url)) {
+      this.putBehindAway();
     }
+    const behind = this.behind ?? this.placeBehind(url);
+    const page = this.currentPage();
+    if (!behind || !page) {
+      return null;
+    }
+    behind.style.opacity = '';
+    // This page in front of it, covering it until it fades.
+    Object.assign(page.style, {
+      position: 'relative',
+      zIndex: '1',
+      background: 'var(--app-bg)',
+    });
+    this.page = page;
+    return behind;
+  }
+
+  /** A kept page (by URL) put in behind this one, where it'll be once there. */
+  private placeBehind(url: string): HTMLElement | null {
     const area = this.area;
     const page = this.currentPage();
     const strategy =
@@ -99,15 +159,9 @@ export class PageFadeService {
       zIndex: '0',
       pointerEvents: 'none',
     });
-    // This page in front of it, covering it until it fades.
-    Object.assign(page.style, {
-      position: 'relative',
-      zIndex: '1',
-      background: 'var(--app-bg)',
-    });
-    this.page = page;
     area.appendChild(behind);
     this.behind = behind;
+    this.behindPath = pathOf(url);
     return behind;
   }
 
@@ -119,7 +173,8 @@ export class PageFadeService {
     }
     this.page = page;
     const clamped = Math.min(1, Math.max(0, progress));
-    const depth = this.behind ? PageFadeService.DRAG_REVEAL : PageFadeService.DRAG_DIM;
+    const shown = !!this.behind && this.behind.style.opacity !== '0';
+    const depth = shown ? PageFadeService.DRAG_REVEAL : PageFadeService.DRAG_DIM;
     page.style.opacity = clamped > 0 ? String(1 - clamped * depth) : '';
   }
 
@@ -147,7 +202,12 @@ export class PageFadeService {
 
   /** The drag or page change didn't happen: the page shows again. */
   cancel(): void {
-    this.putBehindAway();
+    if (this.warm && this.behind) {
+      // Readied ahead of time: kept, unseen again, for the next swipe.
+      this.behind.style.opacity = '0';
+    } else {
+      this.putBehindAway();
+    }
     this.reset();
     this.soft = false;
   }
@@ -163,6 +223,7 @@ export class PageFadeService {
       return false;
     }
     this.behind = null;
+    this.warm = false;
     const strategy =
       this.reuseStrategy instanceof KeepAliveRouteStrategy ? this.reuseStrategy : null;
     const arrived = !!strategy?.wasJustRetrieved(behind);
@@ -189,6 +250,7 @@ export class PageFadeService {
   private putBehindAway(): void {
     const behind = this.behind;
     this.behind = null;
+    this.warm = false;
     if (behind) {
       clearBehindStyles(behind);
       behind.remove();
@@ -216,11 +278,28 @@ export class PageFadeService {
 
 function clearBehindStyles(behind: HTMLElement): void {
   behind.classList.remove('page-behind');
-  for (const property of ['position', 'top', 'left', 'width', 'zIndex', 'pointerEvents'] as const) {
+  for (const property of [
+    'position',
+    'top',
+    'left',
+    'width',
+    'zIndex',
+    'pointerEvents',
+    'opacity',
+  ] as const) {
     behind.style[property] = '';
   }
 }
 
 function pathOf(url: string): string {
   return url.split(/[?#]/)[0];
+}
+
+/**
+ * Whether `element` is on a page that's showing: in the document, and not on
+ * a page only put behind the current one (readied for a swipe, or revealed
+ * by one). Such a page is still asleep: no playing, refreshing, autoplay.
+ */
+export function onShowingPage(element: Element): boolean {
+  return element.isConnected && !element.closest('.page-behind');
 }

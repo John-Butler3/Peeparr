@@ -15,7 +15,7 @@ import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Observable, Subscription } from 'rxjs';
 import { ScenePlaybackSource } from '../../core/api/discover.types';
-import { PageFadeService } from '../../core/navigation/page-fade.service';
+import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
 
@@ -43,6 +43,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   /** ...or a flick this fast (px/ms) and this far. */
   private static readonly MINIMIZE_FLICK_SPEED = 0.5;
   private static readonly MINIMIZE_FLICK_PX = 40;
+  /** This long after it starts playing, the page you came from is readied behind. */
+  private static readonly PREPARE_BEHIND_MS = 1500;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly playerService = inject(PlayerService);
@@ -65,15 +67,16 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       this.leavingRect = this.video?.getBoundingClientRect() ?? null;
     } else if (event instanceof NavigationEnd) {
       // Its page left (kept, asleep) or back on screen.
-      if (!this.host.isConnected && !this.asleep) {
+      if (!onShowingPage(this.host) && !this.asleep) {
         this.sleep();
-      } else if (this.host.isConnected && this.asleep) {
+      } else if (onShowingPage(this.host) && this.asleep) {
         this.wake();
       }
     }
   });
   private sourceSubscription: Subscription | null = null;
   private progressInterval: ReturnType<typeof setInterval> | null = null;
+  private prepareTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners: AbortController | null = null;
   /** Start position set for this load (metadata can arrive again, e.g. AirPlay). */
   private positioned = false;
@@ -296,8 +299,9 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       // down, fading, if paused (closing). The page fades behind it.
       if (!drag.lifted && this.sharedVideo.liftForDrag()) {
         drag.lifted = true;
-        // The page you came from, behind this one, revealed as it fades.
-        this.pageFade.revealBehind();
+        // The page you came from, behind this one, revealed as it fades
+        // (once the video's moving).
+        this.pageFade.revealBehindSoon(() => this.drag === drag);
       }
       if (drag.lifted) {
         if (drag.playing) {
@@ -408,12 +412,29 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   private startedPlaying(): void {
+    this.readyPageBehind();
     this.updateMediaSession();
     this.stopInterval();
     this.progressInterval = setInterval(
       () => this.saveProgress(),
       InlinePlayerComponent.PROGRESS_SAVE_INTERVAL_MS,
     );
+  }
+
+  /**
+   * Readies the page you came from behind this one (unseen), a moment after
+   * it starts playing, so a swipe down needn't wait for it to be put back.
+   */
+  private readyPageBehind(): void {
+    if (this.prepareTimer) {
+      clearTimeout(this.prepareTimer);
+    }
+    this.prepareTimer = setTimeout(() => {
+      this.prepareTimer = null;
+      if (this.sharedVideo.isOwner(this) && onShowingPage(this.host) && !this.drag) {
+        this.pageFade.prepareBehind();
+      }
+    }, InlinePlayerComponent.PREPARE_BEHIND_MS);
   }
 
   protected onPause(): void {
@@ -460,6 +481,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   private cleanup(): void {
+    if (this.prepareTimer) {
+      clearTimeout(this.prepareTimer);
+      this.prepareTimer = null;
+    }
     this.dragListeners?.abort();
     this.listeners?.abort();
     this.listeners = null;

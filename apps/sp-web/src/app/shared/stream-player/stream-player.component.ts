@@ -13,7 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
-import { PageFadeService } from '../../core/navigation/page-fade.service';
+import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { EmbedPlayerService } from '../../core/player/embed-player.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
 
@@ -41,6 +41,8 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
   /** ...or a flick this fast (px/ms) and this far. */
   static readonly MINIMIZE_FLICK_SPEED = 0.5;
   static readonly MINIMIZE_FLICK_PX = 40;
+  /** This long after it starts, the page you came from is readied behind. */
+  static readonly PREPARE_BEHIND_MS = 1500;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly embedPlayer = inject(EmbedPlayerService);
@@ -79,14 +81,15 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
     from: DOMRect | null;
   } | null = null;
   private dragListeners: AbortController | null = null;
+  private prepareTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly navigationWatch = inject(Router).events.subscribe((event) => {
     if (event instanceof NavigationStart) {
       this.leavingRect = this.embedPlayer.isOwner(this) ? this.embedPlayer.rect() : null;
     } else if (event instanceof NavigationEnd) {
-      if (!this.host.isConnected && !this.asleep) {
+      if (!onShowingPage(this.host) && !this.asleep) {
         this.sleep();
-      } else if (this.host.isConnected && this.asleep) {
+      } else if (onShowingPage(this.host) && this.asleep) {
         this.wake();
       }
     }
@@ -128,6 +131,9 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
     }
     this.navigationWatch.unsubscribe();
     this.dragListeners?.abort();
+    if (this.prepareTimer) {
+      clearTimeout(this.prepareTimer);
+    }
   }
 
   /** The page's own Play button. */
@@ -148,7 +154,24 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
   private onStarted(): void {
     if (this.embedPlayer.isOwner(this)) {
       this.playerService.close();
+      this.readyPageBehind();
     }
+  }
+
+  /**
+   * Readies the page you came from behind this one (unseen), a moment after
+   * it starts, so a swipe down needn't wait for it to be put back.
+   */
+  private readyPageBehind(): void {
+    if (this.prepareTimer) {
+      clearTimeout(this.prepareTimer);
+    }
+    this.prepareTimer = setTimeout(() => {
+      this.prepareTimer = null;
+      if (this.embedPlayer.isOwner(this) && onShowingPage(this.host) && !this.drag) {
+        this.pageFade.prepareBehind();
+      }
+    }, StreamPlayerComponent.PREPARE_BEHIND_MS);
   }
 
   protected durationLabel(): string | null {
@@ -182,6 +205,7 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
     if (carriedOn) {
       // Taken back from the miniplayer (or a player this page had before).
       this.playerService.close();
+      this.readyPageBehind();
     }
   }
 
@@ -290,7 +314,7 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
       drag.from = this.embedPlayer.rect();
       drag.lifted = this.embedPlayer.lift(this);
       if (drag.lifted) {
-        this.pageFade.revealBehind();
+        this.pageFade.revealBehindSoon(() => this.drag === drag);
       }
     }
     if (!drag.lifted || !drag.from) {

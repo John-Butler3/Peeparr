@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { PageFadeService } from './page-fade.service';
+import { RouteReuseStrategy } from '@angular/router';
+import { KeepAliveRouteStrategy } from './keep-alive-route.strategy';
+import { NavigationHistoryService } from './navigation-history.service';
+import { PageFadeService, onShowingPage } from './page-fade.service';
 
 describe('PageFadeService', () => {
   let service: PageFadeService;
@@ -54,5 +57,67 @@ describe('PageFadeService', () => {
   it('resolves at once with no page to fade', async () => {
     service.setArea(null);
     await expect(service.fadeOut()).resolves.toBeUndefined();
+  });
+
+  describe('the page you came from, behind this one', () => {
+    let home: HTMLElement;
+    let retrieved: HTMLElement | null;
+
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      home = document.createElement('main');
+      retrieved = null;
+      TestBed.configureTestingModule({
+        providers: [
+          {
+            provide: RouteReuseStrategy,
+            useValue: Object.assign(Object.create(KeepAliveRouteStrategy.prototype), {
+              peekPage: (url: string) => (url === '/home' ? home : null),
+              wasJustRetrieved: (element: HTMLElement) => element === retrieved,
+            }),
+          },
+          { provide: NavigationHistoryService, useValue: { previous: () => ({ url: '/home' }) } },
+        ],
+      });
+      service = TestBed.inject(PageFadeService);
+      service.setArea(area);
+      document.body.appendChild(area);
+    });
+
+    afterEach(() => area.remove());
+
+    it('is readied ahead of time, unseen and asleep; a swipe only shows it', () => {
+      expect(service.prepareBehind()).toBe(true);
+      expect(home.parentElement).toBe(area);
+      expect(home.style.opacity).toBe('0');
+      expect(onShowingPage(home)).toBe(false);
+      expect(page.style.zIndex).toBe('');
+
+      // A swipe: shown (the same element), this page in front of it.
+      expect(service.revealBehind()).toBe(true);
+      expect(home.style.opacity).toBe('');
+      expect(page.style.zIndex).toBe('1');
+
+      // Let go short: unseen again, still there for the next swipe.
+      service.cancel();
+      expect(home.parentElement).toBe(area);
+      expect(home.style.opacity).toBe('0');
+      expect(page.style.zIndex).toBe('');
+    });
+
+    it('becomes the page when it is gone back to; is put away when another is gone to', () => {
+      service.prepareBehind();
+      retrieved = home;
+      expect(service.finishReveal()).toBe(true);
+      expect(home.classList.contains('page-behind')).toBe(false);
+      expect(home.style.opacity).toBe('');
+      expect(onShowingPage(home)).toBe(true);
+
+      home.remove();
+      service.prepareBehind();
+      retrieved = null;
+      expect(service.finishReveal()).toBe(false);
+      expect(home.isConnected).toBe(false);
+    });
   });
 });

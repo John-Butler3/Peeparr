@@ -25,6 +25,7 @@ import {
   of,
   switchMap,
 } from 'rxjs';
+import { onShowingPage } from '../../core/navigation/page-fade.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
@@ -96,7 +97,7 @@ export class SearchPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly returnWatch = this.router.events
     .pipe(filter((event) => event instanceof NavigationEnd))
     .subscribe(() => {
-      if (this.host.isConnected) {
+      if (onShowingPage(this.host)) {
         this.focusIfAsked();
       }
     });
@@ -232,9 +233,7 @@ export class SearchPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.searchFor(query).subscribe((result) => this.applySearchResult(result));
   }
 
-  private searchFor(
-    query: string,
-  ): Observable<{
+  private searchFor(query: string): Observable<{
     scenes: ScenesFeedResponse;
     performers: PerformerFeedResponse;
     studios: StudioFeedResponse;

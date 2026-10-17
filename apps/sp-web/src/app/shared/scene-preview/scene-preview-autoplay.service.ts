@@ -1,3 +1,4 @@
+import { onShowingPage } from '../../core/navigation/page-fade.service';
 import { Injectable } from '@angular/core';
 
 /** What the autoplay needs from a preview thumbnail (ScenePreviewDirective). */
@@ -161,7 +162,7 @@ export class ScenePreviewAutoplayService {
 
   private held(): boolean {
     for (const [element, share] of this.holds) {
-      if (element.isConnected && visibleShare(element) >= share) {
+      if (onShowingPage(element) && visibleShare(element) >= share) {
         return true;
       }
     }
@@ -174,7 +175,7 @@ export class ScenePreviewAutoplayService {
     let best: ScenePreviewAutoplayItem | null = null;
     let bestScore = Number.POSITIVE_INFINITY;
     for (const item of this.items) {
-      if (!item.autoplayEligible || !item.host.isConnected) {
+      if (!item.autoplayEligible || !onShowingPage(item.host)) {
         continue;
       }
 

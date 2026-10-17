@@ -402,6 +402,11 @@ p {
 .rail-section {
   display: grid;
   gap: 0.72rem;
+  // Rows off screen aren't laid out or drawn until they're near: Home
+  // comes back (put behind a scene being swiped away, or gone back to)
+  // without doing all of it at once.
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 
 .hero-shell + .rail-section,
