@@ -7,6 +7,7 @@ import { AdminSessionGuard } from './admin-session.guard';
 import { LoginAttemptService } from './login-attempt.service';
 import { PasswordResetService } from './password-reset.service';
 import { SessionCookieService } from './session-cookie.service';
+import { StreamTokenService } from './stream-token.service';
 
 @Module({
   imports: [PrismaModule],
@@ -16,12 +17,13 @@ import { SessionCookieService } from './session-cookie.service';
     SessionCookieService,
     LoginAttemptService,
     PasswordResetService,
+    StreamTokenService,
     Reflector,
     {
       provide: APP_GUARD,
       useClass: AdminSessionGuard,
     },
   ],
-  exports: [AuthService],
+  exports: [AuthService, StreamTokenService],
 })
 export class AuthModule {}

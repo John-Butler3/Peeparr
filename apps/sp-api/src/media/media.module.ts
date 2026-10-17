@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { StashModule } from '../providers/stash/stash.module';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
 
 @Module({
-  imports: [PrismaModule, StashModule],
+  imports: [AuthModule, PrismaModule, StashModule],
   controllers: [MediaController],
   providers: [MediaService],
 })

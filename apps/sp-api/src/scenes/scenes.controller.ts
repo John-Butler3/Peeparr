@@ -1,4 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { AuthService } from '../auth/auth.service';
+import { StreamTokenService } from '../auth/stream-token.service';
 import { SceneTagOptionDto } from './dto/scene-tag-option.dto';
 import { SceneDetailsDto } from './dto/scene-details.dto';
 import {
@@ -13,7 +16,11 @@ import { ScenesService } from './scenes.service';
 
 @Controller('api/scenes')
 export class ScenesController {
-  constructor(private readonly scenesService: ScenesService) {}
+  constructor(
+    private readonly scenesService: ScenesService,
+    private readonly authService: AuthService,
+    private readonly streamTokens: StreamTokenService,
+  ) {}
 
   @Get()
   getScenesFeed(
@@ -66,9 +73,11 @@ export class ScenesController {
     return this.scenesService.getSimilarScenes(stashId, query.limit);
   }
 
+  // The URL carries a stream token so AirPlay receivers can fetch it too.
   @Get(':stashId/stream')
-  getSceneStreamUrl(
+  async getSceneStreamUrl(
     @Param('stashId') stashId: string,
+    @Req() request: Request,
     @Query('copyId') copyId?: string,
   ): Promise<{
     streamUrl: string;
@@ -76,6 +85,17 @@ export class ScenesController {
     resumeSeconds: number;
     duration: number | null;
   }> {
-    return this.scenesService.getSceneStreamUrl(stashId, copyId);
+    const [source, auth] = await Promise.all([
+      this.scenesService.getSceneStreamUrl(stashId, copyId),
+      this.authService.resolveRequestAuth(request),
+    ]);
+    if (!auth.user) {
+      return source;
+    }
+    const token = this.streamTokens.issue(source.stashSceneId, auth.user);
+    return {
+      ...source,
+      streamUrl: `${source.streamUrl}?st=${encodeURIComponent(token)}`,
+    };
   }
 }

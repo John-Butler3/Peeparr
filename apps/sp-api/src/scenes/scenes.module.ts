@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { PerformerFavoritesModule } from '../performers/performer-favorites.module';
 import { PerformerImagePreferenceModule } from '../performers/performer-image-preference.module';
@@ -14,6 +15,7 @@ import { ScenesService } from './scenes.service';
 
 @Module({
   imports: [
+    AuthModule,
     IntegrationsModule,
     StashdbModule,
     SceneStatusModule,

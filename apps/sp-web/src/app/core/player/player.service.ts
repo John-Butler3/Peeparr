@@ -37,6 +37,8 @@ export interface PlayerQueueItem {
 interface ScenePlaybackInfo {
   resumeSeconds: number;
   duration: number | null;
+  /** Lets players without the session cookie (AirPlay) fetch the video. */
+  streamToken?: string | null;
 }
 
 /**
@@ -92,7 +94,11 @@ export class PlayerService {
     return this.getScenePlaybackInfo(localSceneId).pipe(
       catchError(() => of<ScenePlaybackInfo>({ resumeSeconds: 0, duration: null })),
       map((info) => ({
-        streamUrl,
+        // With the stream token, an Apple TV handed this URL over AirPlay can
+        // fetch it too (it doesn't have the session cookie).
+        streamUrl: info.streamToken
+          ? `${streamUrl}?st=${encodeURIComponent(info.streamToken)}`
+          : streamUrl,
         stashSceneId: localSceneId,
         resumeSeconds: info.resumeSeconds,
         duration: info.duration,

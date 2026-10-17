@@ -1,7 +1,19 @@
-import { Body, Controller, Get, Logger, Param, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Logger,
+  Param,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
+import { AuthService } from '../auth/auth.service';
+import { Public } from '../auth/decorators/public.decorator';
+import { StreamTokenService } from '../auth/stream-token.service';
 import { MediaService } from './media.service';
 import { SaveScenePlaybackProgressDto } from './dto/save-scene-playback-progress.dto';
 
@@ -9,7 +21,11 @@ import { SaveScenePlaybackProgressDto } from './dto/save-scene-playback-progress
 export class MediaController {
   private readonly logger = new Logger(MediaController.name);
 
-  constructor(private readonly mediaService: MediaService) {}
+  constructor(
+    private readonly mediaService: MediaService,
+    private readonly authService: AuthService,
+    private readonly streamTokens: StreamTokenService,
+  ) {}
 
   @Get('stash/scenes/:sceneId/screenshot')
   async getStashSceneScreenshot(
@@ -74,12 +90,21 @@ export class MediaController {
     this.writeAssetResponse(asset, response);
   }
 
+  // Signed in, or with the scene's stream token (?st=): AirPlay receivers
+  // fetch the video themselves, without the session cookie.
+  @Public()
   @Get('stash/scenes/:sceneId/stream')
-  streamStashScene(
+  async streamStashScene(
     @Param('sceneId') sceneId: string,
     @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
+    if (!(await this.mayStream(request, sceneId))) {
+      response
+        .status(401)
+        .json({ statusCode: 401, message: 'Authentication required.' });
+      return;
+    }
     return this.pipeSceneVideo(sceneId, request, response, 'stream');
   }
 
@@ -92,6 +117,14 @@ export class MediaController {
     @Res() response: Response,
   ): Promise<void> {
     return this.pipeSceneVideo(sceneId, request, response, 'preview');
+  }
+
+  private async mayStream(request: Request, sceneId: string): Promise<boolean> {
+    const auth = await this.authService.resolveRequestAuth(request);
+    return (
+      auth.authenticated ||
+      this.streamTokens.verify(request.query['st'], sceneId)
+    );
   }
 
   private async pipeSceneVideo(
@@ -148,10 +181,24 @@ export class MediaController {
   }
 
   @Get('stash/scenes/:sceneId/playback-info')
-  getScenePlaybackInfo(
+  async getScenePlaybackInfo(
     @Param('sceneId') sceneId: string,
-  ): Promise<{ resumeSeconds: number; duration: number | null }> {
-    return this.mediaService.getScenePlaybackInfo(sceneId);
+    @Req() request: Request,
+  ): Promise<{
+    resumeSeconds: number;
+    duration: number | null;
+    streamToken: string | null;
+  }> {
+    const [info, auth] = await Promise.all([
+      this.mediaService.getScenePlaybackInfo(sceneId),
+      this.authService.resolveRequestAuth(request),
+    ]);
+    return {
+      ...info,
+      streamToken: auth.user
+        ? this.streamTokens.issue(sceneId, auth.user)
+        : null,
+    };
   }
 
   @Post('stash/scenes/:sceneId/progress')
@@ -170,8 +217,14 @@ export class MediaController {
     asset: Awaited<ReturnType<MediaService['getStashSceneScreenshot']>>,
     response: Response,
   ): void {
-    response.setHeader('Content-Type', asset.contentType ?? 'application/octet-stream');
-    response.setHeader('Content-Length', asset.contentLength ?? String(asset.body.byteLength));
+    response.setHeader(
+      'Content-Type',
+      asset.contentType ?? 'application/octet-stream',
+    );
+    response.setHeader(
+      'Content-Length',
+      asset.contentLength ?? String(asset.body.byteLength),
+    );
     if (asset.cacheControl) {
       response.setHeader('Cache-Control', asset.cacheControl);
     }
