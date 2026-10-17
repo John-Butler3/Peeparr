@@ -14,7 +14,7 @@ import {
   Subject,
   Subscription,
   debounceTime,
-  distinctUntilChanged,
+  filter,
   finalize,
 } from 'rxjs';
 import { ButtonDirective } from 'primeng/button';
@@ -90,6 +90,8 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly nameFilterTerms = new Subject<string>();
+  /** The name filter the feed was last loaded with. */
+  private loadedName = '';
   private nameFilterSubscription: Subscription | null = null;
   private queryParamSubscription: Subscription | null = null;
   private observer: IntersectionObserver | null = null;
@@ -175,6 +177,30 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
 
     this.loadMoreError.set(null);
     this.loadNextPage();
+  }
+
+  /** Any filter or sort away from the defaults. */
+  protected hasFilters(): boolean {
+    return (
+      this.nameFilter().trim().length > 0 ||
+      this.selectedGender() !== PerformersPageComponent.DEFAULT_GENDER ||
+      this.selectedSort() !== PerformersPageComponent.DEFAULT_SORT ||
+      this.selectedDirection() !== PerformersPageComponent.DEFAULT_DIRECTION ||
+      this.favoritesOnly()
+    );
+  }
+
+  protected clearFilters(): void {
+    if (!this.hasFilters()) {
+      return;
+    }
+    this.nameFilter.set('');
+    this.selectedGender.set(PerformersPageComponent.DEFAULT_GENDER);
+    this.selectedSort.set(PerformersPageComponent.DEFAULT_SORT);
+    this.selectedDirection.set(PerformersPageComponent.DEFAULT_DIRECTION);
+    this.favoritesOnly.set(false);
+    this.syncUrlWithCurrentFilters(false);
+    this.resetFeedAndReload();
   }
 
   protected onNameFilterChanged(nextValue: string): void {
@@ -564,6 +590,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
 
   private resetFeedAndReload(): void {
     this.feedVersion += 1;
+    this.loadedName = this.nameFilter().trim();
     this.pendingReload = false;
     this.page.set(0);
     this.total.set(0);
@@ -586,7 +613,8 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
     this.nameFilterSubscription = this.nameFilterTerms
       .pipe(
         debounceTime(PerformersPageComponent.NAME_FILTER_DEBOUNCE_MS),
-        distinctUntilChanged(),
+        // Only when it differs from the name loaded (cleared by Clear filters: already loaded).
+        filter((term) => term.trim() !== this.loadedName),
       )
       .subscribe(() => {
         this.resetFeedAndReload();

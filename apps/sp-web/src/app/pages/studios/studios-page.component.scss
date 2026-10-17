@@ -41,6 +41,27 @@ header p {
   align-items: start;
 }
 
+.clear-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.clear-filters:hover,
+.clear-filters:focus-visible {
+  color: var(--text-primary, inherit);
+  border-color: var(--text-muted);
+}
+
 .control-field {
   display: grid;
   gap: 0.26rem;

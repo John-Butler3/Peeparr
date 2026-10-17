@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import {
@@ -19,6 +19,7 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
+  filter,
   finalize,
   forkJoin,
   of,
@@ -90,7 +91,21 @@ export class SearchPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Opened from the search icon: straight into typing (the keyboard is
   // already up -- the icon tap focused a stand-in that this takes over from).
+  // Kept alive, the page is often brought back rather than made: then too.
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly returnWatch = this.router.events
+    .pipe(filter((event) => event instanceof NavigationEnd))
+    .subscribe(() => {
+      if (this.host.isConnected) {
+        this.focusIfAsked();
+      }
+    });
+
   ngAfterViewInit(): void {
+    this.focusIfAsked();
+  }
+
+  private focusIfAsked(): void {
     if ((history.state as { focusSearch?: boolean } | null)?.focusSearch) {
       this.searchInput?.nativeElement.focus({ preventScroll: true });
     }
@@ -112,6 +127,7 @@ export class SearchPageComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.searchSubscription?.unsubscribe();
     this.queryParamSubscription?.unsubscribe();
+    this.returnWatch.unsubscribe();
   }
 
   protected onQueryInput(value: string): void {

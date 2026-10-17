@@ -73,6 +73,12 @@
         </div>
       </label>
     </div>
+    @if (hasFilters()) {
+      <button type="button" class="clear-filters" (click)="clearFilters()">
+        <i class="pi pi-filter-slash" aria-hidden="true"></i>
+        Clear filters
+      </button>
+    }
   </section>
 
   @if (loading()) {

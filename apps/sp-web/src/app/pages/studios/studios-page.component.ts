@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, Subscription, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { Subject, Subscription, debounceTime, filter, finalize } from 'rxjs';
 import { ButtonDirective } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { Message } from 'primeng/message';
@@ -56,6 +56,8 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly nameFilterTerms = new Subject<string>();
+  /** The name filter the feed was last loaded with. */
+  private loadedName = '';
   private nameFilterSubscription: Subscription | null = null;
   private queryParamSubscription: Subscription | null = null;
   private observer: IntersectionObserver | null = null;
@@ -139,6 +141,28 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.loadMoreError.set(null);
     this.loadNextPage();
+  }
+
+  /** Any filter or sort away from the defaults. */
+  protected hasFilters(): boolean {
+    return (
+      this.nameFilter().trim().length > 0 ||
+      this.selectedSort() !== StudiosPageComponent.DEFAULT_SORT ||
+      this.selectedDirection() !== StudiosPageComponent.DEFAULT_DIRECTION ||
+      this.favoritesOnly()
+    );
+  }
+
+  protected clearFilters(): void {
+    if (!this.hasFilters()) {
+      return;
+    }
+    this.nameFilter.set('');
+    this.selectedSort.set(StudiosPageComponent.DEFAULT_SORT);
+    this.selectedDirection.set(StudiosPageComponent.DEFAULT_DIRECTION);
+    this.favoritesOnly.set(false);
+    this.syncUrlWithCurrentFilters(false);
+    this.resetFeedAndReload();
   }
 
   protected onNameFilterChanged(nextValue: string): void {
@@ -460,6 +484,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private resetFeedAndReload(): void {
     this.feedVersion += 1;
+    this.loadedName = this.nameFilter().trim();
     this.pendingReload = false;
     this.page.set(0);
     this.total.set(0);
@@ -482,7 +507,8 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.nameFilterSubscription = this.nameFilterTerms
       .pipe(
         debounceTime(StudiosPageComponent.NAME_FILTER_DEBOUNCE_MS),
-        distinctUntilChanged(),
+        // Only when it differs from the name loaded (cleared by Clear filters: already loaded).
+        filter((term) => term.trim() !== this.loadedName),
       )
       .subscribe(() => {
         this.resetFeedAndReload();
