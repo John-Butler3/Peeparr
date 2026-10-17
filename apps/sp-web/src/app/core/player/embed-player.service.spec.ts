@@ -50,6 +50,36 @@ describe('EmbedPlayerService', () => {
     expect(layer().style.width).toBe('100px');
     // In the miniplayer, taps go through to it.
     expect(layer().style.pointerEvents).toBe('none');
+    // The page's player made small: laid out at its size, scaled down.
+    expect(frame.style.width).toBe('390px');
+    expect(frame.style.transform).toMatch(/^scale\(0\.25/);
+  });
+
+  it('counts as started once a tap takes the focus into it', () => {
+    const started = vi.fn();
+    service.attach(scenePage, spot(new DOMRect(0, 0, 390, 219)), url, 'page', {
+      start: () => undefined,
+      started,
+    });
+    expect(service.wasStarted()).toBe(false);
+
+    // Switching apps also blurs the window: not a start.
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(10);
+    expect(service.wasStarted()).toBe(false);
+
+    const frame = frames()[0] as HTMLIFrameElement;
+    vi.spyOn(document, 'activeElement', 'get').mockReturnValue(frame);
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(10);
+    expect(service.wasStarted()).toBe(true);
+    expect(started).toHaveBeenCalledTimes(1);
+  });
+
+  it('another embed, with one in the miniplayer, would replace it', () => {
+    service.attach(miniplayer, spot(new DOMRect(13, 708, 100, 56)), url, 'mini');
+    expect(service.busyElsewhere(url)).toBe(false);
+    expect(service.busyElsewhere('https://www.pornhub.com/embed/other123')).toBe(true);
   });
 
   it('stops when its player is done, or when nothing takes it', () => {
