@@ -7,7 +7,7 @@
      where the page's player picks up from the same moment. -->
 @if (state(); as s) {
   <!-- Swipe up: back to the scene's page (see onSwipeStart). -->
-  <div class="miniplayer" data-testid="miniplayer" (touchstart)="onSwipeStart($event)">
+  <div class="miniplayer" data-testid="miniplayer" (touchstart)="onSwipeStart($event)" (touchmove)="claimSwipe($event)">
     <div
       class="mini-video"
       [class.is-wireless]="wireless()"

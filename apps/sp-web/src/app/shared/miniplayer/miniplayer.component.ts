@@ -190,6 +190,25 @@ export class MiniplayerComponent implements OnDestroy {
     document.addEventListener('touchcancel', () => this.onSwipeEnd(), { signal });
   }
 
+  /**
+   * A swipe up is claimed from its first move (left to the browser even
+   * briefly, Safari scrolls or bounces the page under it and won't give the
+   * swipe back). Bound on the miniplayer itself, so Safari knows from the
+   * touch's start that its moves may be taken.
+   */
+  protected claimSwipe(event: TouchEvent): void {
+    const swipe = this.swipe;
+    const touch = event.touches[0];
+    if (!swipe || !touch || swipe.up === false || !event.cancelable) {
+      return;
+    }
+    const dx = touch.clientX - swipe.x;
+    const dy = swipe.y - touch.clientY;
+    if (swipe.up || (dy > 0 && dy >= Math.abs(dx))) {
+      event.preventDefault();
+    }
+  }
+
   private onSwipeMove(event: TouchEvent): void {
     const swipe = this.swipe;
     const touch = event.touches[0];

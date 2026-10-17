@@ -352,6 +352,7 @@ export class EmbedPlayerService {
     strip.appendChild(label);
     this.label = label;
     strip.addEventListener('touchstart', (event) => this.grab?.start(event), { passive: true });
+    claimSwipesDown(strip);
     strip.addEventListener('click', () => this.showControls());
     layer.appendChild(strip);
     // The rest of the player, on a touch screen (see the class comment).
@@ -360,6 +361,7 @@ export class EmbedPlayerService {
     shield.setAttribute('aria-hidden', 'true');
     shield.style.cssText = `position:absolute;left:0;right:0;top:${EmbedPlayerService.GRAB_STRIP_PX}px;bottom:0;z-index:1;touch-action:pan-y;pointer-events:none;cursor:pointer;`;
     shield.addEventListener('touchstart', (event) => this.grab?.start(event), { passive: true });
+    claimSwipesDown(shield);
     // A tap (not a drag): the controls show.
     shield.addEventListener('click', () => this.showControls());
     layer.appendChild(shield);
@@ -557,4 +559,41 @@ function topBarBottom(): number {
 function pageStillLeaving(spot: HTMLElement): boolean {
   const area = spot.closest('.route-view');
   return !!area && area.querySelectorAll(':scope > :not(router-outlet)').length > 1;
+}
+
+/**
+ * A swipe down on the player is claimed from its first move: left to the
+ * browser even briefly, Safari starts bouncing the whole page with the
+ * finger (a black gap opening above it) and won't give the swipe back. On
+ * the element itself (not added once the touch has begun), so Safari knows
+ * from the start that its moves may be taken.
+ */
+function claimSwipesDown(element: HTMLElement): void {
+  let from: { x: number; y: number } | null = null;
+  let claimed: boolean | null = null;
+  element.addEventListener(
+    'touchstart',
+    (event) => {
+      const touch = event.touches[0];
+      from = touch && event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY } : null;
+      claimed = null;
+    },
+    { passive: true },
+  );
+  element.addEventListener(
+    'touchmove',
+    (event) => {
+      const touch = event.touches[0];
+      if (!from || !touch || claimed === false || !event.cancelable) {
+        return;
+      }
+      const dx = touch.clientX - from.x;
+      const dy = touch.clientY - from.y;
+      claimed ??= dy > 0 && dy >= Math.abs(dx);
+      if (claimed) {
+        event.preventDefault();
+      }
+    },
+    { passive: false },
+  );
 }

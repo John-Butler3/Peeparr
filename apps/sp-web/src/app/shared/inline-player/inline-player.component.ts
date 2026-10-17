@@ -251,6 +251,26 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
   }
 
+  /**
+   * A swipe down on the player is claimed from its first move: left to the
+   * browser even briefly, Safari starts bouncing the whole page with the
+   * finger (a black gap opening above it) and won't give the swipe back.
+   * Bound on the player itself, so Safari knows from the touch's start that
+   * its moves may be taken (a listener added once it's begun can be too late).
+   */
+  protected claimSwipe(event: TouchEvent): void {
+    const drag = this.drag;
+    const touch = event.touches[0];
+    if (!drag || !touch || drag.down === false || !event.cancelable) {
+      return;
+    }
+    const dx = touch.clientX - drag.x;
+    const dy = touch.clientY - drag.y;
+    if (drag.down || (dy > 0 && dy >= Math.abs(dx))) {
+      event.preventDefault();
+    }
+  }
+
   protected onDragMove(event: TouchEvent): void {
     const drag = this.drag;
     const touch = event.touches[0];
