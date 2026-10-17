@@ -109,4 +109,63 @@ describe('SharedVideoService', () => {
     expect(service.video.parentElement!.style.opacity).toBe('0');
     vi.useRealTimers();
   });
+
+  it('keeps playing through the AirPlay switch, but a pause of yours stays paused', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    let paused = false;
+    vi.spyOn(HTMLMediaElement.prototype, 'paused', 'get').mockImplementation(() => paused);
+    service.attach(scenePage, slot(), '411', '/a');
+    const video = service.video;
+    video.dispatchEvent(new Event('play'));
+
+    // AirPlay chosen: Safari pauses it on the way over.
+    video.dispatchEvent(new Event('webkitcurrentplaybacktargetiswirelesschanged'));
+    paused = true;
+    video.dispatchEvent(new Event('pause'));
+    vi.advanceTimersByTime(0);
+    expect(play).toHaveBeenCalledTimes(1);
+
+    // Later, your own pause: left alone.
+    paused = false;
+    video.dispatchEvent(new Event('play'));
+    vi.advanceTimersByTime(SharedVideoService.AIRPLAY_SWITCH_MS);
+    paused = true;
+    video.dispatchEvent(new Event('pause'));
+    vi.advanceTimersByTime(0);
+    expect(play).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("waits on screen while the next player's page is still loading (hidden), then flies", () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    });
+    service.attach(miniplayer, slot(), '411', '/a');
+    const video = service.video;
+    service.park(miniplayer, new DOMRect(12, 700, 100, 56), '/poster.jpg');
+    const holder = video.parentElement!;
+    expect(holder.style.backgroundImage).toContain('/poster.jpg');
+
+    const page = document.createElement('div');
+    page.className = 'route-view is-pending';
+    const pageSlot = document.createElement('div');
+    page.appendChild(pageSlot);
+    document.body.appendChild(page);
+    pageSlot.getBoundingClientRect = () => new DOMRect(0, 0, 390, 219);
+    holder.getBoundingClientRect = () => new DOMRect(12, 700, 100, 56);
+    service.attach(scenePage, pageSlot, '411', '/a', { controls: true });
+
+    // Page hidden: stays where it was, showing.
+    vi.advanceTimersByTime(600);
+    expect(video.parentElement).toBe(holder);
+    expect(holder.style.top).toBe('700px');
+
+    // Page shows: flies up and lands.
+    page.className = 'route-view';
+    vi.advanceTimersByTime(SharedVideoService.FLIGHT_MS + 100);
+    expect(video.parentElement).toBe(pageSlot);
+    expect(video.controls).toBe(true);
+    vi.useRealTimers();
+  });
 });

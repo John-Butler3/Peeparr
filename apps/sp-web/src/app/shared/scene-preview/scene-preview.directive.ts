@@ -133,10 +133,13 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
     const sinceScroll = Date.now() - ScenePreviewDirective.lastScrollAt;
     if (sinceScroll < ScenePreviewDirective.SCROLL_QUIET_MS) {
-      this.prefetchTimer = setTimeout(() => {
-        this.prefetchTimer = null;
-        this.startHoverWhenStill();
-      }, ScenePreviewDirective.SCROLL_QUIET_MS - sinceScroll + 10);
+      this.prefetchTimer = setTimeout(
+        () => {
+          this.prefetchTimer = null;
+          this.startHoverWhenStill();
+        },
+        ScenePreviewDirective.SCROLL_QUIET_MS - sinceScroll + 10,
+      );
       return;
     }
 
@@ -155,11 +158,10 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
       return;
     }
     ScenePreviewDirective.scrollListening = true;
-    document.addEventListener(
-      'scroll',
-      () => (ScenePreviewDirective.lastScrollAt = Date.now()),
-      { capture: true, passive: true },
-    );
+    document.addEventListener('scroll', () => (ScenePreviewDirective.lastScrollAt = Date.now()), {
+      capture: true,
+      passive: true,
+    });
   }
 
   @HostListener('pointerleave', ['$event'])

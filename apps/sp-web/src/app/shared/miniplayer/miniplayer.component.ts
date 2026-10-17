@@ -35,6 +35,8 @@ export class MiniplayerComponent implements OnDestroy {
   private readonly router = inject(Router);
   private progressSaveInterval: ReturnType<typeof setInterval> | null = null;
   private listeners: AbortController | null = null;
+  /** Start position set for this load (metadata can arrive again, e.g. AirPlay). */
+  private positioned = false;
   private slot: HTMLElement | null = null;
 
   // Shown while there's a scene: the shared video goes in. Gone (closed, or
@@ -65,6 +67,8 @@ export class MiniplayerComponent implements OnDestroy {
 
   protected readonly state = this.playerService.state;
   protected readonly paused = signal(false);
+  /** Playing on an Apple TV (AirPlay): the scene's picture shows instead of the black video. */
+  protected readonly wireless = signal(false);
   /** Playback position 0..1, drawn as the red progress line. */
   protected readonly progress = signal(0);
   protected readonly subtitle = computed(() => {
@@ -98,7 +102,7 @@ export class MiniplayerComponent implements OnDestroy {
     this.stopProgressSaveInterval();
     this.listeners?.abort();
     // It stays where it is, showing, then grows into the page's player.
-    this.sharedVideo.park(this, video.getBoundingClientRect());
+    this.sharedVideo.park(this, video.getBoundingClientRect(), current.imageUrl);
     void this.router.navigate([...link.commands], {
       queryParams: { ...(link.queryParams ?? {}), autoplay: '1' },
     });
@@ -130,6 +134,7 @@ export class MiniplayerComponent implements OnDestroy {
       { controls: false },
     );
     const video = this.sharedVideo.video;
+    this.positioned = carriedOn;
     this.listeners?.abort();
     this.listeners = new AbortController();
     const signal = this.listeners.signal;
@@ -137,6 +142,15 @@ export class MiniplayerComponent implements OnDestroy {
     video.addEventListener('play', () => this.onVideoPlay(), { signal });
     video.addEventListener('pause', () => this.onVideoPause(), { signal });
     video.addEventListener('timeupdate', () => this.onVideoTimeUpdate(), { signal });
+    const updateWireless = () =>
+      this.wireless.set(
+        !!(video as HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
+          .webkitCurrentPlaybackTargetIsWireless,
+      );
+    video.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', updateWireless, {
+      signal,
+    });
+    updateWireless();
     if (carriedOn) {
       // Handed over still playing: it just carries on.
       this.paused.set(video.paused);
@@ -153,12 +167,13 @@ export class MiniplayerComponent implements OnDestroy {
   }
 
   protected onVideoLoadedMetadata(): void {
-    this.progress.set(0);
     const current = this.state();
     const video = this.video;
-    if (!current || !video) {
+    if (!current || !video || this.positioned) {
       return;
     }
+    this.positioned = true;
+    this.progress.set(0);
 
     const resumeSeconds = current.source.resumeSeconds;
     if (resumeSeconds > 0 && resumeSeconds < video.duration) {

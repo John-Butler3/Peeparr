@@ -3,7 +3,13 @@
      where the page's player picks up from the same moment. -->
 @if (state(); as s) {
   <div class="miniplayer" data-testid="miniplayer">
-    <div class="mini-video">
+    <div
+      class="mini-video"
+      [class.is-wireless]="wireless()"
+      [style.background-image]="
+        wireless() && s.imageUrl ? 'url(&quot;' + s.imageUrl + '&quot;)' : null
+      "
+    >
       <!-- The shared video (SharedVideoService): the same element as on the
            scene page, so playback and AirPlay carry on. -->
       <div #videoSlot class="video-slot"></div>

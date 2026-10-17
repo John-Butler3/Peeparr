@@ -56,6 +56,16 @@
   height: 100%;
 }
 
+// On AirPlay the video here is just black: the scene's picture instead.
+.mini-video.is-wireless {
+  background-position: center;
+  background-size: cover;
+}
+
+.mini-video.is-wireless .video-slot ::ng-deep video {
+  opacity: 0;
+}
+
 // The shared video element, created outside this component's template.
 .video-slot ::ng-deep video {
   display: block;

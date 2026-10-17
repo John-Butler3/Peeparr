@@ -212,7 +212,16 @@ export class ScenePreviewAutoplayService {
     document.addEventListener('scroll', this.onScroll, { capture: true, passive: true });
     window.addEventListener('resize', this.onResize, { passive: true });
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+    // A scene going to AirPlay: any preview playing stops at once. (Capture:
+    // the event doesn't bubble up from the video.)
+    document.addEventListener(AIRPLAY_SWITCH_EVENT, this.onAirPlaySwitch, { capture: true });
   }
+
+  private readonly onAirPlaySwitch = () => {
+    if (this.touchScreen) {
+      this.pick();
+    }
+  };
 
   private unlisten(): void {
     if (!this.listening) {
@@ -222,6 +231,7 @@ export class ScenePreviewAutoplayService {
     document.removeEventListener('scroll', this.onScroll, { capture: true });
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    document.removeEventListener(AIRPLAY_SWITCH_EVENT, this.onAirPlaySwitch, { capture: true });
     if (this.settleTimer) {
       clearTimeout(this.settleTimer);
       this.settleTimer = null;
@@ -244,17 +254,29 @@ function visibleShare(element: HTMLElement, rect = element.getBoundingClientRect
   return (width * height) / area;
 }
 
+const AIRPLAY_SWITCH_EVENT = 'webkitcurrentplaybacktargetiswirelesschanged';
+
 /** Share of the screen a playing video must cover to hold previews off. */
 const FULL_PLAYER_SHARE = 0.45;
 
-// A real video (not a preview) is playing and fills most of the screen.
+// A real video (not a preview) is playing on AirPlay, or fills most of the
+// screen. (Another video starting can take the AirPlay route on iOS.)
 function realVideoPlaying(): boolean {
   const screenArea = window.innerWidth * window.innerHeight;
   return Array.from(document.querySelectorAll('video')).some((video) => {
     if (video.classList.contains('hover-preview') || video.paused || video.ended) {
       return false;
     }
+    if (
+      (video as HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
+        .webkitCurrentPlaybackTargetIsWireless
+    ) {
+      return true;
+    }
     const rect = video.getBoundingClientRect();
-    return screenArea > 0 && (rect.width * rect.height * visibleShare(video, rect)) / screenArea >= FULL_PLAYER_SHARE;
+    return (
+      screenArea > 0 &&
+      (rect.width * rect.height * visibleShare(video, rect)) / screenArea >= FULL_PLAYER_SHARE
+    );
   });
 }

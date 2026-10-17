@@ -51,6 +51,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private sourceSubscription: Subscription | null = null;
   private progressInterval: ReturnType<typeof setInterval> | null = null;
   private listeners: AbortController | null = null;
+  /** Start position set for this load (metadata can arrive again, e.g. AirPlay). */
+  private positioned = false;
 
   // The slot appears once the source is ready: the shared video goes in.
   @ViewChild('videoSlot') private set videoSlot(slot: ElementRef<HTMLElement> | undefined) {
@@ -110,7 +112,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       // Still playing: the miniplayer takes the same video (it waits in the
       // page meanwhile), so it doesn't stop, here or on an Apple TV.
       this.listeners?.abort();
-      this.sharedVideo.park(this, this.leavingRect);
+      this.sharedVideo.park(this, this.leavingRect, this.posterUrl);
       this.playerService.handOff({
         title: this.title,
         imageUrl: this.posterUrl,
@@ -210,6 +212,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       poster: this.posterUrl,
     });
     const video = this.sharedVideo.video;
+    this.positioned = carriedOn;
     this.listeners?.abort();
     this.listeners = new AbortController();
     const signal = this.listeners.signal;
@@ -229,9 +232,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected onLoadedMetadata(): void {
     const video = this.video;
     const source = this.source();
-    if (!video || !source) {
+    if (!video || !source || this.positioned) {
       return;
     }
+    this.positioned = true;
 
     // Back from the miniplayer: carry on exactly where it was.
     const resume = this.playerService.takeHandBack(source.stashSceneId) ?? source.resumeSeconds;

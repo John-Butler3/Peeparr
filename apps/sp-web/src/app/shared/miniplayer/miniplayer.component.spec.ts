@@ -247,6 +247,25 @@ describe('MiniplayerComponent', () => {
     expect(playerService.close).toHaveBeenCalled();
   });
 
+  it('sets the start position once: metadata arriving again (AirPlay) does not jump back', async () => {
+    const { fixture } = await renderMiniplayer({
+      title: 'A Scene',
+      imageUrl: null,
+      source: { streamUrl: '/stream', stashSceneId: '411', resumeSeconds: 30, duration: 600 },
+    });
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(video.currentTime).toBe(30);
+    video.currentTime = 250;
+    const plays = playSpy.mock.calls.length;
+
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(video.currentTime).toBe(250);
+    expect(playSpy.mock.calls.length).toBe(plays);
+  });
+
   it('does not seek when there is no saved resume position', async () => {
     const { fixture } = await renderMiniplayer({
       title: 'A Scene',

@@ -21,6 +21,13 @@ export interface SharedVideoOptions {
 @Injectable({ providedIn: 'root' })
 export class SharedVideoService {
   static readonly FLIGHT_MS = 340;
+  /** Longest a flight waits for its page to show (pages load hidden). */
+  static readonly WAIT_FOR_PAGE_MS = 1500;
+  /**
+   * Switching to (or from) AirPlay, Safari can pause the video on its way
+   * over; a pause this soon after the switch isn't yours, so it plays on.
+   */
+  static readonly AIRPLAY_SWITCH_MS = 3000;
   /** Parked this long with no player taking it: stop it. */
   static readonly UNCLAIMED_MS = 8000;
 
@@ -33,6 +40,9 @@ export class SharedVideoService {
   private waitingOnScreen = false;
   private flight: number | null = null;
   private unclaimedTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Playing, as far as you're concerned (kept through an AirPlay switch). */
+  private wantsToPlay = false;
+  private switchingUntil = 0;
 
   get video(): HTMLVideoElement {
     if (!this.element) {
@@ -42,6 +52,7 @@ export class SharedVideoService {
       video.setAttribute('playsinline', '');
       video.setAttribute('x-webkit-airplay', 'allow');
       video.style.cssText = 'display:block;width:100%;height:100%;background:#000;';
+      this.keepPlayingThroughAirPlaySwitch(video);
       this.element = video;
     }
     return this.element;
@@ -80,6 +91,7 @@ export class SharedVideoService {
         slot.appendChild(video);
       }
       video.controls = options.controls;
+      video.style.opacity = '';
       this.hideHolder();
     };
     if (carriesOn && this.waitingOnScreen && video.parentElement === this.holder) {
@@ -105,7 +117,7 @@ export class SharedVideoService {
    * Keeps it playing until the next player takes it. Given where it is on
    * screen (`from`), it stays there, showing, to fly to that player.
    */
-  park(owner: object, from?: DOMRect | null): void {
+  park(owner: object, from?: DOMRect | null, poster?: string | null): void {
     const video = this.element;
     if (this.owner !== owner || !video) {
       return;
@@ -117,6 +129,14 @@ export class SharedVideoService {
       this.waitingOnScreen = true;
       video.controls = false;
       this.placeHolder(from.left, from.top, from.width, from.height);
+      // The scene's picture behind it: shows while the video has no picture
+      // here (e.g. it's playing on an Apple TV).
+      holder.style.backgroundImage = poster ? `url("${poster.replace(/"/g, '%22')}")` : '';
+      holder.style.backgroundSize = 'cover';
+      holder.style.backgroundPosition = 'center';
+      if (isWireless(video)) {
+        video.style.opacity = '0';
+      }
     } else {
       this.hideHolder();
     }
@@ -144,6 +164,8 @@ export class SharedVideoService {
     if (!video) {
       return;
     }
+    this.wantsToPlay = false;
+    video.style.opacity = '';
     this.stopFlight();
     this.clearUnclaimed();
     this.sceneId = null;
@@ -159,6 +181,39 @@ export class SharedVideoService {
     this.parkingSpot().appendChild(video);
   }
 
+  private keepPlayingThroughAirPlaySwitch(video: HTMLVideoElement): void {
+    const switching = () => {
+      this.switchingUntil = Date.now() + SharedVideoService.AIRPLAY_SWITCH_MS;
+      this.resumeIfWanted(video);
+    };
+    // Safari's AirPlay event, and the standard Remote Playback API.
+    video.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', switching);
+    const remote = (video as HTMLVideoElement & { remote?: EventTarget }).remote;
+    for (const type of ['connecting', 'connect', 'disconnect']) {
+      remote?.addEventListener?.(type, switching);
+    }
+    video.addEventListener('play', () => {
+      this.wantsToPlay = true;
+    });
+    video.addEventListener('pause', () => {
+      if (Date.now() < this.switchingUntil && this.wantsToPlay && !video.ended) {
+        // The switch, not you: carry on (once the switch has settled).
+        setTimeout(() => this.resumeIfWanted(video), 0);
+        return;
+      }
+      this.wantsToPlay = false;
+    });
+    video.addEventListener('ended', () => {
+      this.wantsToPlay = false;
+    });
+  }
+
+  private resumeIfWanted(video: HTMLVideoElement): void {
+    if (this.wantsToPlay && video.paused && !video.ended && video.getAttribute('src')) {
+      video.play()?.catch(() => undefined);
+    }
+  }
+
   /**
    * Moves and resizes the holder (with the video in it) from where it is to
    * `slot`, following the slot if it moves meanwhile, then lands it there.
@@ -167,11 +222,21 @@ export class SharedVideoService {
     this.stopFlight();
     const from = this.parkingSpot().getBoundingClientRect();
     let start: number | null = null;
+    let waitingSince: number | null = null;
     const step = (now: number) => {
       if (!slot.isConnected) {
         this.flight = null;
         land();
         return;
+      }
+      // Its page is still loading (hidden): stay put, showing, until it
+      // appears, rather than landing somewhere invisible.
+      if (start === null && slot.closest('.is-pending')) {
+        waitingSince ??= now;
+        if (now - waitingSince < SharedVideoService.WAIT_FOR_PAGE_MS) {
+          this.flight = requestAnimationFrame(step);
+          return;
+        }
       }
       start ??= now;
       const t = Math.min(1, (now - start) / SharedVideoService.FLIGHT_MS);
@@ -246,6 +311,11 @@ export class SharedVideoService {
 // display:none: that can stop a video's picture updating.
 const HIDDEN_HOLDER =
   'position:fixed;left:0;bottom:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
+
+function isWireless(video: HTMLVideoElement): boolean {
+  return !!(video as HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
+    .webkitCurrentPlaybackTargetIsWireless;
+}
 
 function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;

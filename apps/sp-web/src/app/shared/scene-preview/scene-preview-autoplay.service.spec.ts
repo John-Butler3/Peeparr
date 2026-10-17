@@ -197,6 +197,20 @@ describe('ScenePreviewAutoplayService', () => {
     expect(middle.playNow).not.toHaveBeenCalled();
   });
 
+  it('holds previews off while a scene plays on AirPlay, however small its player', () => {
+    const player = document.createElement('video');
+    Object.defineProperty(player, 'paused', { value: false });
+    Object.defineProperty(player, 'webkitCurrentPlaybackTargetIsWireless', { value: true });
+    player.getBoundingClientRect = () =>
+      ({ top: 700, bottom: 756, left: 0, right: 100, width: 100, height: 56 }) as DOMRect;
+    document.body.appendChild(player);
+    const middle = item(300);
+    service.register(middle);
+    vi.advanceTimersByTime(400);
+    expect(middle.playNow).not.toHaveBeenCalled();
+    player.remove();
+  });
+
   it('still previews what is below a small pinned player (scene page, miniplayer)', () => {
     const player = document.createElement('video');
     Object.defineProperty(player, 'paused', { value: false });
