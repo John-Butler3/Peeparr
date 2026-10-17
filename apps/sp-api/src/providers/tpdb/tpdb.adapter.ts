@@ -1,4 +1,9 @@
-import { BadGatewayException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { RuntimeHealthServiceKey } from '@prisma/client';
 import { RuntimeHealthService } from '../../runtime-health/runtime-health.service';
 import { fetchWithTimeout } from '../fetch-with-timeout';
@@ -44,6 +49,8 @@ import {
 @Injectable()
 export class TpdbAdapter implements CatalogAdapter {
   private static readonly DEFAULT_PAGE_SIZE = 24;
+  /** The most scenes asked for in one request (merging several sites' lists). */
+  private static readonly MAX_PAGE_SIZE = 100;
   private static readonly MAX_RATE_LIMIT_RETRIES = 3;
   // Amateur/creator-platform names a user can choose to hide (see
   // AppSettings.hideAmateurNetworkResults) for scenes not already in their
@@ -68,7 +75,11 @@ export class TpdbAdapter implements CatalogAdapter {
     trackRuntimeHealth: boolean,
   ): Promise<void> {
     await this.trackRuntimeHealth(
-      () => this.fetchJson(this.resolveUrl(config.baseUrl, 'scenes', { per_page: '1' }), config),
+      () =>
+        this.fetchJson(
+          this.resolveUrl(config.baseUrl, 'scenes', { per_page: '1' }),
+          config,
+        ),
       trackRuntimeHealth,
     );
   }
@@ -135,10 +146,15 @@ export class TpdbAdapter implements CatalogAdapter {
     });
   }
 
-  async searchTags(config: StashdbTagSearchConfig): Promise<StashdbTagOption[]> {
+  async searchTags(
+    config: StashdbTagSearchConfig,
+  ): Promise<StashdbTagOption[]> {
     return this.trackRuntimeHealth(async () => {
       const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, 'tags', { q: config.query, per_page: '20' }),
+        this.resolveUrl(config.baseUrl, 'tags', {
+          q: config.query,
+          per_page: '20',
+        }),
         config,
       );
       const { items } = this.extractPage(payload);
@@ -180,7 +196,10 @@ export class TpdbAdapter implements CatalogAdapter {
         total,
         performers: items
           .map((entry) => this.mapPerformerListEntry(entry))
-          .filter((performer): performer is StashdbPerformerFeedItem => performer !== null),
+          .filter(
+            (performer): performer is StashdbPerformerFeedItem =>
+              performer !== null,
+          ),
       };
     });
   }
@@ -218,14 +237,21 @@ export class TpdbAdapter implements CatalogAdapter {
   ): Promise<StashdbPerformerDetails> {
     return this.trackRuntimeHealth(async () => {
       const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, `performers/${encodeURIComponent(performerId)}`),
+        this.resolveUrl(
+          config.baseUrl,
+          `performers/${encodeURIComponent(performerId)}`,
+        ),
         config,
       );
-      const record = this.asRecord((payload as Record<string, unknown>)?.data ?? payload);
+      const record = this.asRecord(
+        (payload as Record<string, unknown>)?.data ?? payload,
+      );
       const id = this.readIdAsString(record?.id);
       const name = this.readString(record?.name);
       if (!record || !id || !name) {
-        throw new NotFoundException(`Performer ${performerId} not found in TPDB.`);
+        throw new NotFoundException(
+          `Performer ${performerId} not found in TPDB.`,
+        );
       }
 
       const extras = this.asRecord(record.extras);
@@ -244,7 +270,9 @@ export class TpdbAdapter implements CatalogAdapter {
         country: this.readString(extras?.nationality),
         eyeColor: this.readString(extras?.eye_colour),
         hairColor: this.readString(extras?.hair_colour),
-        height: this.readString(extras?.height) ?? this.readNumberAsString(extras?.height),
+        height:
+          this.readString(extras?.height) ??
+          this.readNumberAsString(extras?.height),
         cupSize: this.readString(extras?.cupsize),
         bandSize: null,
         waistSize: this.readNumber(extras?.waist),
@@ -275,10 +303,15 @@ export class TpdbAdapter implements CatalogAdapter {
   ): Promise<StashdbStudioDetails> {
     return this.trackRuntimeHealth(async () => {
       const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, `sites/${encodeURIComponent(studioId)}`),
+        this.resolveUrl(
+          config.baseUrl,
+          `sites/${encodeURIComponent(studioId)}`,
+        ),
         config,
       );
-      const record = this.asRecord((payload as Record<string, unknown>)?.data ?? payload);
+      const record = this.asRecord(
+        (payload as Record<string, unknown>)?.data ?? payload,
+      );
       const id = this.readIdAsString(record?.id);
       const name = this.readString(record?.name);
       if (!record || !id || !name) {
@@ -309,7 +342,13 @@ export class TpdbAdapter implements CatalogAdapter {
         urls,
         parentStudio:
           networkId && networkName
-            ? { id: networkId, name: networkName, aliases: [], isFavorite: false, urls: [] }
+            ? {
+                id: networkId,
+                name: networkName,
+                aliases: [],
+                isFavorite: false,
+                urls: [],
+              }
             : null,
         childStudios,
       };
@@ -322,7 +361,10 @@ export class TpdbAdapter implements CatalogAdapter {
   ): Promise<StashdbStudioOption[]> {
     return this.trackRuntimeHealth(async () => {
       const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, 'sites', { q: queryText, per_page: '20' }),
+        this.resolveUrl(config.baseUrl, 'sites', {
+          q: queryText,
+          per_page: '20',
+        }),
         config,
       );
       const { items } = this.extractPage(payload);
@@ -349,7 +391,10 @@ export class TpdbAdapter implements CatalogAdapter {
       // The scenes list filter needs the performer's legacy numeric id, not
       // the canonical UUID this app uses everywhere else as the performer id.
       const performerPayload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, `performers/${encodeURIComponent(config.performerId)}`),
+        this.resolveUrl(
+          config.baseUrl,
+          `performers/${encodeURIComponent(config.performerId)}`,
+        ),
         config,
       );
       const performerRecord = this.asRecord(
@@ -360,30 +405,87 @@ export class TpdbAdapter implements CatalogAdapter {
         return { total: 0, scenes: [] as StashdbScene[] };
       }
 
-      const params: Record<string, string> = {
-        page: String(config.page),
-        per_page: String(config.perPage || TpdbAdapter.DEFAULT_PAGE_SIZE),
-        performer_id: String(numericId),
-        sort: 'date',
+      const perPage = config.perPage || TpdbAdapter.DEFAULT_PAGE_SIZE;
+      const studioIds = [
+        ...new Set(
+          (config.studioIds ?? []).map((id) => id.trim()).filter(Boolean),
+        ),
+      ];
+      const fetchPage = async (
+        siteId: string | null,
+        page: number,
+        size: number,
+      ) => {
+        const params: Record<string, string> = {
+          page: String(page),
+          per_page: String(size),
+          performer_id: String(numericId),
+          sort: 'date',
+        };
+        if (siteId) {
+          params.site_id = siteId;
+        }
+        const payload = await this.fetchJson(
+          this.resolveUrl(config.baseUrl, 'scenes', params),
+          config,
+        );
+        const { items, total } = this.extractPage(payload);
+        return {
+          total,
+          scenes: items
+            .map((entry) => this.mapSceneListEntry(entry))
+            .filter((scene): scene is StashdbScene => scene !== null),
+        };
       };
-      const studioId = config.studioIds?.[0]?.trim();
-      if (studioId) {
-        params.site_id = studioId;
+
+      if (studioIds.length <= 1) {
+        return fetchPage(studioIds[0] ?? null, config.page, perPage);
       }
 
-      const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, 'scenes', params),
-        config,
+      // Several sites: TPDB filters by one site at a time. Each site's newest
+      // scenes, enough to fill this page, merged newest first.
+      const wanted = config.page * perPage;
+      const perSite = await Promise.all(
+        studioIds.map((siteId) =>
+          this.newestPerformerScenes(siteId, wanted, fetchPage),
+        ),
       );
-      const { items, total } = this.extractPage(payload);
-
+      const merged = perSite
+        .flatMap((site) => site.scenes)
+        .sort((a, b) =>
+          (b.releaseDate ?? b.date ?? '').localeCompare(
+            a.releaseDate ?? a.date ?? '',
+          ),
+        );
       return {
-        total,
-        scenes: items
-          .map((entry) => this.mapSceneListEntry(entry))
-          .filter((scene): scene is StashdbScene => scene !== null),
+        total: perSite.reduce((sum, site) => sum + site.total, 0),
+        scenes: merged.slice((config.page - 1) * perPage, wanted),
       };
     });
+  }
+
+  /** A site's first `wanted` scenes (newest first), up to MAX_PAGE_SIZE a request. */
+  private async newestPerformerScenes(
+    siteId: string,
+    wanted: number,
+    fetchPage: (
+      siteId: string,
+      page: number,
+      size: number,
+    ) => Promise<{ total: number; scenes: StashdbScene[] }>,
+  ): Promise<{ total: number; scenes: StashdbScene[] }> {
+    const size = Math.min(wanted, TpdbAdapter.MAX_PAGE_SIZE);
+    const scenes: StashdbScene[] = [];
+    let total = 0;
+    for (let page = 1; scenes.length < wanted; page++) {
+      const result = await fetchPage(siteId, page, size);
+      total = result.total;
+      scenes.push(...result.scenes);
+      if (result.scenes.length < size || scenes.length >= total) {
+        break;
+      }
+    }
+    return { total, scenes: scenes.slice(0, wanted) };
   }
 
   async getSceneById(
@@ -392,10 +494,15 @@ export class TpdbAdapter implements CatalogAdapter {
   ): Promise<StashdbSceneDetails> {
     return this.trackRuntimeHealth(async () => {
       const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, `scenes/${encodeURIComponent(sceneId)}`),
+        this.resolveUrl(
+          config.baseUrl,
+          `scenes/${encodeURIComponent(sceneId)}`,
+        ),
         config,
       );
-      const record = this.asRecord((payload as Record<string, unknown>)?.data ?? payload);
+      const record = this.asRecord(
+        (payload as Record<string, unknown>)?.data ?? payload,
+      );
       const id = this.readIdAsString(record?.id);
       const title = this.readString(record?.title);
       if (!record || !id || !title) {
@@ -420,7 +527,9 @@ export class TpdbAdapter implements CatalogAdapter {
         })
         .filter((tag): tag is StashdbSceneTag => tag !== null);
 
-      const performers: StashdbScenePerformer[] = this.readArray(record.performers)
+      const performers: StashdbScenePerformer[] = this.readArray(
+        record.performers,
+      )
         .map((entry) => this.asRecord(entry))
         .map((performer): StashdbScenePerformer | null => {
           // A scene's performers[] entries are site-specific profiles — their
@@ -431,7 +540,9 @@ export class TpdbAdapter implements CatalogAdapter {
           // full extras, higher-res images) rather than the thin site entry.
           const parent = this.asRecord(performer?.parent);
           const performerId = this.readIdAsString(parent?.id ?? performer?.id);
-          const performerName = this.readString(parent?.name ?? performer?.name);
+          const performerName = this.readString(
+            parent?.name ?? performer?.name,
+          );
           if (!performerId || !performerName) {
             return null;
           }
@@ -453,10 +564,14 @@ export class TpdbAdapter implements CatalogAdapter {
               null,
           };
         })
-        .filter((performer): performer is StashdbScenePerformer => performer !== null);
+        .filter(
+          (performer): performer is StashdbScenePerformer => performer !== null,
+        );
 
       const sceneUrl = this.readString(record.url);
-      const sourceUrls: StashdbSceneUrl[] = sceneUrl ? [{ url: sceneUrl, type: null }] : [];
+      const sourceUrls: StashdbSceneUrl[] = sceneUrl
+        ? [{ url: sceneUrl, type: null }]
+        : [];
 
       return {
         id,
@@ -481,7 +596,9 @@ export class TpdbAdapter implements CatalogAdapter {
     sceneIds: string[],
     config: StashdbAdapterBaseConfig,
   ): Promise<StashdbSceneMetadata[]> {
-    const normalizedIds = [...new Set(sceneIds.map((id) => id.trim()).filter(Boolean))];
+    const normalizedIds = [
+      ...new Set(sceneIds.map((id) => id.trim()).filter(Boolean)),
+    ];
     if (normalizedIds.length === 0) {
       return [];
     }
@@ -512,7 +629,9 @@ export class TpdbAdapter implements CatalogAdapter {
         }),
       );
 
-      return results.filter((scene): scene is StashdbSceneMetadata => scene !== null);
+      return results.filter(
+        (scene): scene is StashdbSceneMetadata => scene !== null,
+      );
     }, false);
   }
 
@@ -527,10 +646,15 @@ export class TpdbAdapter implements CatalogAdapter {
   ): Promise<StashdbScene | null> {
     try {
       const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, `scenes/${encodeURIComponent(sceneId)}`),
+        this.resolveUrl(
+          config.baseUrl,
+          `scenes/${encodeURIComponent(sceneId)}`,
+        ),
         config,
       );
-      return this.mapSceneListEntry((payload as Record<string, unknown>)?.data ?? payload);
+      return this.mapSceneListEntry(
+        (payload as Record<string, unknown>)?.data ?? payload,
+      );
     } catch {
       return null;
     }
@@ -546,7 +670,8 @@ export class TpdbAdapter implements CatalogAdapter {
 
     const images = this.sceneImages(record);
     const site = this.asRecord(record.site);
-    const studioId = this.readIdAsString(site?.id) ?? this.readNumberAsString(record.site_id);
+    const studioId =
+      this.readIdAsString(site?.id) ?? this.readNumberAsString(record.site_id);
     const studioName = this.readString(site?.name);
     const studioImages = site ? this.studioImages(site) : [];
     const date = this.readString(record.date);
@@ -588,7 +713,9 @@ export class TpdbAdapter implements CatalogAdapter {
     );
   }
 
-  private mapPerformerListEntry(entry: unknown): StashdbPerformerFeedItem | null {
+  private mapPerformerListEntry(
+    entry: unknown,
+  ): StashdbPerformerFeedItem | null {
     const record = this.asRecord(entry);
     const id = this.readIdAsString(record?.id);
     const name = this.readString(record?.name);
@@ -604,8 +731,9 @@ export class TpdbAdapter implements CatalogAdapter {
       gender: this.normalizeGender(
         this.readString(this.asRecord(record.extras)?.gender) ??
           this.readString(
-            this.asRecord(this.asRecord(this.readArray(record.site_performers)[0])?.extra)
-              ?.gender,
+            this.asRecord(
+              this.asRecord(this.readArray(record.site_performers)[0])?.extra,
+            )?.gender,
           ),
       ),
       sceneCount: 0,
@@ -631,23 +759,36 @@ export class TpdbAdapter implements CatalogAdapter {
       isFavorite: false,
       imageUrl: images[0]?.url ?? null,
       parentStudio:
-        network && this.readIdAsString(network.id) && this.readString(network.name)
-          ? { id: this.readIdAsString(network.id) as string, name: this.readString(network.name) as string }
+        network &&
+        this.readIdAsString(network.id) &&
+        this.readString(network.name)
+          ? {
+              id: this.readIdAsString(network.id) as string,
+              name: this.readString(network.name) as string,
+            }
           : null,
       childStudios: [],
     };
   }
 
-  private sceneImages(record: Record<string, unknown> | null): StashdbSceneImage[] {
+  private sceneImages(
+    record: Record<string, unknown> | null,
+  ): StashdbSceneImage[] {
     const images: StashdbSceneImage[] = [];
 
     // background.* is a direct, wide/landscape CDN asset (no known fixed
     // size) — put it first so it's what scene.imageUrl (hero backdrop, list
     // thumbnails) resolves to, matching a landscape banner.
     const background = this.asRecord(record?.background);
-    const backgroundUrl = this.readString(background?.full) ?? this.readString(background?.large);
+    const backgroundUrl =
+      this.readString(background?.full) ?? this.readString(background?.large);
     if (backgroundUrl) {
-      images.push({ id: 'background', url: backgroundUrl, width: null, height: null });
+      images.push({
+        id: 'background',
+        url: backgroundUrl,
+        width: null,
+        height: null,
+      });
     }
 
     // TPDB's `poster` field is always served through their smart-crop
@@ -667,14 +808,21 @@ export class TpdbAdapter implements CatalogAdapter {
       // rather than guessing a portrait aspect that may not be true.
       const fallbackImage = this.readString(record?.image);
       if (fallbackImage) {
-        images.push({ id: 'poster', url: fallbackImage, width: null, height: null });
+        images.push({
+          id: 'poster',
+          url: fallbackImage,
+          width: null,
+          height: null,
+        });
       }
     }
 
     return images;
   }
 
-  private performerImages(record: Record<string, unknown> | null): StashdbSceneImage[] {
+  private performerImages(
+    record: Record<string, unknown> | null,
+  ): StashdbSceneImage[] {
     const images: StashdbSceneImage[] = [];
     const seenUrls = new Set<string>();
 
@@ -697,7 +845,10 @@ export class TpdbAdapter implements CatalogAdapter {
     const posters = this.readArray(record?.posters)
       .map((entry) => this.asRecord(entry))
       .filter((entry): entry is Record<string, unknown> => entry !== null)
-      .sort((a, b) => (this.readNumber(a.order) ?? 0) - (this.readNumber(b.order) ?? 0));
+      .sort(
+        (a, b) =>
+          (this.readNumber(a.order) ?? 0) - (this.readNumber(b.order) ?? 0),
+      );
 
     for (const poster of posters) {
       const id = this.readIdAsString(poster.id) ?? `poster-${images.length}`;
@@ -707,7 +858,9 @@ export class TpdbAdapter implements CatalogAdapter {
     return images;
   }
 
-  private studioImages(record: Record<string, unknown> | null): StashdbSceneImage[] {
+  private studioImages(
+    record: Record<string, unknown> | null,
+  ): StashdbSceneImage[] {
     const images: StashdbSceneImage[] = [];
     const logo = this.readString(record?.logo);
     if (logo) {
@@ -724,7 +877,9 @@ export class TpdbAdapter implements CatalogAdapter {
     return images;
   }
 
-  private normalizeGender(gender: string | null): StashdbPerformerDetails['gender'] {
+  private normalizeGender(
+    gender: string | null,
+  ): StashdbPerformerDetails['gender'] {
     if (!gender) {
       return null;
     }
@@ -777,7 +932,9 @@ export class TpdbAdapter implements CatalogAdapter {
   }
 
   private readStringArray(value: unknown): string[] {
-    return this.readArray(value).filter((entry): entry is string => typeof entry === 'string');
+    return this.readArray(value).filter(
+      (entry): entry is string => typeof entry === 'string',
+    );
   }
 
   private readNumber(value: unknown): number | null {
@@ -903,11 +1060,14 @@ export class TpdbAdapter implements CatalogAdapter {
 
     let response: Response;
     try {
-      response = await fetchWithTimeout(this.resolveGraphqlUrl(config.baseUrl), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ query, variables }),
-      });
+      response = await fetchWithTimeout(
+        this.resolveGraphqlUrl(config.baseUrl),
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ query, variables }),
+        },
+      );
     } catch (error) {
       this.logger.error(
         `TPDB GraphQL request failed: ${this.errorMessage(error)}`,
@@ -924,7 +1084,9 @@ export class TpdbAdapter implements CatalogAdapter {
       this.logger.error(
         `TPDB GraphQL returned ${response.status}: ${body.slice(0, 500)}`,
       );
-      throw new BadGatewayException(`TPDB provider returned ${response.status}.`);
+      throw new BadGatewayException(
+        `TPDB provider returned ${response.status}.`,
+      );
     }
 
     try {
@@ -987,9 +1149,15 @@ export class TpdbAdapter implements CatalogAdapter {
       throw new BadGatewayException('Failed to reach TPDB provider endpoint.');
     }
 
-    if (response.status === 429 && attempt <= TpdbAdapter.MAX_RATE_LIMIT_RETRIES) {
+    if (
+      response.status === 429 &&
+      attempt <= TpdbAdapter.MAX_RATE_LIMIT_RETRIES
+    ) {
       const parsedRetryAfter = Number(response.headers.get('retry-after'));
-      const retryAfterSeconds = Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0 ? parsedRetryAfter : 1;
+      const retryAfterSeconds =
+        Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0
+          ? parsedRetryAfter
+          : 1;
       await this.delay(retryAfterSeconds * 1000);
       return this.fetchJson(url, config, attempt + 1);
     }
@@ -1007,7 +1175,9 @@ export class TpdbAdapter implements CatalogAdapter {
       this.logger.error(
         `TPDB returned ${response.status} for ${url}: ${body.slice(0, 500)}`,
       );
-      throw new BadGatewayException(`TPDB provider returned ${response.status}.`);
+      throw new BadGatewayException(
+        `TPDB provider returned ${response.status}.`,
+      );
     }
 
     try {
@@ -1016,7 +1186,9 @@ export class TpdbAdapter implements CatalogAdapter {
       this.logger.error(
         `TPDB returned invalid JSON for ${url}: ${this.errorMessage(error)}`,
       );
-      throw new BadGatewayException('TPDB provider returned an invalid JSON response.');
+      throw new BadGatewayException(
+        'TPDB provider returned an invalid JSON response.',
+      );
     }
   }
 
@@ -1044,15 +1216,22 @@ export class TpdbAdapter implements CatalogAdapter {
 
   private async reportRuntimeSuccess(): Promise<void> {
     try {
-      await this.runtimeHealthService.recordSuccess(RuntimeHealthServiceKey.CATALOG);
+      await this.runtimeHealthService.recordSuccess(
+        RuntimeHealthServiceKey.CATALOG,
+      );
     } catch (error) {
-      this.logger.warn(`Failed to record TPDB runtime recovery: ${this.errorMessage(error)}`);
+      this.logger.warn(
+        `Failed to record TPDB runtime recovery: ${this.errorMessage(error)}`,
+      );
     }
   }
 
   private async reportRuntimeFailure(error: unknown): Promise<void> {
     try {
-      await this.runtimeHealthService.recordFailure(RuntimeHealthServiceKey.CATALOG, error);
+      await this.runtimeHealthService.recordFailure(
+        RuntimeHealthServiceKey.CATALOG,
+        error,
+      );
     } catch (reportingError) {
       this.logger.warn(
         `Failed to record TPDB runtime failure: ${this.errorMessage(reportingError)}`,

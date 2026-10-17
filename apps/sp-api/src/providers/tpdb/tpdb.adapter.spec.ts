@@ -2,7 +2,11 @@ import { BadGatewayException, NotFoundException } from '@nestjs/common';
 import { RuntimeHealthService } from '../../runtime-health/runtime-health.service';
 import { TpdbAdapter } from './tpdb.adapter';
 
-function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}) {
+function jsonResponse(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+) {
   return {
     status,
     ok: status >= 200 && status < 300,
@@ -39,7 +43,9 @@ describe('TpdbAdapter', () => {
       recordSuccess: jest.fn().mockResolvedValue(undefined),
       recordFailure: jest.fn().mockResolvedValue(undefined),
     };
-    adapter = new TpdbAdapter(runtimeHealthService as unknown as RuntimeHealthService);
+    adapter = new TpdbAdapter(
+      runtimeHealthService as unknown as RuntimeHealthService,
+    );
   });
 
   it('sends a Bearer token on a connection check, recording runtime health only for probes', async () => {
@@ -51,7 +57,9 @@ describe('TpdbAdapter', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('https://api.theporndb.net/scenes?per_page=1'),
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer tpdb-token' }),
+        headers: expect.objectContaining({
+          Authorization: 'Bearer tpdb-token',
+        }),
       }),
     );
     expect(runtimeHealthService.recordSuccess).not.toHaveBeenCalled();
@@ -61,7 +69,9 @@ describe('TpdbAdapter', () => {
   });
 
   it('rejects an invalid token with a BadGatewayException', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(401, { message: 'Unauthenticated.' }));
+    fetchMock.mockResolvedValue(
+      jsonResponse(401, { message: 'Unauthenticated.' }),
+    );
 
     await expect(adapter.probeConnection(config)).rejects.toBeInstanceOf(
       BadGatewayException,
@@ -90,7 +100,11 @@ describe('TpdbAdapter', () => {
             duration: 600,
             poster: 'http://cdn.local/poster.jpg',
             site_id: 42,
-            site: { id: 42, name: 'Studio Name', logo: 'http://cdn.local/logo.png' },
+            site: {
+              id: 42,
+              name: 'Studio Name',
+              logo: 'http://cdn.local/logo.png',
+            },
           },
         ],
         meta: { current_page: 1, last_page: 3, total: 55 },
@@ -163,7 +177,9 @@ describe('TpdbAdapter', () => {
     expect(result.scenes[0].studioName).toBeNull();
     expect(result.scenes[0].studioImageUrl).toBeNull();
     // The browse feed lists new releases (not newly added uploads).
-    expect(fetchMock.mock.calls[0][0] as string).toContain('orderBy=recently_released');
+    expect(fetchMock.mock.calls[0][0] as string).toContain(
+      'orderBy=recently_released',
+    );
   });
 
   it('flags a scene from a known amateur/creator network as excludable', async () => {
@@ -271,7 +287,11 @@ describe('TpdbAdapter', () => {
           date: '2026-03-01',
           duration: 600,
           poster: 'http://cdn.local/poster.jpg',
-          site: { id: 42, name: 'Studio Name', logo: 'http://cdn.local/logo.png' },
+          site: {
+            id: 42,
+            name: 'Studio Name',
+            logo: 'http://cdn.local/logo.png',
+          },
           performers: [
             {
               id: 'performer-uuid-1',
@@ -291,7 +311,9 @@ describe('TpdbAdapter', () => {
     expect(scene.id).toBe('scene-uuid-1');
     expect(scene.studioId).toBe('42');
     expect(scene.studioName).toBe('Studio Name');
-    expect(scene.tags).toEqual([{ id: '5', name: 'Tag One', description: null }]);
+    expect(scene.tags).toEqual([
+      { id: '5', name: 'Tag One', description: null },
+    ]);
     expect(scene.performers).toEqual([
       {
         id: 'performer-uuid-1',
@@ -301,7 +323,9 @@ describe('TpdbAdapter', () => {
         imageUrl: 'http://cdn.local/performer.jpg',
       },
     ]);
-    expect(scene.sourceUrls).toEqual([{ url: 'https://example.com/scene', type: null }]);
+    expect(scene.sourceUrls).toEqual([
+      { url: 'https://example.com/scene', type: null },
+    ]);
   });
 
   it('prefers the landscape background for scene.imageUrl and tags the poster with its known portrait dimensions', async () => {
@@ -326,8 +350,18 @@ describe('TpdbAdapter', () => {
 
     expect(scene.imageUrl).toBe('http://cdn.local/background.jpg');
     expect(scene.images).toEqual([
-      { id: 'background', url: 'http://cdn.local/background.jpg', width: null, height: null },
-      { id: 'poster', url: 'http://cdn.local/poster.jpg', width: 800, height: 1200 },
+      {
+        id: 'background',
+        url: 'http://cdn.local/background.jpg',
+        width: null,
+        height: null,
+      },
+      {
+        id: 'poster',
+        url: 'http://cdn.local/poster.jpg',
+        width: 800,
+        height: 1200,
+      },
     ]);
   });
 
@@ -351,11 +385,16 @@ describe('TpdbAdapter', () => {
     const scene = await adapter.getSceneById('scene-uuid-1', config);
 
     expect(scene.images).toEqual([
-      { id: 'poster', url: 'http://cdn.local/fallback.jpg', width: null, height: null },
+      {
+        id: 'poster',
+        url: 'http://cdn.local/fallback.jpg',
+        width: null,
+        height: null,
+      },
     ]);
   });
 
-  it('prefers a scene performer\'s parent id over its site-specific id, since only the parent id is independently fetchable', async () => {
+  it("prefers a scene performer's parent id over its site-specific id, since only the parent id is independently fetchable", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {
         data: {
@@ -402,9 +441,9 @@ describe('TpdbAdapter', () => {
   it('throws NotFoundException when a scene does not exist', async () => {
     fetchMock.mockResolvedValue(jsonResponse(404, { message: 'Not Found' }));
 
-    await expect(adapter.getSceneById('missing', config)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      adapter.getSceneById('missing', config),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('maps performer details from TPDB extras', async () => {
@@ -432,7 +471,10 @@ describe('TpdbAdapter', () => {
       }),
     );
 
-    const performer = await adapter.getPerformerById('performer-uuid-1', config);
+    const performer = await adapter.getPerformerById(
+      'performer-uuid-1',
+      config,
+    );
 
     expect(performer).toMatchObject({
       id: 'performer-uuid-1',
@@ -462,8 +504,18 @@ describe('TpdbAdapter', () => {
           thumbnail: 'http://cdn.local/thumbnail.jpg',
           face: 'http://cdn.local/face.jpg',
           posters: [
-            { id: 'p2', url: 'http://cdn.local/poster-2.jpg', size: 200, order: 2 },
-            { id: 'p1', url: 'http://cdn.local/poster-1.jpg', size: 100, order: 1 },
+            {
+              id: 'p2',
+              url: 'http://cdn.local/poster-2.jpg',
+              size: 200,
+              order: 2,
+            },
+            {
+              id: 'p1',
+              url: 'http://cdn.local/poster-1.jpg',
+              size: 100,
+              order: 1,
+            },
             // Duplicate of the already-captured `image` URL -- must be
             // deduped, not listed twice.
             { id: 'p0', url: 'http://cdn.local/image.jpg', size: 50, order: 0 },
@@ -472,14 +524,42 @@ describe('TpdbAdapter', () => {
       }),
     );
 
-    const performer = await adapter.getPerformerById('performer-uuid-1', config);
+    const performer = await adapter.getPerformerById(
+      'performer-uuid-1',
+      config,
+    );
 
     expect(performer.images).toEqual([
-      { id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null },
-      { id: 'thumbnail', url: 'http://cdn.local/thumbnail.jpg', width: null, height: null },
-      { id: 'face', url: 'http://cdn.local/face.jpg', width: null, height: null },
-      { id: 'poster-p1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
-      { id: 'poster-p2', url: 'http://cdn.local/poster-2.jpg', width: null, height: null },
+      {
+        id: 'image',
+        url: 'http://cdn.local/image.jpg',
+        width: null,
+        height: null,
+      },
+      {
+        id: 'thumbnail',
+        url: 'http://cdn.local/thumbnail.jpg',
+        width: null,
+        height: null,
+      },
+      {
+        id: 'face',
+        url: 'http://cdn.local/face.jpg',
+        width: null,
+        height: null,
+      },
+      {
+        id: 'poster-p1',
+        url: 'http://cdn.local/poster-1.jpg',
+        width: null,
+        height: null,
+      },
+      {
+        id: 'poster-p2',
+        url: 'http://cdn.local/poster-2.jpg',
+        width: null,
+        height: null,
+      },
     ]);
   });
 
@@ -516,6 +596,47 @@ describe('TpdbAdapter', () => {
 
     const scenesUrl = fetchMock.mock.calls[1][0] as string;
     expect(scenesUrl).toContain('performer_id=999');
+  });
+
+  it("filters a performer's scenes by several sites, merged newest first", async () => {
+    const scene = (id: string, date: string) => ({
+      id,
+      title: id,
+      date,
+      duration: null,
+    });
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/performers/')) {
+        return Promise.resolve(
+          jsonResponse(200, { data: { id: 'performer-uuid-1', _id: 999 } }),
+        );
+      }
+      const site = new URL(url).searchParams.get('site_id');
+      const data =
+        site === '10'
+          ? [scene('a1', '2026-05-01'), scene('a2', '2026-01-01')]
+          : [scene('b1', '2026-03-01')];
+      return Promise.resolve(
+        jsonResponse(200, { data, meta: { total: data.length } }),
+      );
+    });
+
+    const result = await adapter.getScenesForPerformer({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      performerId: 'performer-uuid-1',
+      page: 1,
+      perPage: 20,
+      sort: 'DATE',
+      studioIds: ['10', '20'],
+    });
+
+    expect(result.total).toBe(3);
+    expect(result.scenes.map((s) => s.id)).toEqual(['a1', 'b1', 'a2']);
+    const siteIds = fetchMock.mock.calls
+      .map(([url]) => new URL(url as string).searchParams.get('site_id'))
+      .filter(Boolean);
+    expect(siteIds.sort()).toEqual(['10', '20']);
   });
 
   it('favorites a performer via the TPDB GraphQL endpoint', async () => {
