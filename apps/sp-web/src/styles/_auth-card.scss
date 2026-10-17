@@ -18,6 +18,11 @@ p {
   display: grid;
   place-items: center;
   padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  // The logo's intro and its glide back to the middle scale the brand row
+  // (as wide as the card) past the screen's sides: without clipping, a
+  // phone widens the page for it mid-animation, shifting everything, and
+  // the logo lands off the launch splash's (a jolt).
+  overflow-x: clip;
 }
 
 .auth-card {

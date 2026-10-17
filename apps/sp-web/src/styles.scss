@@ -434,6 +434,11 @@ body {
   background: var(--app-bg);
   color: var(--text-primary);
   font-family: var(--app-font-family);
+  // The page never scrolls sideways (rows scroll in their own containers).
+  // Clipped, anything momentarily wider than the screen (an animation, a
+  // page's first frame) can't make a phone widen the page and shift it --
+  // which, say, threw the logo off the launch splash after signing in.
+  overflow-x: clip;
 }
 
 * {

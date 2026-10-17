@@ -40,26 +40,67 @@ export class AuthIntroDirective {
       return Promise.resolve();
     }
 
-    // Closes the phone keyboard, so the layout settles before measuring.
+    // Closes the phone keyboard. It slides away while the logo glides, and
+    // the page moves with it: so the logo's target, the middle of the
+    // screen, is re-aimed every frame, to be exactly where the launch
+    // splash takes over (rather than where the middle was with the
+    // keyboard still up -- which made it jolt).
     (document.activeElement as HTMLElement | null)?.blur?.();
-    this.measureOffsetToCentre();
+    const brand = this.card.querySelector<HTMLElement>('.auth-brand');
+    const place = brand ? this.brandPlaceInCard(brand) : null;
+    this.measureOffsetToCentre(place);
     this.card.classList.add('auth-leaving');
-    return new Promise((resolve) => setTimeout(resolve, AuthIntroDirective.LEAVE_MS));
+
+    return new Promise((resolve) => {
+      const until = performance.now() + AuthIntroDirective.LEAVE_MS;
+      const follow = (now: number) => {
+        this.measureOffsetToCentre(place);
+        if (now < until) {
+          requestAnimationFrame(follow);
+        } else {
+          resolve();
+        }
+      };
+      requestAnimationFrame(follow);
+    });
+  }
+
+  /**
+   * The logo's centre relative to the card's corner, measured while it's
+   * still in place (the card itself never moves by animation; the logo
+   * does, so it's measured from the card).
+   */
+  private brandPlaceInCard(brand: HTMLElement): { x: number; y: number } {
+    const card = this.card.getBoundingClientRect();
+    const rect = brand.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2 - card.left,
+      y: rect.top + rect.height / 2 - card.top,
+    };
   }
 
   // From the logo's place in the card to the middle of the screen. The brand
   // is centred in the card, so with the name closed the logo sits at the
   // brand's centre.
-  private measureOffsetToCentre(): void {
+  private measureOffsetToCentre(place: { x: number; y: number } | null = null): void {
     const brand = this.card.querySelector<HTMLElement>('.auth-brand');
     if (!brand) {
       return;
     }
 
-    const rect = brand.getBoundingClientRect();
-    const dx = window.innerWidth / 2 - (rect.left + rect.width / 2);
-    const dy = window.innerHeight / 2 - (rect.top + rect.height / 2);
-    brand.style.setProperty('--intro-dx', `${Math.round(dx)}px`);
-    brand.style.setProperty('--intro-dy', `${Math.round(dy)}px`);
+    let x: number;
+    let y: number;
+    if (place) {
+      // Where the logo is in the card, wherever the card now is on screen.
+      const card = this.card.getBoundingClientRect();
+      x = card.left + place.x;
+      y = card.top + place.y;
+    } else {
+      const rect = brand.getBoundingClientRect();
+      x = rect.left + rect.width / 2;
+      y = rect.top + rect.height / 2;
+    }
+    brand.style.setProperty('--intro-dx', `${(window.innerWidth / 2 - x).toFixed(1)}px`);
+    brand.style.setProperty('--intro-dy', `${(window.innerHeight / 2 - y).toFixed(1)}px`);
   }
 }
