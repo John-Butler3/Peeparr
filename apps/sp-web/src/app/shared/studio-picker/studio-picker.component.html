@@ -36,6 +36,16 @@
     >
       <i class="pi pi-times-circle" aria-hidden="true"></i>
     </button>
+  } @else if (selected.length) {
+    <button
+      type="button"
+      class="picker-clear"
+      aria-label="Clear selection"
+      title="Clear selection"
+      (click)="clearSelection($event)"
+    >
+      <i class="pi pi-times-circle" aria-hidden="true"></i>
+    </button>
   }
 </div>
 
@@ -53,7 +63,10 @@
     } @else {
       @for (group of groups; track group.label) {
         @if (group.items.length) {
-          <p class="picker-group">{{ group.label }}</p>
+          <!-- A heading only for a network with its studios under it. -->
+          @if (group.items.length > 1) {
+            <p class="picker-group">{{ group.label }}</p>
+          }
           @for (item of group.items; track item.value) {
             <button
               type="button"

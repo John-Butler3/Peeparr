@@ -1108,7 +1108,8 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const grouped = options.map((network) => {
       const groupItems: MultiSelectOption[] = [
         {
-          label: `${network.name} (Network)`,
+          // "(Network)" only for a network with studios under it (TPDB's sites have none).
+          label: network.childStudios.length ? `${network.name} (Network)` : network.name,
           value: network.id,
         },
         ...network.childStudios.map((child) => ({

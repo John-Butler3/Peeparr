@@ -17,8 +17,8 @@ export interface StudioPickerGroup {
 
 /**
  * Choosing studios to filter by: one box you type straight into (tapping
- * it brings the keyboard up), the matches listed just below it -- in the
- * page, not a pop-up, so the keyboard coming up can't close them -- and
+ * it brings the keyboard up), the matches listed just below it -- over the
+ * page, not in a pop-up, so the keyboard coming up can't close them -- and
  * what's chosen shown as chips in the box. The page does the searching.
  */
 @Component({
@@ -61,6 +61,15 @@ export class StudioPickerComponent {
     this.selectedIdsChange.emit(
       this.selected.map((studio) => studio.id).filter((value) => value !== id),
     );
+    this.input.nativeElement.focus();
+  }
+
+  /** Unpicks every studio. */
+  protected clearSelection(event: Event): void {
+    event.stopPropagation();
+    this.selectedIdsChange.emit([]);
+    // Its button goes: the typing carries on in the box.
+    this.input.nativeElement.focus();
   }
 
   protected onInput(value: string): void {

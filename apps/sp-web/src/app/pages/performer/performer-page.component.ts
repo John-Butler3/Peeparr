@@ -1,4 +1,15 @@
-import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject, signal, effect } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  NgZone,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+  effect,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import {
@@ -61,7 +72,8 @@ interface MultiSelectGroup {
 
 @Component({
   selector: 'app-performer-page',
-  imports: [BackLinkDirective, 
+  imports: [
+    BackLinkDirective,
     RouterLink,
     FormsModule,
     Select,
@@ -147,7 +159,9 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly performer = signal<PerformerDetails | null>(null);
   protected readonly navigationHistory = inject(NavigationHistoryService);
   // Names this screen for the next one's "Back to ..." button.
-  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.performer()?.name));
+  private readonly nameForBackButton = effect(() =>
+    this.navigationHistory.setLabel(this.performer()?.name),
+  );
   protected readonly loadingPerformer = signal(false);
   protected readonly performerError = signal<string | null>(null);
   protected readonly favoritingPerformer = signal(false);
@@ -197,7 +211,6 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly backLinkPath = signal('/performers');
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Performers');
-
 
   ngOnInit(): void {
     this.stopHeroCollapse = observeHeroCollapse(this.host.nativeElement, this.zone, (progress) =>
@@ -828,7 +841,9 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     this.monitoring.set({ monitored: false, monitoredSince: null });
     this.discoverService
       .getPerformerMonitoring(performerId)
-      .pipe(catchError(() => of<PerformerMonitoringState>({ monitored: false, monitoredSince: null })))
+      .pipe(
+        catchError(() => of<PerformerMonitoringState>({ monitored: false, monitoredSince: null })),
+      )
       .subscribe((state) => this.monitoring.set(state));
   }
 
@@ -958,12 +973,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
 
     fetchAllPages((page) =>
       this.discoverService
-        .getPerformerScenesFeed(
-          performerId,
-          page,
-          PerformerPageComponent.SCENES_PAGE_SIZE,
-          filters,
-        )
+        .getPerformerScenesFeed(performerId, page, PerformerPageComponent.SCENES_PAGE_SIZE, filters)
         .pipe(map((response) => ({ items: response.items, hasMore: response.hasMore }))),
     )
       .pipe(
@@ -987,9 +997,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
             return;
           }
 
-          const sorted = [...items].sort((a, b) =>
-            this.compareReleaseDateAscending(a, b),
-          );
+          const sorted = [...items].sort((a, b) => this.compareReleaseDateAscending(a, b));
           this.scenes.set(sorted);
           this.scenesTotal.set(sorted.length);
           this.scenesPage.set(1);
@@ -1073,7 +1081,8 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
             label: network.name,
             items: [
               {
-                label: `${network.name} (Network)`,
+                // "(Network)" only for a network with studios under it (TPDB's sites have none).
+                label: network.childStudios.length ? `${network.name} (Network)` : network.name,
                 value: network.id,
               },
               ...network.childStudios.map((child) => ({

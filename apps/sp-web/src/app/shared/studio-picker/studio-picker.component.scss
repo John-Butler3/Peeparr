@@ -1,5 +1,6 @@
 :host {
   display: block;
+  position: relative;
   min-width: 0;
 }
 
@@ -87,8 +88,15 @@
   font-size: 0.7rem;
 }
 
+// Over what's below (in the page, not a pop-up the keyboard can close):
+// opening and closing it moves nothing.
 .picker-results {
-  margin-top: 0.4rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 20;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 35%);
   max-height: 18rem;
   overflow-y: auto;
   overscroll-behavior: contain;
