@@ -154,6 +154,30 @@ export class PlayerService {
     this.details.set(null);
   }
 
+  /**
+   * Saves where a scene is as the app is being left (for another app to
+   * pick up from): sent so it gets there even as this one goes to the
+   * background.
+   */
+  saveProgressOnLeaving(
+    stashSceneId: string,
+    resumeSeconds: number,
+    playDuration: number | null,
+  ): void {
+    if (!Number.isFinite(resumeSeconds) || resumeSeconds < 0) {
+      return;
+    }
+    this.watchProgress.record(stashSceneId, resumeSeconds, playDuration);
+    const body = new Blob(
+      [JSON.stringify({ resumeSeconds, ...(playDuration !== null ? { playDuration } : {}) })],
+      { type: 'application/json' },
+    );
+    const url = `/api/media/stash/scenes/${encodeURIComponent(stashSceneId)}/progress`;
+    if (!navigator.sendBeacon?.(url, body)) {
+      this.saveProgress(stashSceneId, resumeSeconds, playDuration);
+    }
+  }
+
   saveProgress(stashSceneId: string, resumeSeconds: number, playDuration: number | null): void {
     if (!Number.isFinite(resumeSeconds) || resumeSeconds < 0) {
       return;

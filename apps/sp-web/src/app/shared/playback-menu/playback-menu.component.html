@@ -1,0 +1,58 @@
+<button
+  type="button"
+  class="watch-title-action"
+  aria-label="Playback settings"
+  title="Playback settings"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="open()"
+  (click)="toggle()"
+>
+  <i class="pi pi-sliders-h" aria-hidden="true"></i>
+</button>
+
+@if (open()) {
+  <div class="playback-panel" role="menu">
+    <p class="playback-heading">Quality</p>
+    @if (videoQuality.available) {
+      @for (option of qualities; track option.value) {
+        <button
+          type="button"
+          class="playback-option"
+          role="menuitemradio"
+          [attr.aria-checked]="option.value === videoQuality.quality()"
+          (click)="choose(option.value)"
+        >
+          <span>{{ option.label }}</span>
+          @if (option.value === videoQuality.quality()) {
+            <i class="pi pi-check" aria-hidden="true"></i>
+          }
+        </button>
+      }
+      <p class="playback-note">On this device. Lower ones are converted by Stash as you watch.</p>
+    } @else {
+      <p class="playback-note">
+        Original only in this browser (lower ones need HLS, as Safari has).
+      </p>
+    }
+
+    <div class="playback-divider"></div>
+    @if (homeScreenIphone) {
+      <button type="button" class="playback-option" role="menuitem" (click)="continueInSafari()">
+        <span>
+          Picture in picture
+          <small>Carries on in Safari: iOS only does it there</small>
+        </span>
+        <i class="pi pi-external-link" aria-hidden="true"></i>
+      </button>
+    } @else if (!pipSupported) {
+      <p class="playback-note">Picture in picture isn't available here.</p>
+    } @else if (!loaded()) {
+      <p class="playback-note">Picture in picture: play the scene first.</p>
+    } @else {
+      <button type="button" class="playback-option" role="menuitem" (click)="pictureInPicture()">
+        <span>Picture in picture</span>
+        <i class="pi pi-clone" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+}

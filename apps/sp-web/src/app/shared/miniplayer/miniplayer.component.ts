@@ -35,7 +35,10 @@ export class MiniplayerComponent implements OnDestroy {
 
   private readonly playerService = inject(PlayerService);
   protected readonly sharedVideo = inject(SharedVideoService);
-  protected readonly pictureInPicture = this.sharedVideo.pictureInPictureSupported();
+  /** (Not on an iPhone's home screen: iOS only does it in Safari.) */
+  protected readonly pictureInPicture =
+    (navigator as Navigator & { standalone?: boolean }).standalone !== true &&
+    this.sharedVideo.pictureInPictureSupported();
   private readonly pageFade = inject(PageFadeService);
   private readonly embedPlayer = inject(EmbedPlayerService);
   /** Streamed from Pornhub (its player, laid over this spot): no play/pause or progress here. */

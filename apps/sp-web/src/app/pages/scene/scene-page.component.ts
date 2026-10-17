@@ -57,13 +57,11 @@ import { WatchDockDirective } from './watch-dock.directive';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
-import { PipPillComponent } from '../../shared/pip-pill/pip-pill.component';
-import { QualityPillComponent } from '../../shared/quality-pill/quality-pill.component';
+import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 @Component({
   selector: 'app-scene-page',
   imports: [
-    QualityPillComponent,
-    PipPillComponent,
+    PlaybackMenuComponent,
     BackLinkDirective,
     WatchDockDirective,
     RouterLink,

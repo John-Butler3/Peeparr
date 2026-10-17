@@ -104,6 +104,10 @@
           <!-- Title (wrapping) with the Request / status button on its right. -->
           <div class="watch-title-row">
             <h1 class="watch-title">{{ scene.title }}</h1>
+            @if (hasStashCopy(scene)) {
+              <!-- Quality and picture-in-picture, out of the way. -->
+              <app-playback-menu [sceneIds]="stashCopyIds(scene)" />
+            }
             @if (canRequestScene(scene)) {
               <button
                 type="button"
@@ -241,8 +245,6 @@
             }
 
             @if (hasStashCopy(scene)) {
-              <app-quality-pill />
-              <app-pip-pill [sceneIds]="stashCopyIds(scene)" />
               <button
                 type="button"
                 class="pill"

@@ -97,13 +97,14 @@ export class SharedVideoService {
     if (!video || !video.getAttribute('src')) {
       return;
     }
-    if (video.paused) {
-      void video.play().catch(() => undefined);
-    }
+    // Asked first, straight from the tap (iPhone won't otherwise), then playing.
     if (typeof video.webkitSetPresentationMode === 'function') {
       video.webkitSetPresentationMode('picture-in-picture');
     } else {
       void video.requestPictureInPicture?.().catch(() => undefined);
+    }
+    if (video.paused) {
+      void video.play().catch(() => undefined);
     }
   }
 

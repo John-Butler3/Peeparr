@@ -38,6 +38,8 @@
 
           <div class="watch-title-row">
             <h1 class="watch-title">{{ scene.title }}</h1>
+            <!-- Quality and picture-in-picture, out of the way. -->
+            <app-playback-menu [sceneIds]="[scene.id]" />
           </div>
 
           <!-- Under the title, one compact line: local only, the site (opens
@@ -92,8 +94,6 @@
           }
 
           <div class="action-pills">
-            <app-quality-pill />
-            <app-pip-pill [sceneIds]="[scene.id]" />
             <button type="button" class="pill" (click)="openSeriesDialog()">
               <i class="pi pi-list" aria-hidden="true"></i> Save to series
             </button>
