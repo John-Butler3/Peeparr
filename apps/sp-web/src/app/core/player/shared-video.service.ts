@@ -63,11 +63,35 @@ export class SharedVideoService {
       video.preload = 'auto';
       video.setAttribute('playsinline', '');
       video.setAttribute('x-webkit-airplay', 'allow');
+      // Leaving the app (going home on an iPhone) while it plays: it carries
+      // on in a picture-in-picture window (Safari's automatic PiP).
+      video.setAttribute('autopictureinpicture', '');
+      (video as HTMLVideoElement & { autoPictureInPicture?: boolean }).autoPictureInPicture = true;
+      this.allowAutomaticPictureInPicture(video);
       video.style.cssText = 'display:block;width:100%;height:100%;background:#000;';
       this.keepPlayingThroughAirPlaySwitch(video);
       this.element = video;
     }
     return this.element;
+  }
+
+  /**
+   * Chrome's version of the same (installed web apps): asked to go
+   * picture-in-picture as the app is left, it does, if it's playing.
+   */
+  private allowAutomaticPictureInPicture(video: HTMLVideoElement): void {
+    if (!('mediaSession' in navigator)) {
+      return;
+    }
+    try {
+      navigator.mediaSession.setActionHandler('enterpictureinpicture' as MediaSessionAction, () => {
+        if (!video.paused && document.pictureInPictureElement !== video) {
+          void video.requestPictureInPicture?.().catch(() => undefined);
+        }
+      });
+    } catch {
+      // Not a known action in this browser.
+    }
   }
 
   /**
