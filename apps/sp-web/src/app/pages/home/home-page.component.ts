@@ -12,12 +12,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import {
-  Subscription,
-  catchError,
-  finalize,
-  of,
-} from 'rxjs';
+import { Subscription, catchError, finalize, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SearchSuggestComponent } from '../../shared/search-suggest/search-suggest.component';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
@@ -27,7 +22,12 @@ import {
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
-import { HomeRailContentResponse, HomeRailItem } from '../../core/api/home.types';
+import {
+  HomeHeroItem,
+  HomeHeroResponse,
+  HomeRailContentResponse,
+  HomeRailItem,
+} from '../../core/api/home.types';
 import { PlayerService } from '../../core/player/player.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
@@ -43,7 +43,8 @@ import { HomeHeroComponent } from './home-hero/home-hero.component';
 
 @Component({
   selector: 'app-home-page',
-  imports: [SearchSuggestComponent, 
+  imports: [
+    SearchSuggestComponent,
     RouterLink,
     FormsModule,
     ProgressSpinner,
@@ -65,6 +66,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   private continueWatchingSubscription: Subscription | null = null;
   private recentlyAddedSubscription: Subscription | null = null;
+  private heroSubscription: Subscription | null = null;
   private favoriteReleasesSubscription: Subscription | null = null;
 
   @ViewChildren('railViewport')
@@ -74,6 +76,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly continueWatchingItems = signal<HomeRailItem[]>([]);
   protected readonly recentlyAddedItems = signal<HomeRailItem[]>([]);
+  /** The banner: newest scenes mixed with random unwatched ones. */
+  protected readonly heroItems = signal<HomeHeroItem[]>([]);
   protected readonly favoriteReleaseItems = signal<SceneExplorerItem[]>([]);
   // ThePornDB website's popular scenes (top of Home); empty when unavailable.
   protected readonly popularItems = signal<SceneExplorerItem[]>([]);
@@ -133,15 +137,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.lastRefreshAt = Date.now();
     this.loadContinueWatching();
     this.loadRecentlyAdded();
+    this.loadHero();
   }
 
   // Only replaces a row when it changed, so the banner's preview isn't
   // restarted by a refresh that found nothing new.
-  private setIfChanged(
-    target: { (): HomeRailItem[]; set(items: HomeRailItem[]): void },
-    items: HomeRailItem[],
+  private setIfChanged<T extends HomeRailItem>(
+    target: { (): T[]; set(items: T[]): void },
+    items: T[],
   ): void {
-    const key = (list: HomeRailItem[]) =>
+    const key = (list: T[]) =>
       list.map((item) => `${item.id}|${item.cardImageUrl}|${item.progressPercent ?? ''}`).join(',');
     if (key(target()) !== key(items)) {
       target.set(items);
@@ -162,6 +167,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.continueWatchingSubscription?.unsubscribe();
     this.recentlyAddedSubscription?.unsubscribe();
+    this.heroSubscription?.unsubscribe();
     this.favoriteReleasesSubscription?.unsubscribe();
   }
 
@@ -196,6 +202,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .getRecentlyAdded()
       .pipe(catchError(() => of<HomeRailContentResponse>({ items: [], message: null })))
       .subscribe((response) => this.setIfChanged(this.recentlyAddedItems, response.items));
+  }
+
+  protected loadHero(): void {
+    this.heroSubscription?.unsubscribe();
+    this.heroSubscription = this.homeService
+      .getHero()
+      .pipe(catchError(() => of<HomeHeroResponse>({ items: [] })))
+      .subscribe((response) => this.setIfChanged(this.heroItems, response.items));
   }
 
   protected loadFavoriteReleases(): void {
@@ -284,7 +298,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
   protected playScene(localSceneId: string): void {
     const item =
       this.continueWatchingItems().find((item) => item.id === localSceneId) ??
-      this.recentlyAddedItems().find((item) => item.id === localSceneId);
+      this.recentlyAddedItems().find((item) => item.id === localSceneId) ??
+      this.heroItems().find((item) => item.id === localSceneId);
     this.playerService.openByLocalSceneId({
       title: item?.title ?? 'Scene',
       localSceneId,

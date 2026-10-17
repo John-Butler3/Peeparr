@@ -21,6 +21,15 @@ export class HomeRailItemDto {
   progressPercent!: number | null;
 }
 
+/** A Home banner scene, and why it's there (the banner's label). */
+export class HomeHeroItemDto extends HomeRailItemDto {
+  heroReason!: 'NEW' | 'UNWATCHED';
+}
+
+export class HomeHeroDto {
+  items!: HomeHeroItemDto[];
+}
+
 export class HomeRailContentDto {
   items!: HomeRailItemDto[];
   message!: string | null;

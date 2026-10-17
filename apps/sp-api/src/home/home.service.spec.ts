@@ -137,7 +137,9 @@ describe('HomeService', () => {
   const stashResetSceneProgressMock = jest.fn();
   const stashMarkSceneUnwatchedMock = jest.fn();
 
+  const stashGetRandomUnwatchedScenesMock = jest.fn();
   const stashAdapter = {
+    getRandomUnwatchedScenes: stashGetRandomUnwatchedScenesMock,
     getLocalSceneFeed: stashGetLocalSceneFeedMock,
     searchTags: stashSearchTagsMock,
     searchStudios: stashSearchStudiosMock,
@@ -168,6 +170,7 @@ describe('HomeService', () => {
     );
     updateManyMock.mockResolvedValue({ count: 0 });
     libraryGetScenesPreviewMock.mockResolvedValue([]);
+    stashGetRandomUnwatchedScenesMock.mockResolvedValue([]);
     libraryGetScenesFeedMock.mockResolvedValue({
       total: 0,
       page: 1,
@@ -1475,7 +1478,7 @@ describe('HomeService', () => {
   });
 
   describe('markSceneUnwatched', () => {
-    it('clears the scene\'s watch history in Stash', async () => {
+    it("clears the scene's watch history in Stash", async () => {
       integrationFindUniqueMock.mockResolvedValue({
         type: 'STASH',
         enabled: true,
@@ -1548,6 +1551,99 @@ describe('HomeService', () => {
         items: [],
         message: null,
       });
+    });
+  });
+
+  describe('getHero', () => {
+    const libraryScene = (id: string) => ({
+      id,
+      activeCatalogSceneId: null,
+      title: `New ${id}`,
+      description: null,
+      imageUrl: `/api/media/stash/scenes/${id}/screenshot`,
+      cardImageUrl: `/api/media/stash/scenes/${id}/screenshot`,
+      studioId: null,
+      studio: null,
+      studioImageUrl: null,
+      releaseDate: null,
+      duration: 1800,
+      viewUrl: null,
+    });
+    const stashScene = (id: string) => ({
+      ...libraryScene(id),
+      title: `Unwatched ${id}`,
+      imageUrl: null,
+      cardImageUrl: null,
+      resumeSeconds: 0,
+      progressPercent: null,
+    });
+    const configureStash = () =>
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-secret',
+      });
+
+    it('alternates the newest scenes with random unwatched ones, marking which is which', async () => {
+      configureStash();
+      libraryGetScenesPreviewMock.mockResolvedValue(
+        ['n1', 'n2', 'n3', 'n4'].map(libraryScene),
+      );
+      // n1 is both new and unwatched: shown once, as new.
+      stashGetRandomUnwatchedScenesMock.mockResolvedValue(
+        ['u1', 'n1', 'u2', 'u3'].map(stashScene),
+      );
+
+      const hero = await service.getHero();
+
+      expect(hero.items.map((item) => `${item.heroReason}:${item.id}`)).toEqual(
+        ['NEW:n1', 'UNWATCHED:u1', 'NEW:n2', 'UNWATCHED:u2', 'NEW:n3'],
+      );
+      expect(stashGetRandomUnwatchedScenesMock).toHaveBeenCalledWith(
+        expect.objectContaining({ baseUrl: 'http://stash.local' }),
+        HomeService.HERO_SLIDES,
+        'STASHDB',
+      );
+    });
+
+    it('fills from the other kind when one runs short', async () => {
+      configureStash();
+      libraryGetScenesPreviewMock.mockResolvedValue([libraryScene('n1')]);
+      stashGetRandomUnwatchedScenesMock.mockResolvedValue(
+        ['u1', 'u2', 'u3'].map(stashScene),
+      );
+
+      const hero = await service.getHero();
+
+      expect(hero.items.map((item) => `${item.heroReason}:${item.id}`)).toEqual(
+        ['NEW:n1', 'UNWATCHED:u1', 'UNWATCHED:u2', 'UNWATCHED:u3'],
+      );
+    });
+
+    it('shows just the newest when Stash is not set up', async () => {
+      integrationFindUniqueMock.mockResolvedValue(null);
+      libraryGetScenesPreviewMock.mockResolvedValue(
+        ['n1', 'n2'].map(libraryScene),
+      );
+
+      const hero = await service.getHero();
+
+      expect(hero.items.map((item) => item.heroReason)).toEqual(['NEW', 'NEW']);
+      expect(stashGetRandomUnwatchedScenesMock).not.toHaveBeenCalled();
+    });
+
+    it('keeps its unwatched picks between Home refreshes', async () => {
+      configureStash();
+      stashGetRandomUnwatchedScenesMock.mockResolvedValue(
+        ['u1'].map(stashScene),
+      );
+
+      await service.getHero();
+      await service.getHero();
+
+      expect(stashGetRandomUnwatchedScenesMock).toHaveBeenCalledTimes(1);
     });
   });
 });

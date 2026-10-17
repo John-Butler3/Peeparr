@@ -8,10 +8,7 @@ import {
 } from './discover.types';
 import { CatalogProviderType } from './integrations.types';
 
-export type HomeRailKey =
-  | 'FAVORITE_STUDIOS'
-  | 'FAVORITE_PERFORMERS'
-  | 'RECENTLY_ADDED_LIBRARY';
+export type HomeRailKey = 'FAVORITE_STUDIOS' | 'FAVORITE_PERFORMERS' | 'RECENTLY_ADDED_LIBRARY';
 export type HomeRailKind = 'BUILTIN' | 'CUSTOM';
 export type HomeRailSource = 'STASHDB' | 'STASH';
 export type HomeRailItemSource = 'STASH' | CatalogProviderType;
@@ -82,6 +79,15 @@ export interface HomeRailItem {
   requestable: boolean;
   viewUrl: string | null;
   progressPercent: number | null;
+}
+
+/** A Home banner scene, and why it's there (the banner's label). */
+export interface HomeHeroItem extends HomeRailItem {
+  heroReason: 'NEW' | 'UNWATCHED';
+}
+
+export interface HomeHeroResponse {
+  items: HomeHeroItem[];
 }
 
 export interface HomeRailContentResponse {

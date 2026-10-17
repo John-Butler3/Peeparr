@@ -1,5 +1,5 @@
 @if (current(); as item) {
-  <section class="home-hero" aria-label="Recently added" data-testid="home-hero">
+  <section class="home-hero" aria-label="Featured scenes" data-testid="home-hero">
     <!-- Wide screens: a blurred copy of what's showing behind the banner,
          glowing out around it (YouTube's ambient mode). While a preview
          plays, a muted duplicate of it plays here in step. -->
@@ -63,7 +63,8 @@
 
       <div class="hero-shade" aria-hidden="true"></div>
 
-      <span class="hero-tag">New in your library</span>
+      <!-- Why this scene is here: new, or not watched yet. -->
+      <span class="hero-tag">{{ tagFor(item) }}</span>
 
       <!-- Play on the left, the title (and where it's from) beside it. -->
       <div class="hero-caption">
@@ -73,7 +74,11 @@
           [attr.aria-label]="'Play ' + item.title"
           (click)="play.emit(item.id)"
         >
-          <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z" /></svg>
+          <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z"
+            />
+          </svg>
         </button>
         <div class="hero-text">
           <h2 class="hero-title">{{ item.title }}</h2>
@@ -103,7 +108,7 @@
       }
 
       @if (slides().length > 1) {
-        <div class="hero-dots" role="tablist" aria-label="Recently added scenes">
+        <div class="hero-dots" role="tablist" aria-label="Featured scenes">
           @for (slide of slides(); track slide.id; let i = $index) {
             <button
               type="button"

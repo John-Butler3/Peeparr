@@ -12,8 +12,11 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { CreateHomeRailDto, UpdateHomeRailDto } from './dto/create-home-rail.dto';
-import { HomeRailContentDto } from './dto/home-rail-content.dto';
+import {
+  CreateHomeRailDto,
+  UpdateHomeRailDto,
+} from './dto/create-home-rail.dto';
+import { HomeHeroDto, HomeRailContentDto } from './dto/home-rail-content.dto';
 import { HomeRailDto } from './dto/home-rail.dto';
 import { UpdateHomeRailsDto } from './dto/update-home-rails.dto';
 import { HomeService } from './home.service';
@@ -39,6 +42,12 @@ export class HomeController {
     return this.homeService.getWatchProgress();
   }
 
+  // The banner: newest scenes mixed with random unwatched ones.
+  @Get('hero')
+  getHero(): Promise<HomeHeroDto> {
+    return this.homeService.getHero();
+  }
+
   @Get('recently-added')
   getRecentlyAdded(): Promise<HomeRailContentDto> {
     return this.homeService.getRecentlyAdded();
@@ -59,7 +68,9 @@ export class HomeController {
   }
 
   @Get('stash/tags')
-  searchStashTags(@Query('query') query?: string): Promise<SceneTagOptionDto[]> {
+  searchStashTags(
+    @Query('query') query?: string,
+  ): Promise<SceneTagOptionDto[]> {
     return this.homeService.searchStashTags(query);
   }
 

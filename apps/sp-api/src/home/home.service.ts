@@ -56,6 +56,8 @@ import {
   UpdateHomeRailDto,
 } from './dto/create-home-rail.dto';
 import {
+  HomeHeroDto,
+  HomeHeroItemDto,
   HomeRailContentDto,
   HomeRailItemDto,
 } from './dto/home-rail-content.dto';
@@ -68,8 +70,7 @@ import {
 import { stashScreenshotUrl } from '../providers/stash/stash-screenshot-url.util';
 
 type HomeRailStoredSceneConfig =
-  | HomeRailSceneConfigDto
-  | LegacyHomeRailHybridSceneConfig;
+  HomeRailSceneConfigDto | LegacyHomeRailHybridSceneConfig;
 
 const DEFAULT_HOME_RAILS: Array<{
   key: HomeRailKey;
@@ -124,8 +125,7 @@ const DEFAULT_HOME_RAILS: Array<{
   {
     key: HomeRailKey.RECENTLY_ADDED_LIBRARY,
     title: 'Recently Added to Library',
-    subtitle:
-      'Fresh scenes from the indexed local-library projection.',
+    subtitle: 'Fresh scenes from the indexed local-library projection.',
     enabled: true,
     sortOrder: 2,
     source: HomeRailSource.STASH,
@@ -150,6 +150,13 @@ const DEFAULT_HOME_RAILS: Array<{
 @Injectable()
 export class HomeService {
   private readonly logger = new Logger(HomeService.name);
+
+  /** Scenes in the Home banner. */
+  static readonly HERO_SLIDES = 5;
+  /** How long the banner's random unwatched picks are kept. */
+  static readonly HERO_UNWATCHED_TTL_MS = 30 * 60 * 1000;
+  private unwatchedPicks: { at: number; items: HomeRailItemDto[] } | null =
+    null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -201,7 +208,10 @@ export class HomeService {
     const activeCatalogProviderKey = await this.getOptionalCatalogProviderKey();
     try {
       return {
-        items: await this.stashAdapter.getWatchProgress(config, activeCatalogProviderKey),
+        items: await this.stashAdapter.getWatchProgress(
+          config,
+          activeCatalogProviderKey,
+        ),
       };
     } catch (error) {
       this.logger.warn(
@@ -229,6 +239,80 @@ export class HomeService {
 
     const config = await this.getRequiredStashConfig();
     await this.stashAdapter.markSceneUnwatched(normalizedSceneId, config);
+  }
+
+  /**
+   * The Home banner: the newest scenes in the library, alternating with
+   * random ones not watched yet (new, unwatched, new, ...), each marked
+   * with why it's there. A kind that runs short is filled by the other.
+   */
+  async getHero(): Promise<HomeHeroDto> {
+    const [recent, unwatched] = await Promise.all([
+      this.getRecentlyAdded(),
+      this.getUnwatchedPicks(),
+    ]);
+    const queues: Record<HomeHeroItemDto['heroReason'], HomeRailItemDto[]> = {
+      NEW: [...recent.items],
+      UNWATCHED: [...unwatched],
+    };
+    const items: HomeHeroItemDto[] = [];
+    const seen = new Set<string>();
+    const take = (reason: HomeHeroItemDto['heroReason']): boolean => {
+      for (
+        let item = queues[reason].shift();
+        item;
+        item = queues[reason].shift()
+      ) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          items.push({ ...item, heroReason: reason });
+          return true;
+        }
+      }
+      return false;
+    };
+    while (items.length < HomeService.HERO_SLIDES) {
+      const preferred = items.length % 2 === 0 ? 'NEW' : 'UNWATCHED';
+      const other = preferred === 'NEW' ? 'UNWATCHED' : 'NEW';
+      if (!take(preferred) && !take(other)) {
+        break;
+      }
+    }
+    return { items };
+  }
+
+  /**
+   * Random unwatched library scenes for the banner. Kept a while, so the
+   * banner doesn't reshuffle every time Home refreshes.
+   */
+  private async getUnwatchedPicks(): Promise<HomeRailItemDto[]> {
+    const cached = this.unwatchedPicks;
+    if (cached && Date.now() - cached.at < HomeService.HERO_UNWATCHED_TTL_MS) {
+      return cached.items;
+    }
+    let config: { baseUrl: string; apiKey?: string | null };
+    try {
+      config = await this.getRequiredStashConfig();
+    } catch {
+      return [];
+    }
+    try {
+      const scenes = await this.stashAdapter.getRandomUnwatchedScenes(
+        config,
+        HomeService.HERO_SLIDES,
+        await this.getOptionalCatalogProviderKey(),
+      );
+      const items = scenes.map((scene) =>
+        this.toContinueWatchingRailItem(scene),
+      );
+      this.unwatchedPicks = { at: Date.now(), items };
+      return items;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to pick unwatched scenes for the banner. ${(error as Error)?.message ?? 'Unknown error.'}`,
+      );
+      return cached?.items ?? [];
+    }
   }
 
   async getRecentlyAdded(): Promise<HomeRailContentDto> {
@@ -512,11 +596,7 @@ export class HomeService {
       };
     }
 
-    const config = this.normalizeSceneRailConfig(
-      'HYBRID',
-      rail.config,
-      null,
-    );
+    const config = this.normalizeSceneRailConfig('HYBRID', rail.config, null);
 
     try {
       const matchedScenes = await this.hybridScenesService.getHybridSceneFeed(

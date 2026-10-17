@@ -634,6 +634,70 @@ export class StashAdapter {
       .filter((scene): scene is StashContinueWatchingItem => scene !== null);
   }
 
+  /** Random library scenes never played (and not started). */
+  async getRandomUnwatchedScenes(
+    config: StashAdapterBaseConfig,
+    limit: number,
+    activeCatalogProviderKey: CatalogProviderKey | null,
+  ): Promise<StashContinueWatchingItem[]> {
+    const perPage = this.normalizePositiveInteger(limit, 8);
+
+    const query = `
+      query FindScenes($filter: FindFilterType, $sceneFilter: SceneFilterType) {
+        findScenes(filter: $filter, scene_filter: $sceneFilter) {
+          scenes {
+            id
+            title
+            details
+            date
+            resume_time
+            stash_ids {
+              endpoint
+              stash_id
+            }
+            paths {
+              screenshot
+            }
+            studio {
+              id
+              name
+              image_path
+            }
+            files {
+              width
+              height
+              duration
+            }
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      filter: {
+        page: 1,
+        per_page: perPage,
+        sort: 'random',
+      },
+      sceneFilter: {
+        play_count: { value: 0, modifier: 'EQUALS' },
+        resume_time: { value: 0, modifier: 'EQUALS' },
+      },
+    });
+
+    const scenes = payload.data?.findScenes?.scenes ?? [];
+
+    return scenes
+      .map((scene) =>
+        this.toContinueWatchingItem(
+          scene,
+          config.baseUrl,
+          activeCatalogProviderKey,
+        ),
+      )
+      .filter((scene): scene is StashContinueWatchingItem => scene !== null);
+  }
+
   async getWatchProgress(
     config: StashAdapterBaseConfig,
     activeCatalogProviderKey: CatalogProviderKey | null,

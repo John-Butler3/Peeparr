@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HomeRailItem } from '../../../core/api/home.types';
+import { HomeHeroItem, HomeRailItem } from '../../../core/api/home.types';
 import { HomeHeroComponent } from './home-hero.component';
 
 function buildItem(index: number): HomeRailItem {
@@ -209,6 +209,20 @@ describe('HomeHeroComponent', () => {
     expect(title(fixture)).toBe('Recent Scene 3');
     swipe(-60, 150);
     expect(title(fixture)).toBe('Recent Scene 3');
+  });
+
+  it("labels each scene with why it's there: new, or not watched yet", async () => {
+    const items: HomeHeroItem[] = [
+      { ...buildItem(1), heroReason: 'NEW' },
+      { ...buildItem(2), heroReason: 'UNWATCHED' },
+    ];
+    const fixture = await render(items);
+    const tag = () => fixture.nativeElement.querySelector('.hero-tag')?.textContent?.trim();
+    expect(tag()).toBe('New in your library');
+
+    fixture.nativeElement.querySelectorAll('.hero-dot')[1].click();
+    fixture.detectChanges();
+    expect(tag()).toBe('Not watched yet');
   });
 
   it('emits play for the current scene', async () => {

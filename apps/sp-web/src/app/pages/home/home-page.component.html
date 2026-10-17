@@ -1,6 +1,6 @@
 <main class="app-page-shell app-page-shell--xl">
-  <!-- The latest additions, previewing one after another. -->
-  <app-home-hero [items]="recentlyAddedItems()" (play)="playScene($event)" />
+  <!-- New additions and unwatched picks, previewing one after another. -->
+  <app-home-hero [items]="heroItems()" (play)="playScene($event)" />
 
   <section class="hero-shell">
     <div class="hero-grid">
@@ -38,9 +38,12 @@
           </div>
 
           <!-- Live results, dropping down under the box while you type. -->
-          <app-search-suggest [input]="heroSearchInput" [query]="searchTerm()" (navigated)="clearSearch()" />
+          <app-search-suggest
+            [input]="heroSearchInput"
+            [query]="searchTerm()"
+            (navigated)="clearSearch()"
+          />
         </div>
-
       </div>
     </div>
   </section>

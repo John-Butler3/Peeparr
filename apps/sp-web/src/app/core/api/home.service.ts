@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  HomeHeroResponse,
   HomeRailContentResponse,
   HomeRailConfig,
   SaveHomeRailPayload,
@@ -27,6 +28,11 @@ export class HomeService {
 
   getContinueWatching(): Observable<HomeRailContentResponse> {
     return this.http.get<HomeRailContentResponse>('/api/home/continue-watching');
+  }
+
+  /** The banner: newest scenes mixed with random unwatched ones. */
+  getHero(): Observable<HomeHeroResponse> {
+    return this.http.get<HomeHeroResponse>('/api/home/hero');
   }
 
   getRecentlyAdded(): Observable<HomeRailContentResponse> {

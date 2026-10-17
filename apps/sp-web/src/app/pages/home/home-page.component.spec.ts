@@ -58,9 +58,7 @@ function buildFavoriteItem(overrides: Partial<SceneExplorerItem> = {}): SceneExp
   };
 }
 
-function buildFavoriteFeed(
-  items: SceneExplorerItem[] = [buildFavoriteItem()],
-): ScenesFeedResponse {
+function buildFavoriteFeed(items: SceneExplorerItem[] = [buildFavoriteItem()]): ScenesFeedResponse {
   return {
     total: items.length,
     page: 1,
@@ -138,7 +136,9 @@ describe('HomePageComponent', () => {
     setupStatus?: SetupStatusResponse;
   }) {
     const discoverService = {
-      getPopularScenes: vi.fn().mockReturnValue(of({ total: 0, page: 1, perPage: 0, hasMore: false, items: [] })),
+      getPopularScenes: vi
+        .fn()
+        .mockReturnValue(of({ total: 0, page: 1, perPage: 0, hasMore: false, items: [] })),
       getScenesFeed: vi
         .fn()
         .mockReturnValue(
@@ -163,6 +163,15 @@ describe('HomePageComponent', () => {
         .fn()
         .mockReturnValue(of(options?.recentlyAdded ?? { items: [], message: null })),
       resetContinueWatchingProgress: vi.fn().mockReturnValue(of(undefined)),
+      // The banner: here, the recently added scenes, as new.
+      getHero: vi.fn().mockReturnValue(
+        of({
+          items: (options?.recentlyAdded?.items ?? []).map((item) => ({
+            ...item,
+            heroReason: 'NEW',
+          })),
+        }),
+      ),
     };
     const runtimeHealthService = {
       ensureStarted: vi.fn(),
@@ -260,9 +269,7 @@ describe('HomePageComponent', () => {
 
     const section = railSectionByTitle(fixture, 'Pick up where you left off');
     const progressFill = section.querySelector('.progress-fill') as HTMLElement | null;
-    const largePlay = section.querySelector(
-      '.play-action',
-    ) as HTMLButtonElement | null;
+    const largePlay = section.querySelector('.play-action') as HTMLButtonElement | null;
     const cardLink = section.querySelector('a.media-link-stretch') as HTMLAnchorElement | null;
 
     expect(progressFill?.style.width).toBe('42%');
@@ -273,9 +280,10 @@ describe('HomePageComponent', () => {
 
     expect(playerService.openByLocalSceneId).toHaveBeenCalledWith(
       expect.objectContaining({
-      title: 'Half Watched',
-      localSceneId: 'in-progress-1',
-      imageUrl: '/api/media/stash/scenes/local-scene-1/screenshot',}),
+        title: 'Half Watched',
+        localSceneId: 'in-progress-1',
+        imageUrl: '/api/media/stash/scenes/local-scene-1/screenshot',
+      }),
     );
   });
 
@@ -418,14 +426,16 @@ describe('HomePageComponent', () => {
     expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 4, { name: 'one' });
     expect(discoverService.getStudiosFeed).toHaveBeenCalledWith(1, 3, { name: 'one' });
 
-    const panel = fixture.nativeElement.querySelector('[data-testid="search-suggest"]') as HTMLElement;
+    const panel = fixture.nativeElement.querySelector(
+      '[data-testid="search-suggest"]',
+    ) as HTMLElement;
     expect(panel).toBeTruthy();
     expect(panel.textContent).toContain('Performer One');
     expect(panel.textContent).toContain('Studio One');
     // Performers, then sites, then scenes.
-    expect(
-      [...panel.querySelectorAll('.group')].map((label) => label.textContent?.trim()),
-    ).toEqual(['Performers', 'Sites', 'Scenes']);
+    expect([...panel.querySelectorAll('.group')].map((label) => label.textContent?.trim())).toEqual(
+      ['Performers', 'Sites', 'Scenes'],
+    );
 
     const performerLink = panel.querySelector(
       'a[href="/performer/performer-1"]',
@@ -435,7 +445,9 @@ describe('HomePageComponent', () => {
 
   it('picks up new library scenes when you come back to it, without restarting unchanged rows', async () => {
     const first = buildRailItem({ id: '411', title: 'Already Here' });
-    const { fixture, homeService } = await renderPage({ recentlyAdded: { items: [first], message: null } });
+    const { fixture, homeService } = await renderPage({
+      recentlyAdded: { items: [first], message: null },
+    });
     const component = fixture.componentInstance as unknown as {
       lastRefreshAt: number;
       recentlyAddedItems: () => unknown[];
@@ -450,6 +462,8 @@ describe('HomePageComponent', () => {
     const before = component.recentlyAddedItems();
     comeBack();
     expect(homeService.getRecentlyAdded).toHaveBeenCalledTimes(2);
+    // The banner is refreshed along with it.
+    expect(homeService.getHero).toHaveBeenCalledTimes(2);
     expect(component.recentlyAddedItems()).toBe(before);
 
     // A scene added in Stash meanwhile shows up.
@@ -457,6 +471,9 @@ describe('HomePageComponent', () => {
       of({ items: [buildRailItem({ id: '412', title: 'Just Added' }), first], message: null }),
     );
     comeBack();
-    expect(component.recentlyAddedItems().map((item) => (item as { id: string }).id)).toEqual(['412', '411']);
+    expect(component.recentlyAddedItems().map((item) => (item as { id: string }).id)).toEqual([
+      '412',
+      '411',
+    ]);
   });
 });

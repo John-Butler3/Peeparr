@@ -21,8 +21,8 @@ import {
 } from '../../../shared/scene-card/scene-preview.service';
 
 /**
- * Home's hero: the most recently added scenes, one at a time, each playing
- * its muted preview; once the preview clip has played through (or after
+ * Home's hero: new scenes in the library mixed with random unwatched ones
+ * (labelled which), one at a time, each playing its muted preview; once the preview clip has played through (or after
  * PREVIEW_HOLD_MS when previewing the full file) it slides on to the next
  * (looping), or swipe sideways to change scene. Tapping the picture
  * opens the scene; Play plays it. While it's on screen the thumbnails below
@@ -185,6 +185,11 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       return;
     }
     this.goTo((this.index() + (dx < 0 ? 1 : count - 1)) % count);
+  }
+
+  /** The label for why a scene is in the banner. */
+  protected tagFor(item: HomeRailItem & { heroReason?: 'NEW' | 'UNWATCHED' }): string {
+    return item.heroReason === 'UNWATCHED' ? 'Not watched yet' : 'New in your library';
   }
 
   protected link(item: HomeRailItem): readonly unknown[] {
