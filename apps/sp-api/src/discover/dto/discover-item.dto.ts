@@ -15,6 +15,8 @@ export class DiscoverItemDto {
   type!: 'SCENE';
   source!: CatalogProviderKey;
   status!: SceneStatusDto;
+  /** A Pornhub video, not in the library, that plays streamed (Settings). */
+  streamable?: boolean;
 }
 
 export class DiscoverResponseDto {

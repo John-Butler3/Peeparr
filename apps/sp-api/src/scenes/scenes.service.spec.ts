@@ -291,6 +291,7 @@ describe('ScenesService', () => {
           source: 'STASHDB',
           status: { state: 'AVAILABLE' },
           requestable: false,
+          streamable: false,
         },
       ],
     });

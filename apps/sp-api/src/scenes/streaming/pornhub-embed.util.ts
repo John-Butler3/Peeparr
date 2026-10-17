@@ -39,3 +39,20 @@ function pornhubViewkey(raw: string): string | null {
   const viewkey = fromQuery ?? fromEmbed ?? null;
   return viewkey && VIEWKEY.test(viewkey) ? viewkey : null;
 }
+
+/**
+ * Whether a catalog scene plays streamed from Pornhub: streaming is on, it
+ * isn't in the library, and its page (TPDB lists give it) is a Pornhub video.
+ */
+export function streamsFromPornhub(
+  url: string | null | undefined,
+  status: { state: string },
+  streamingOn: boolean,
+): boolean {
+  return (
+    streamingOn === true &&
+    status.state !== 'AVAILABLE' &&
+    !!url &&
+    pornhubEmbedUrl([{ url }]) !== null
+  );
+}

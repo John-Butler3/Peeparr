@@ -1,10 +1,5 @@
-import {
-  DiscoverResponseDto,
-} from '../discover/dto/discover-item.dto';
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { DiscoverResponseDto } from '../discover/dto/discover-item.dto';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
@@ -30,13 +25,16 @@ import {
   SortDirection as PerformerSortDirection,
 } from './dto/performers-query.dto';
 
+import { streamsFromPornhub } from '../scenes/streaming/pornhub-embed.util';
 @Injectable()
 export class PerformersService {
   private static readonly DEFAULT_PAGE = 1;
   private static readonly DEFAULT_PER_PAGE = 24;
   private static readonly DEFAULT_SCENES_PER_PAGE = 24;
-  private static readonly DEFAULT_PERFORMERS_SORT_DIRECTION: PerformerSortDirection = 'ASC';
-  private static readonly DEFAULT_SCENES_SORT_DIRECTION: PerformerScenesSortDirection = 'DESC';
+  private static readonly DEFAULT_PERFORMERS_SORT_DIRECTION: PerformerSortDirection =
+    'ASC';
+  private static readonly DEFAULT_SCENES_SORT_DIRECTION: PerformerScenesSortDirection =
+    'DESC';
 
   constructor(
     private readonly catalogProviderService: CatalogProviderService,
@@ -77,7 +75,8 @@ export class PerformersService {
       gender: filters?.gender,
       sort: filters?.sort ?? 'NAME',
       direction:
-        filters?.direction ?? PerformersService.DEFAULT_PERFORMERS_SORT_DIRECTION,
+        filters?.direction ??
+        PerformersService.DEFAULT_PERFORMERS_SORT_DIRECTION,
       favoritesOnly: false,
     });
     const performerIds = performers.performers.map((performer) => performer.id);
@@ -97,7 +96,8 @@ export class PerformersService {
         // The feed only carries a single imageUrl (no full images[] list),
         // so unlike getPerformerById there's nothing to validate the saved
         // override against here -- trusted as-is.
-        const imageUrl = mainImageOverrides.get(performer.id) ?? performer.imageUrl;
+        const imageUrl =
+          mainImageOverrides.get(performer.id) ?? performer.imageUrl;
         return {
           id: performer.id,
           name: performer.name,
@@ -128,7 +128,8 @@ export class PerformersService {
       direction?: PerformerSortDirection;
     },
   ): Promise<PerformerFeedResponseDto> {
-    const favoriteIds = await this.performerFavoritesService.listAllFavoriteIds();
+    const favoriteIds =
+      await this.performerFavoritesService.listAllFavoriteIds();
     if (favoriteIds.length === 0) {
       return { total: 0, page, perPage, hasMore: false, items: [] };
     }
@@ -149,11 +150,15 @@ export class PerformersService {
           }
         }),
       )
-    ).filter((performer): performer is StashdbPerformerDetails => performer !== null);
+    ).filter(
+      (performer): performer is StashdbPerformerDetails => performer !== null,
+    );
 
     const nameQuery = filters.name?.trim().toLowerCase();
     const nameFiltered = nameQuery
-      ? performers.filter((performer) => performer.name.toLowerCase().includes(nameQuery))
+      ? performers.filter((performer) =>
+          performer.name.toLowerCase().includes(nameQuery),
+        )
       : performers;
     const genderFiltered = filters.gender
       ? nameFiltered.filter((performer) => performer.gender === filters.gender)
@@ -169,9 +174,10 @@ export class PerformersService {
     const start = (page - 1) * perPage;
     const pageItems = sorted.slice(start, start + perPage);
 
-    const mainImageOverrides = await this.performerImagePreferenceService.getMainImageUrls(
-      pageItems.map((performer) => performer.id),
-    );
+    const mainImageOverrides =
+      await this.performerImagePreferenceService.getMainImageUrls(
+        pageItems.map((performer) => performer.id),
+      );
 
     return {
       total,
@@ -181,7 +187,8 @@ export class PerformersService {
       items: pageItems.map((performer): PerformerFeedItemDto => {
         const savedOverride = mainImageOverrides.get(performer.id);
         const imageUrl =
-          savedOverride && performer.images.some((image) => image.url === savedOverride)
+          savedOverride &&
+          performer.images.some((image) => image.url === savedOverride)
             ? savedOverride
             : performer.imageUrl;
         return {
@@ -208,7 +215,13 @@ export class PerformersService {
     // SCENE_COUNT/DEBUT/LAST_SCENE need data this lookup doesn't have
     // (see getFavoritedPerformersFeed) -- fall back to NAME rather than
     // silently no-op or throw.
-    const sortKey: 'name' | 'birthDate' | 'deathDate' | 'careerStartYear' | 'createdAt' | 'updatedAt' =
+    const sortKey:
+      | 'name'
+      | 'birthDate'
+      | 'deathDate'
+      | 'careerStartYear'
+      | 'createdAt'
+      | 'updatedAt' =
       sort === 'BIRTHDATE'
         ? 'birthDate'
         : sort === 'DEATHDATE'
@@ -257,14 +270,17 @@ export class PerformersService {
     const [performer, isFavorite, savedMainImageUrl] = await Promise.all([
       catalogAdapter.getPerformerById(normalizedPerformerId, config),
       this.performerFavoritesService.isFavorite(normalizedPerformerId),
-      this.performerImagePreferenceService.getMainImageUrl(normalizedPerformerId),
+      this.performerImagePreferenceService.getMainImageUrl(
+        normalizedPerformerId,
+      ),
     ]);
 
     // Only honor a saved pick while it's still one of the provider's current
     // images -- if the gallery has since changed upstream, fall back rather
     // than surface a stale/broken URL as the main image.
     const imageUrl =
-      savedMainImageUrl && performer.images.some((image) => image.url === savedMainImageUrl)
+      savedMainImageUrl &&
+      performer.images.some((image) => image.url === savedMainImageUrl)
         ? savedMainImageUrl
         : performer.imageUrl;
 
@@ -319,9 +335,14 @@ export class PerformersService {
     const config = await this.getActiveCatalogConfig();
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
-    const performer = await catalogAdapter.getPerformerById(normalizedPerformerId, config);
+    const performer = await catalogAdapter.getPerformerById(
+      normalizedPerformerId,
+      config,
+    );
 
-    const isKnownImage = performer.images.some((image) => image.url === normalizedImageUrl);
+    const isKnownImage = performer.images.some(
+      (image) => image.url === normalizedImageUrl,
+    );
     if (!isKnownImage) {
       throw new BadRequestException(
         "Image URL is not one of this performer's available images.",
@@ -365,7 +386,8 @@ export class PerformersService {
         page,
         perPage,
         sort: filters?.sort ?? 'DATE',
-        direction: filters?.direction ?? PerformersService.DEFAULT_SCENES_SORT_DIRECTION,
+        direction:
+          filters?.direction ?? PerformersService.DEFAULT_SCENES_SORT_DIRECTION,
         studioIds: this.normalizeIds(filters?.studioIds ?? []),
         tagIds: this.normalizeIds(filters?.tagIds ?? []),
         onlyFavoriteStudios: filters?.onlyFavoriteStudios === true,
@@ -390,21 +412,32 @@ export class PerformersService {
       page,
       perPage,
       hasMore,
-      items: visibleScenes.map((scene) => ({
-        id: scene.id,
-        title: scene.title,
-        description: scene.details,
-        imageUrl: scene.imageUrl,
-        cardImageUrl: withStashImageSize(scene.imageUrl, 600),
-        studioId: scene.studioId,
-        studio: scene.studioName,
-        studioImageUrl: scene.studioImageUrl,
-        releaseDate: scene.releaseDate ?? scene.productionDate ?? scene.date,
-        duration: scene.duration,
-        type: 'SCENE',
-        source: catalogProvider.integrationType,
-        status: statuses.get(scene.id) ?? { state: 'NOT_REQUESTED' },
-      })),
+      items: visibleScenes.map((scene) => {
+        const status = statuses.get(scene.id) ?? {
+          state: 'NOT_REQUESTED' as const,
+        };
+        return {
+          id: scene.id,
+          title: scene.title,
+          description: scene.details,
+          imageUrl: scene.imageUrl,
+          cardImageUrl: withStashImageSize(scene.imageUrl, 600),
+          studioId: scene.studioId,
+          studio: scene.studioName,
+          studioImageUrl: scene.studioImageUrl,
+          releaseDate: scene.releaseDate ?? scene.productionDate ?? scene.date,
+          duration: scene.duration,
+          type: 'SCENE',
+          source: catalogProvider.integrationType,
+          status,
+          // A Pornhub creator's scene, not in the library: plays streamed.
+          streamable: streamsFromPornhub(
+            scene.url,
+            status,
+            appSettings.streamFromPornhub,
+          ),
+        };
+      }),
     };
   }
 
@@ -516,6 +549,8 @@ export class PerformersService {
   }
 
   private normalizeIds(ids: string[]): string[] {
-    return [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
+    return [
+      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
+    ];
   }
 }

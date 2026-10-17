@@ -1,4 +1,7 @@
-import { pornhubEmbedUrl } from './streaming/pornhub-embed.util';
+import {
+  pornhubEmbedUrl,
+  streamsFromPornhub,
+} from './streaming/pornhub-embed.util';
 import {
   BadRequestException,
   Injectable,
@@ -926,11 +929,7 @@ export class ScenesService {
       status,
       requestable,
       // A Pornhub video not in the library: played streamed (Settings).
-      streamable:
-        streaming &&
-        status.state !== 'AVAILABLE' &&
-        !!scene.url &&
-        pornhubEmbedUrl([{ url: scene.url }]) !== null,
+      streamable: streamsFromPornhub(scene.url, status, streaming),
     };
   }
 

@@ -83,8 +83,12 @@ describe('PerformersService', () => {
       stashAdapter,
     );
 
-    performerImagePreferenceService.getMainImageUrl = jest.fn().mockResolvedValue(null);
-    performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
+    performerImagePreferenceService.getMainImageUrl = jest
+      .fn()
+      .mockResolvedValue(null);
+    performerImagePreferenceService.getMainImageUrls = jest
+      .fn()
+      .mockResolvedValue(new Map());
 
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
@@ -230,7 +234,9 @@ describe('PerformersService', () => {
       imageUrl: 'http://cdn.local/chosen.jpg',
       cardImageUrl: 'http://cdn.local/chosen.jpg?size=300',
     });
-    expect(performerImagePreferenceService.getMainImageUrls).toHaveBeenCalledWith(['p-1']);
+    expect(
+      performerImagePreferenceService.getMainImageUrls,
+    ).toHaveBeenCalledWith(['p-1']);
   });
 
   it('forwards all filters to stashdb adapter', async () => {
@@ -255,52 +261,60 @@ describe('PerformersService', () => {
   });
 
   it('overrides isFavorite with locally-tracked state, ignoring the provider value', async () => {
-    performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+    performerFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set());
 
     await expect(service.getPerformersFeed()).resolves.toMatchObject({
       items: [expect.objectContaining({ id: 'p-1', isFavorite: false })],
     });
-    expect(performerFavoritesService.getFavoriteIds).toHaveBeenCalledWith(['p-1']);
+    expect(performerFavoritesService.getFavoriteIds).toHaveBeenCalledWith([
+      'p-1',
+    ]);
   });
 
   it('bypasses the provider feed entirely and serves favorites from local storage', async () => {
     performerFavoritesService.listAllFavoriteIds = jest
       .fn()
       .mockResolvedValue(['p-1', 'p-2']);
-    catalogAdapter.getPerformerById = jest.fn().mockImplementation((id: string) =>
-      Promise.resolve({
-        id,
-        name: id === 'p-1' ? 'Aaron' : 'Zoe',
-        disambiguation: null,
-        aliases: [],
-        gender: 'FEMALE',
-        birthDate: null,
-        deathDate: null,
-        age: null,
-        ethnicity: null,
-        country: null,
-        eyeColor: null,
-        hairColor: null,
-        height: null,
-        cupSize: null,
-        bandSize: null,
-        waistSize: null,
-        hipSize: null,
-        breastType: null,
-        careerStartYear: null,
-        careerEndYear: null,
-        deleted: false,
-        mergedIds: [],
-        mergedIntoId: null,
-        isFavorite: false,
-        createdAt: null,
-        updatedAt: null,
-        imageUrl: null,
-        images: [],
-      }),
-    );
+    catalogAdapter.getPerformerById = jest
+      .fn()
+      .mockImplementation((id: string) =>
+        Promise.resolve({
+          id,
+          name: id === 'p-1' ? 'Aaron' : 'Zoe',
+          disambiguation: null,
+          aliases: [],
+          gender: 'FEMALE',
+          birthDate: null,
+          deathDate: null,
+          age: null,
+          ethnicity: null,
+          country: null,
+          eyeColor: null,
+          hairColor: null,
+          height: null,
+          cupSize: null,
+          bandSize: null,
+          waistSize: null,
+          hipSize: null,
+          breastType: null,
+          careerStartYear: null,
+          careerEndYear: null,
+          deleted: false,
+          mergedIds: [],
+          mergedIntoId: null,
+          isFavorite: false,
+          createdAt: null,
+          updatedAt: null,
+          imageUrl: null,
+          images: [],
+        }),
+      );
 
-    const result = await service.getPerformersFeed(1, 24, { favoritesOnly: true });
+    const result = await service.getPerformersFeed(1, 24, {
+      favoritesOnly: true,
+    });
 
     expect(catalogAdapter.getPerformersFeed).not.toHaveBeenCalled();
     expect(result.total).toBe(2);
@@ -309,7 +323,9 @@ describe('PerformersService', () => {
   });
 
   it('applies a saved main-image override to the favorites feed when still valid', async () => {
-    performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['p-1']);
+    performerFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['p-1']);
     catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
       id: 'p-1',
       name: 'Aaron',
@@ -339,15 +355,27 @@ describe('PerformersService', () => {
       updatedAt: null,
       imageUrl: 'http://cdn.local/default.jpg',
       images: [
-        { id: 'image', url: 'http://cdn.local/default.jpg', width: null, height: null },
-        { id: 'poster-1', url: 'http://cdn.local/chosen.jpg', width: null, height: null },
+        {
+          id: 'image',
+          url: 'http://cdn.local/default.jpg',
+          width: null,
+          height: null,
+        },
+        {
+          id: 'poster-1',
+          url: 'http://cdn.local/chosen.jpg',
+          width: null,
+          height: null,
+        },
       ],
     });
     performerImagePreferenceService.getMainImageUrls = jest
       .fn()
       .mockResolvedValue(new Map([['p-1', 'http://cdn.local/chosen.jpg']]));
 
-    const result = await service.getPerformersFeed(1, 24, { favoritesOnly: true });
+    const result = await service.getPerformersFeed(1, 24, {
+      favoritesOnly: true,
+    });
 
     expect(result.items[0]).toMatchObject({
       imageUrl: 'http://cdn.local/chosen.jpg',
@@ -359,43 +387,47 @@ describe('PerformersService', () => {
     performerFavoritesService.listAllFavoriteIds = jest
       .fn()
       .mockResolvedValue(['p-1', 'deleted-performer']);
-    catalogAdapter.getPerformerById = jest.fn().mockImplementation((id: string) => {
-      if (id === 'deleted-performer') {
-        return Promise.reject(new Error('not found'));
-      }
-      return Promise.resolve({
-        id,
-        name: 'Performer One',
-        disambiguation: null,
-        aliases: [],
-        gender: 'FEMALE',
-        birthDate: null,
-        deathDate: null,
-        age: null,
-        ethnicity: null,
-        country: null,
-        eyeColor: null,
-        hairColor: null,
-        height: null,
-        cupSize: null,
-        bandSize: null,
-        waistSize: null,
-        hipSize: null,
-        breastType: null,
-        careerStartYear: null,
-        careerEndYear: null,
-        deleted: false,
-        mergedIds: [],
-        mergedIntoId: null,
-        isFavorite: false,
-        createdAt: null,
-        updatedAt: null,
-        imageUrl: null,
-        images: [],
+    catalogAdapter.getPerformerById = jest
+      .fn()
+      .mockImplementation((id: string) => {
+        if (id === 'deleted-performer') {
+          return Promise.reject(new Error('not found'));
+        }
+        return Promise.resolve({
+          id,
+          name: 'Performer One',
+          disambiguation: null,
+          aliases: [],
+          gender: 'FEMALE',
+          birthDate: null,
+          deathDate: null,
+          age: null,
+          ethnicity: null,
+          country: null,
+          eyeColor: null,
+          hairColor: null,
+          height: null,
+          cupSize: null,
+          bandSize: null,
+          waistSize: null,
+          hipSize: null,
+          breastType: null,
+          careerStartYear: null,
+          careerEndYear: null,
+          deleted: false,
+          mergedIds: [],
+          mergedIntoId: null,
+          isFavorite: false,
+          createdAt: null,
+          updatedAt: null,
+          imageUrl: null,
+          images: [],
+        });
       });
-    });
 
-    const result = await service.getPerformersFeed(1, 24, { favoritesOnly: true });
+    const result = await service.getPerformersFeed(1, 24, {
+      favoritesOnly: true,
+    });
 
     expect(result.items.map((item) => item.id)).toEqual(['p-1']);
   });
@@ -434,8 +466,18 @@ describe('PerformersService', () => {
       name: 'Performer One',
       imageUrl: 'http://cdn.local/image.jpg',
       images: [
-        { id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null },
-        { id: 'poster-1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+        {
+          id: 'image',
+          url: 'http://cdn.local/image.jpg',
+          width: null,
+          height: null,
+        },
+        {
+          id: 'poster-1',
+          url: 'http://cdn.local/poster-1.jpg',
+          width: null,
+          height: null,
+        },
       ],
       isFavorite: false,
       deleted: false,
@@ -455,7 +497,14 @@ describe('PerformersService', () => {
       id: 'p-1',
       name: 'Performer One',
       imageUrl: 'http://cdn.local/image.jpg',
-      images: [{ id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null }],
+      images: [
+        {
+          id: 'image',
+          url: 'http://cdn.local/image.jpg',
+          width: null,
+          height: null,
+        },
+      ],
       isFavorite: false,
       deleted: false,
       mergedIds: [],
@@ -475,8 +524,18 @@ describe('PerformersService', () => {
       name: 'Performer One',
       imageUrl: 'http://cdn.local/image.jpg',
       images: [
-        { id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null },
-        { id: 'poster-1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+        {
+          id: 'image',
+          url: 'http://cdn.local/image.jpg',
+          width: null,
+          height: null,
+        },
+        {
+          id: 'poster-1',
+          url: 'http://cdn.local/poster-1.jpg',
+          width: null,
+          height: null,
+        },
       ],
       isFavorite: false,
       deleted: false,
@@ -496,7 +555,14 @@ describe('PerformersService', () => {
       id: 'p-1',
       name: 'Performer One',
       imageUrl: 'http://cdn.local/image.jpg',
-      images: [{ id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null }],
+      images: [
+        {
+          id: 'image',
+          url: 'http://cdn.local/image.jpg',
+          width: null,
+          height: null,
+        },
+      ],
       isFavorite: false,
       deleted: false,
       mergedIds: [],
@@ -529,6 +595,7 @@ describe('PerformersService', () => {
           type: 'SCENE',
           source: 'STASHDB',
           status: { state: 'AVAILABLE' },
+          streamable: false,
         },
       ],
     });
@@ -545,6 +612,52 @@ describe('PerformersService', () => {
       tagIds: [],
       onlyFavoriteStudios: false,
     });
+  });
+
+  it("marks a Pornhub creator's scenes that aren't in the library as streamed, with streaming on", async () => {
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ streamFromPornhub: true });
+    const scene = (id: string, url: string | null) => ({
+      id,
+      title: id,
+      details: null,
+      imageUrl: null,
+      studioId: null,
+      studioName: 'Pornhub: Someone',
+      studioImageUrl: null,
+      date: null,
+      releaseDate: null,
+      productionDate: null,
+      duration: null,
+      url,
+      isFromExcludedNetwork: false,
+    });
+    catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+      total: 3,
+      scenes: [
+        scene(
+          'on-pornhub',
+          'https://www.pornhub.com/view_video.php?viewkey=abc123def',
+        ),
+        scene(
+          'in-library',
+          'https://www.pornhub.com/view_video.php?viewkey=zzz999yyy',
+        ),
+        scene('elsewhere', 'https://example.com/scene'),
+      ],
+    });
+    sceneStatusService.resolveForScenes = jest
+      .fn()
+      .mockResolvedValue(new Map([['in-library', { state: 'AVAILABLE' }]]));
+
+    const result = await service.getPerformerScenes('p-1');
+
+    expect(result.items.map((item) => [item.id, item.streamable])).toEqual([
+      ['on-pornhub', true],
+      ['in-library', false],
+      ['elsewhere', false],
+    ]);
   });
 
   it('hides a non-library excluded-network scene when hideAmateurNetworkResults is on', async () => {
@@ -677,15 +790,14 @@ describe('PerformersService', () => {
       alreadyFavorited: false,
     });
 
-    expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith('p-1', true);
-    expect(catalogAdapter.favoritePerformer).toHaveBeenCalledWith(
+    expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith(
       'p-1',
       true,
-      {
-        baseUrl: stashdbIntegration.baseUrl,
-        apiKey: stashdbIntegration.apiKey,
-      },
     );
+    expect(catalogAdapter.favoritePerformer).toHaveBeenCalledWith('p-1', true, {
+      baseUrl: stashdbIntegration.baseUrl,
+      apiKey: stashdbIntegration.apiKey,
+    });
   });
 
   it('keeps the local favorite even when the provider mutation is a no-op or fails (e.g. TPDB)', async () => {
@@ -698,7 +810,10 @@ describe('PerformersService', () => {
       alreadyFavorited: false,
     });
 
-    expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith('p-1', true);
+    expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith(
+      'p-1',
+      true,
+    );
   });
 
   it('mirrors the favorite into a matching local Stash performer', async () => {
