@@ -41,6 +41,8 @@ export interface PlayerQueueItem {
 interface ScenePlaybackInfo {
   resumeSeconds: number;
   duration: number | null;
+  /** The file's height: its original quality (1080 for 1080p). */
+  height?: number | null;
   /** Lets players without the session cookie (AirPlay) fetch the video. */
   streamToken?: string | null;
 }
@@ -60,6 +62,7 @@ export class PlayerService {
   private readonly discoverService = inject(DiscoverService);
   private readonly router = inject(Router);
   private readonly videoQuality = inject(VideoQualityService);
+  private readonly originalHeights = new Map<string, number | null>();
   private pendingHandBack: { stashSceneId: string; seconds: number } | null = null;
 
   /** The miniplayer's video, while there is one. */
@@ -201,6 +204,22 @@ export class PlayerService {
     void this.router.navigate([...(link?.commands ?? fallback)], {
       queryParams: { ...(link?.queryParams ?? {}), autoplay: '1' },
     });
+  }
+
+  /** A Stash scene's original quality, as its file's height (null if unknown). */
+  originalHeight(localSceneId: string): Observable<number | null> {
+    const known = this.originalHeights.get(localSceneId);
+    if (known !== undefined) {
+      return of(known);
+    }
+    return this.getScenePlaybackInfo(localSceneId).pipe(
+      map((info) => info.height ?? null),
+      catchError(() => of(null)),
+      map((height) => {
+        this.originalHeights.set(localSceneId, height);
+        return height;
+      }),
+    );
   }
 
   private getScenePlaybackInfo(localSceneId: string): Observable<ScenePlaybackInfo> {

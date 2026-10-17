@@ -36,8 +36,19 @@ export class PlaybackMenuComponent {
   /** The Stash scenes this page plays (picture-in-picture once one has loaded). */
   @Input() sceneIds: readonly string[] = [];
 
+  /** This scene's original quality, e.g. "1080p" (asked for once, on opening). */
+  protected readonly originalLabel = signal<string | null>(null);
+  private askedOriginal = false;
+
   protected toggle(): void {
     this.open.update((open) => !open);
+    const scene = this.sceneIds[0];
+    if (this.open() && scene && !this.askedOriginal) {
+      this.askedOriginal = true;
+      this.playerService
+        .originalHeight(scene)
+        .subscribe((height) => this.originalLabel.set(height ? heightLabel(height) : null));
+    }
   }
 
   protected choose(quality: VideoQuality): void {
@@ -99,4 +110,12 @@ export class PlaybackMenuComponent {
 
 function isHomeScreenIphone(): boolean {
   return (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+/** A height as a quality: 1080 -> "1080p", 2160 -> "4K". */
+function heightLabel(height: number): string {
+  if (height >= 2000) {
+    return '4K';
+  }
+  return `${height}p`;
 }

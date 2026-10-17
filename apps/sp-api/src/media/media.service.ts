@@ -270,7 +270,11 @@ export class MediaService {
 
   async getScenePlaybackInfo(
     sceneId: string,
-  ): Promise<{ resumeSeconds: number; duration: number | null }> {
+  ): Promise<{
+    resumeSeconds: number;
+    duration: number | null;
+    height: number | null;
+  }> {
     const config = await this.getStashConfig();
     const info = await this.stashAdapter.getScenePlaybackInfo(sceneId, config);
     if (!info) {

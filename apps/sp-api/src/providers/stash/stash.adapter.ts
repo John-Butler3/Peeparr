@@ -294,7 +294,7 @@ interface StashSceneAssetRecord {
     preview?: unknown;
   } | null;
   resume_time?: unknown;
-  files?: Array<{ duration?: unknown }>;
+  files?: Array<{ duration?: unknown; height?: unknown }>;
 }
 
 interface StashStudioAssetRecord {
@@ -1084,7 +1084,8 @@ export class StashAdapter {
         direction: 'DESC',
         ...(titleQuery ? { q: titleQuery } : {}),
       },
-      galleryFilter: Object.keys(galleryFilter).length > 0 ? galleryFilter : undefined,
+      galleryFilter:
+        Object.keys(galleryFilter).length > 0 ? galleryFilter : undefined,
     });
 
     const galleries = payload.data?.findGalleries?.galleries ?? [];
@@ -1100,7 +1101,9 @@ export class StashAdapter {
       hasMore: page * perPage < total,
       items: galleries
         .map((gallery) => this.toLocalGalleryFeedItem(gallery, config.baseUrl))
-        .filter((gallery): gallery is StashLocalGalleryFeedItem => gallery !== null),
+        .filter(
+          (gallery): gallery is StashLocalGalleryFeedItem => gallery !== null,
+        ),
     };
   }
 
@@ -1325,7 +1328,11 @@ export class StashAdapter {
   async getScenePlaybackInfo(
     sceneId: string,
     config: StashAdapterBaseConfig,
-  ): Promise<{ resumeSeconds: number; duration: number | null } | null> {
+  ): Promise<{
+    resumeSeconds: number;
+    duration: number | null;
+    height: number | null;
+  } | null> {
     const normalizedSceneId = this.normalizeEntityId(sceneId);
     if (!normalizedSceneId) {
       return null;
@@ -1338,6 +1345,7 @@ export class StashAdapter {
           resume_time
           files {
             duration
+            height
           }
         }
       }
@@ -1360,7 +1368,13 @@ export class StashAdapter {
         ? scene.files[0].duration
         : null;
 
-    return { resumeSeconds, duration };
+    // The file's own height (its original quality: 1080 for 1080p).
+    const height =
+      typeof scene.files?.[0]?.height === 'number' && scene.files[0].height > 0
+        ? scene.files[0].height
+        : null;
+
+    return { resumeSeconds, duration, height };
   }
 
   async getSceneStreamUrl(
@@ -1406,7 +1420,9 @@ export class StashAdapter {
     const payload = await this.executeQuery(config, query, {
       id: normalizedSceneId,
     });
-    const streamUrl = this.parseAssetUrl(payload.data?.findScene?.paths?.[kind]);
+    const streamUrl = this.parseAssetUrl(
+      payload.data?.findScene?.paths?.[kind],
+    );
     if (!streamUrl) {
       return null;
     }
@@ -1474,7 +1490,9 @@ export class StashAdapter {
     const payload = await this.executeQuery(config, query, {
       id: normalizedPerformerId,
     });
-    const imageUrl = this.parseAssetUrl(payload.data?.findPerformer?.image_path);
+    const imageUrl = this.parseAssetUrl(
+      payload.data?.findPerformer?.image_path,
+    );
     if (!imageUrl) {
       return null;
     }
@@ -1533,7 +1551,10 @@ export class StashAdapter {
         scenes?: Array<{
           id: string;
           paths?: { screenshot?: unknown };
-          groups?: Array<{ group?: { id?: string }; scene_index?: number | null }>;
+          groups?: Array<{
+            group?: { id?: string };
+            scene_index?: number | null;
+          }>;
         }>;
       } | null;
     }>(config, query, { id: normalizedGroupId });
@@ -1548,9 +1569,11 @@ export class StashAdapter {
     }
 
     const indexIn = (scene: NonNullable<typeof group.scenes>[number]): number =>
-      scene.groups?.find((entry) => entry.group?.id === normalizedGroupId)?.scene_index ??
-      Number.MAX_SAFE_INTEGER;
-    const firstScene = [...(group.scenes ?? [])].sort((a, b) => indexIn(a) - indexIn(b))[0];
+      scene.groups?.find((entry) => entry.group?.id === normalizedGroupId)
+        ?.scene_index ?? Number.MAX_SAFE_INTEGER;
+    const firstScene = [...(group.scenes ?? [])].sort(
+      (a, b) => indexIn(a) - indexIn(b),
+    )[0];
     const screenshot = this.parseAssetUrl(firstScene?.paths?.screenshot);
     return screenshot ? this.fetchProtectedAsset(config, screenshot) : null;
   }
@@ -1803,7 +1826,11 @@ export class StashAdapter {
       typeof scene.resume_time === 'number' && scene.resume_time > 0
         ? scene.resume_time
         : null;
-    if (resumeSeconds === null || !feedItem.duration || feedItem.duration <= 0) {
+    if (
+      resumeSeconds === null ||
+      !feedItem.duration ||
+      feedItem.duration <= 0
+    ) {
       return null;
     }
 
@@ -1825,7 +1852,10 @@ export class StashAdapter {
       : [];
     const linkedCatalogRefs = this.toLinkedCatalogRefs(linkedEntries);
     const activeCatalogSceneId = activeCatalogProviderKey
-      ? findCatalogExternalIdForProvider(linkedCatalogRefs, activeCatalogProviderKey)
+      ? findCatalogExternalIdForProvider(
+          linkedCatalogRefs,
+          activeCatalogProviderKey,
+        )
       : null;
 
     return {
@@ -1885,7 +1915,10 @@ export class StashAdapter {
 
     let progressPercent: number;
     if (resumeSeconds > 0 && duration && duration > 0) {
-      progressPercent = Math.min(100, Math.max(1, Math.round((resumeSeconds / duration) * 100)));
+      progressPercent = Math.min(
+        100,
+        Math.max(1, Math.round((resumeSeconds / duration) * 100)),
+      );
       // Left within the last few percent: effectively finished.
       if (progressPercent >= 95) {
         progressPercent = 100;
@@ -2024,7 +2057,10 @@ export class StashAdapter {
           imageUrl: this.normalizeOptionalString(performer?.image_path),
         };
       })
-      .filter((performer): performer is StashLocalGalleryPerformer => performer !== null);
+      .filter(
+        (performer): performer is StashLocalGalleryPerformer =>
+          performer !== null,
+      );
     const tags = this.toNamedEntities(gallery.tags ?? []);
     const imageCount =
       typeof gallery.image_count === 'number' ? gallery.image_count : 0;
@@ -2068,7 +2104,9 @@ export class StashAdapter {
       return folderName;
     }
 
-    const firstFilePath = this.normalizeOptionalString(gallery.files?.[0]?.path);
+    const firstFilePath = this.normalizeOptionalString(
+      gallery.files?.[0]?.path,
+    );
     const fileName = this.lastPathSegment(firstFilePath);
     if (fileName) {
       return fileName;
@@ -2082,11 +2120,15 @@ export class StashAdapter {
       return null;
     }
 
-    const segments = path.split(/[/\\]/).filter((segment) => segment.length > 0);
+    const segments = path
+      .split(/[/\\]/)
+      .filter((segment) => segment.length > 0);
     return segments.length > 0 ? segments[segments.length - 1] : null;
   }
 
-  private toLocalGalleryImage(image: StashImageRecord): StashLocalGalleryImage | null {
+  private toLocalGalleryImage(
+    image: StashImageRecord,
+  ): StashLocalGalleryImage | null {
     const id = this.normalizeOptionalString(image.id);
     if (!id) {
       return null;
@@ -2507,7 +2549,9 @@ export class StashAdapter {
 
   private async reportRuntimeSuccess(): Promise<void> {
     try {
-      await this.runtimeHealthService.recordSuccess(RuntimeHealthServiceKey.STASH);
+      await this.runtimeHealthService.recordSuccess(
+        RuntimeHealthServiceKey.STASH,
+      );
     } catch (error) {
       this.logger.warn(
         `Failed to record Stash runtime recovery: ${this.errorMessage(error)}`,

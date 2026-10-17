@@ -22,7 +22,12 @@
           [attr.aria-checked]="option.value === videoQuality.quality()"
           (click)="choose(option.value)"
         >
-          <span>{{ option.label }}</span>
+          <span>
+            {{ option.label }}
+            @if (option.value === 'ORIGINAL' && originalLabel(); as original) {
+              <span class="playback-original">({{ original }})</span>
+            }
+          </span>
           @if (option.value === videoQuality.quality()) {
             <i class="pi pi-check" aria-hidden="true"></i>
           }

@@ -270,6 +270,8 @@ export class MediaController {
   ): Promise<{
     resumeSeconds: number;
     duration: number | null;
+    /** The file's height (its original quality). */
+    height: number | null;
     streamToken: string | null;
   }> {
     const [info, auth] = await Promise.all([
