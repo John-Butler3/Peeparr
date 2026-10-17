@@ -1,0 +1,74 @@
+<div class="picker-box" (click)="focusInput()" (focusin)="open.set(true)" (focusout)="onFocusOut()">
+  <i class="pi pi-search picker-icon" aria-hidden="true"></i>
+  @for (studio of selected; track studio.id) {
+    <span class="picker-chip">
+      <span class="picker-chip-label">{{ studio.label }}</span>
+      <button
+        type="button"
+        class="picker-chip-remove"
+        [attr.aria-label]="'Remove ' + studio.label"
+        (click)="remove(studio.id, $event)"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </span>
+  }
+  <input
+    #input
+    class="picker-input"
+    type="search"
+    inputmode="search"
+    enterkeyhint="search"
+    autocomplete="off"
+    [id]="inputId"
+    [placeholder]="selected.length ? 'Add another' : placeholder"
+    [value]="query()"
+    (input)="onInput($any($event.target).value)"
+    (keydown.escape)="onEscape()"
+    (keydown.enter)="$any($event.target).blur()"
+  />
+  @if (query()) {
+    <button
+      type="button"
+      class="picker-clear"
+      aria-label="Clear search"
+      (click)="clearQuery(); $event.stopPropagation()"
+    >
+      <i class="pi pi-times-circle" aria-hidden="true"></i>
+    </button>
+  }
+</div>
+
+@if (showResults()) {
+  <div
+    class="picker-results"
+    role="listbox"
+    aria-multiselectable="true"
+    (pointerdown)="keepFocus($event)"
+  >
+    @if (loading && !hasMatches()) {
+      <p class="picker-note">Searching...</p>
+    } @else if (!hasMatches()) {
+      <p class="picker-note">{{ emptyMessage }}</p>
+    } @else {
+      @for (group of groups; track group.label) {
+        @if (group.items.length) {
+          <p class="picker-group">{{ group.label }}</p>
+          @for (item of group.items; track item.value) {
+            <button
+              type="button"
+              class="picker-option"
+              role="option"
+              [class.selected]="isSelected(item.value)"
+              [attr.aria-selected]="isSelected(item.value)"
+              (click)="toggle(item.value)"
+            >
+              <span>{{ item.label }}</span>
+              <i class="pi" [class.pi-check]="isSelected(item.value)" aria-hidden="true"></i>
+            </button>
+          }
+        }
+      }
+    }
+  </div>
+}

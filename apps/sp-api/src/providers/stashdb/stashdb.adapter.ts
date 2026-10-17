@@ -222,6 +222,8 @@ export interface StashdbScene {
   releaseDate: string | null;
   productionDate: string | null;
   duration: number | null;
+  /** The scene's own page (TPDB lists): a Pornhub video page streams. */
+  url?: string | null;
   /// Whether this scene is sourced from a known amateur/creator platform
   /// (e.g. ManyVids, FansDB) that a user may want to exclude from discovery
   /// results unless it's already in their local library. Always false for

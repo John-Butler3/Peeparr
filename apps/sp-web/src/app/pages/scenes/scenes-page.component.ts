@@ -24,7 +24,7 @@ import {
   switchMap,
 } from 'rxjs';
 import { Message } from 'primeng/message';
-import { MultiSelect } from 'primeng/multiselect';
+import { StudioPickerComponent } from '../../shared/studio-picker/studio-picker.component';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { DiscoverService } from '../../core/api/discover.service';
@@ -74,7 +74,7 @@ interface SelectedStudioChip {
     Message,
     ProgressSpinner,
     Select,
-    MultiSelect,
+    StudioPickerComponent,
     RouterLink,
     SceneCardComponent,
     SceneRequestModalComponent,

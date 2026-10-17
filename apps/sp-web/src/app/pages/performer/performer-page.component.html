@@ -297,36 +297,25 @@
               </label>
             </label>
 
-            <label class="control-field app-control-field">
-              <span class="app-control-label">Studios</span>
-              <p-multiselect
+            <div class="control-field app-control-field">
+              <label class="app-control-label" for="performer-studios">Studios</label>
+              <app-studio-picker
                 inputId="performer-studios"
-                [ngModel]="studioSelectedIds()"
-                (ngModelChange)="onStudioSelectionChanged($event)"
-                (onFilter)="onStudioFilterChanged($event.filter)"
-                (onPanelHide)="onStudioFilterPanelHide()"
-                [filter]="true"
-                [filterValue]="studioSearchTerm()"
-                filterPlaceHolder="Search studio networks"
+                [selected]="selectedStudios()"
+                [groups]="studioSelectOptions()"
                 [loading]="studioSearchLoading()"
-                [options]="studioSelectOptions()"
-                [group]="true"
-                optionGroupLabel="label"
-                optionGroupChildren="items"
-                optionLabel="label"
-                optionValue="value"
-                display="chip"
-                placeholder="Choose studio networks or child studios"
-                [showToggleAll]="false"
                 [emptyMessage]="studioSelectEmptyMessage()"
-                [emptyFilterMessage]="studioSelectEmptyMessage()"
-                [resetFilterOnHide]="true"
-                [appendTo]="'body'"
-                panelStyleClass="app-overlay-panel"
-                scrollHeight="18rem"
+                (queryChange)="onStudioFilterChanged($event)"
+                (selectedIdsChange)="onStudioSelectionChanged($event)"
               />
-            </label>
+            </div>
           </div>
+          @if (hasFilters()) {
+            <button type="button" class="clear-filters" (click)="clearFilters()">
+              <i class="pi pi-filter-slash" aria-hidden="true"></i>
+              Clear filters
+            </button>
+          }
         }
       </section>
 

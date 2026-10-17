@@ -30,6 +30,16 @@ export interface EmbedGrabHandlers {
  *
  * Pornhub's player doesn't say whether it's playing. A tap in it moves the
  * focus into it (this window loses it): that counts as started.
+ *
+ * Embedded, Pornhub's player never hides its title and control bar, and a
+ * tap on the playing video opens it on Pornhub (leaving the app). So once
+ * it's started, the video is covered (the shield: a swipe down anywhere on
+ * it goes to the miniplayer, a tap on it shows the controls), leaving only
+ * the control bar to use; and left alone for a few seconds, the controls
+ * "fade": the player is laid out a little taller than its spot, the video
+ * staying put, so its title and control bar are just outside it, cut off.
+ * They're always cut off in the miniplayer. Before it's started nothing
+ * covers it: the first tap is Play.
  */
 @Injectable({ providedIn: 'root' })
 export class EmbedPlayerService {
@@ -43,10 +53,21 @@ export class EmbedPlayerService {
   /** Over everything while moving between spots, or dragged. */
   static readonly TOP_LAYER = '2500';
   static readonly GRAB_STRIP_PX = 44;
+  /** Untouched this long: the controls (and the handle) fade. */
+  static readonly IDLE_MS = 4000;
+  /** How far past its spot the player reaches, above and below, with the controls hidden. */
+  static readonly CROP_PX = 56;
+  /** Pornhub's control bar, left uncovered while the controls show. */
+  static readonly CONTROL_BAR_PX = 52;
 
   private layer: HTMLElement | null = null;
   private frame: HTMLIFrameElement | null = null;
   private grabStrip: HTMLElement | null = null;
+  private shield: HTMLElement | null = null;
+  private handle: HTMLElement | null = null;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Pornhub's title and controls showing (else cut off). */
+  private controlsShown = true;
   private label: HTMLElement | null = null;
   /** The size the embed is laid out at (the scene page player's). */
   private base: { width: number; height: number } | null = null;
@@ -79,6 +100,7 @@ export class EmbedPlayerService {
       if (this.label) {
         this.label.style.opacity = '0';
       }
+      this.showControls();
     }
   }
 
@@ -235,6 +257,49 @@ export class EmbedPlayerService {
       this.label.style.opacity = '1';
     }
     this.frame.src = url;
+    this.showControls();
+  }
+
+  /** Pornhub's controls (and the handle) show, for a while: its control bar uncovered. */
+  private showControls(): void {
+    this.controlsShown = true;
+    if (this.handle) {
+      this.handle.style.opacity = '1';
+    }
+    if (this.shield) {
+      // Not started: nothing covers it (the first tap is Play).
+      this.shield.style.pointerEvents = this.started ? 'auto' : 'none';
+      this.shield.style.bottom = `${EmbedPlayerService.CONTROL_BAR_PX}px`;
+    }
+    this.replace();
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+    }
+    this.idleTimer = setTimeout(() => {
+      this.idleTimer = null;
+      if (this.handle) {
+        this.handle.style.opacity = '0';
+      }
+      if (this.started) {
+        this.hideControls();
+      }
+    }, EmbedPlayerService.IDLE_MS);
+  }
+
+  /** Left alone: Pornhub's title and controls cut off, the video all covered. */
+  private hideControls(): void {
+    this.controlsShown = false;
+    if (this.shield) {
+      this.shield.style.bottom = '0';
+    }
+    this.replace();
+  }
+
+  /** Placed again where it is (its layout changed). */
+  private replace(): void {
+    if (this.layer && this.layer.style.visibility !== 'hidden') {
+      this.place(this.layer.getBoundingClientRect());
+    }
   }
 
   /** Focus gone into the embed: you've tapped it (Play), so it's started. */
@@ -248,6 +313,7 @@ export class EmbedPlayerService {
       if (this.label) {
         this.label.style.opacity = '0';
       }
+      this.showControls();
       this.grab?.started?.();
     });
   }
@@ -255,6 +321,9 @@ export class EmbedPlayerService {
   private showGrabStrip(shown: boolean): void {
     if (this.grabStrip) {
       this.grabStrip.style.display = shown ? 'flex' : 'none';
+    }
+    if (this.shield) {
+      this.shield.style.display = shown ? 'block' : 'none';
     }
   }
 
@@ -272,8 +341,9 @@ export class EmbedPlayerService {
     strip.style.cssText = `position:absolute;left:0;right:0;top:0;height:${EmbedPlayerService.GRAB_STRIP_PX}px;z-index:1;touch-action:none;display:flex;justify-content:center;padding-top:8px;box-sizing:border-box;`;
     const handle = document.createElement('span');
     handle.style.cssText =
-      'width:36px;height:4px;border-radius:2px;background:rgb(255 255 255 / 70%);box-shadow:0 1px 3px rgb(0 0 0 / 50%);';
+      'width:36px;height:4px;border-radius:2px;background:rgb(255 255 255 / 70%);box-shadow:0 1px 3px rgb(0 0 0 / 50%);transition:opacity 300ms;';
     strip.appendChild(handle);
+    this.handle = handle;
     // Where it plays from, until you start it.
     const label = document.createElement('span');
     label.textContent = 'Streams from Pornhub';
@@ -282,7 +352,18 @@ export class EmbedPlayerService {
     strip.appendChild(label);
     this.label = label;
     strip.addEventListener('touchstart', (event) => this.grab?.start(event), { passive: true });
+    strip.addEventListener('click', () => this.showControls());
     layer.appendChild(strip);
+    // The rest of the player, on a touch screen (see the class comment).
+    const shield = document.createElement('div');
+    shield.className = 'embed-shield';
+    shield.setAttribute('aria-hidden', 'true');
+    shield.style.cssText = `position:absolute;left:0;right:0;top:${EmbedPlayerService.GRAB_STRIP_PX}px;bottom:0;z-index:1;touch-action:pan-y;pointer-events:none;cursor:pointer;`;
+    shield.addEventListener('touchstart', (event) => this.grab?.start(event), { passive: true });
+    // A tap (not a drag): the controls show.
+    shield.addEventListener('click', () => this.showControls());
+    layer.appendChild(shield);
+    this.shield = shield;
     if (this.frame) {
       layer.appendChild(this.frame);
     }
@@ -409,18 +490,21 @@ export class EmbedPlayerService {
       height: `${rect.height}px`,
       visibility: 'visible',
     });
-    // The embed at its own size, scaled to this.
+    // The embed at its own size, scaled to this; with its controls hidden,
+    // taller (the video staying put), its title and control bar cut off.
     const frame = this.frame;
     if (frame) {
       const base = this.base ?? { width: rect.width, height: rect.height };
       this.base = base;
-      const scale = base.width > 0 ? rect.width / base.width : 1;
+      const cropped = !this.controlsShown || this.spotKind !== 'page' || this.liftRect !== null;
+      const pad = cropped ? EmbedPlayerService.CROP_PX : 0;
+      const scaleX = base.width > 0 ? rect.width / base.width : 1;
+      const scaleY = base.height > 0 ? rect.height / base.height : scaleX;
       frame.style.width = `${base.width}px`;
-      frame.style.height = `${base.height}px`;
+      frame.style.height = `${base.height + pad * 2}px`;
+      const unscaled = Math.abs(scaleX - 1) < 0.001 && Math.abs(scaleY - 1) < 0.001;
       frame.style.transform =
-        Math.abs(scale - 1) < 0.001
-          ? ''
-          : `scale(${scale}, ${base.height > 0 ? rect.height / base.height : scale})`;
+        unscaled && pad === 0 ? '' : `translateY(${-pad * scaleY}px) scale(${scaleX}, ${scaleY})`;
     }
   }
 
@@ -432,6 +516,10 @@ export class EmbedPlayerService {
     this.url = null;
     this.started = false;
     this.base = null;
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
     this.stopTracking();
     this.stopFlight();
     this.clearUnclaimed();

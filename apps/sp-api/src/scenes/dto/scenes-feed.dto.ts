@@ -16,6 +16,8 @@ export class ScenesFeedItemDto {
   source!: CatalogProviderKey;
   status!: SceneStatusDto;
   requestable!: boolean;
+  /** A Pornhub video, not in the library, that plays streamed (Settings). */
+  streamable?: boolean;
 }
 
 export class ScenesFeedResponseDto {

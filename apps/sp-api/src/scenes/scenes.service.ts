@@ -232,6 +232,7 @@ export class ScenesService {
       appSettings.hideAmateurNetworkResults,
     );
 
+    const streaming = await this.streamsFromPornhub();
     return withNotice({
       // total/hasMore still reflect the catalog provider's raw, unfiltered
       // count -- there's no way to know "is this scene already in my
@@ -250,6 +251,7 @@ export class ScenesService {
           catalogProvider.integrationType,
           status,
           isSceneStatusRequestable(status),
+          streaming,
         );
       }),
     });
@@ -307,6 +309,7 @@ export class ScenesService {
       hideAmateurNetworkResults,
     );
     const pageScenes = visible.slice((page - 1) * perPage, page * perPage);
+    const streaming = await this.streamsFromPornhub();
     return {
       total: visible.length,
       page,
@@ -319,6 +322,7 @@ export class ScenesService {
           integrationType,
           status,
           isSceneStatusRequestable(status),
+          streaming,
         );
       }),
     };
@@ -410,6 +414,7 @@ export class ScenesService {
     const statuses = await this.sceneStatusService.resolveForScenes(
       pageScenes.map((scene) => scene.id),
     );
+    const streaming = await this.streamsFromPornhub();
     return {
       // Unknown until the end is reached: the provider's count is an upper bound.
       total: state.exhausted
@@ -425,6 +430,7 @@ export class ScenesService {
           integrationType,
           status,
           isSceneStatusRequestable(status),
+          streaming,
         );
       }),
     };
@@ -519,6 +525,7 @@ export class ScenesService {
     const start = (page - 1) * perPage;
     const pageItems = visibleScenes.slice(start, start + perPage);
 
+    const streaming = await this.streamsFromPornhub();
     return {
       total,
       page,
@@ -531,6 +538,7 @@ export class ScenesService {
           catalogProvider.integrationType,
           status,
           isSceneStatusRequestable(status),
+          streaming,
         );
       }),
     };
@@ -724,6 +732,7 @@ export class ScenesService {
 
     const sorted = this.sortScenesLocally(libraryScenes, 'DATE', 'DESC');
 
+    const streaming = await this.streamsFromPornhub();
     return {
       items: sorted.slice(0, limit).map((candidate) => {
         const status = statuses.get(candidate.id) ?? { state: 'NOT_REQUESTED' };
@@ -732,6 +741,7 @@ export class ScenesService {
           catalogProvider.integrationType,
           status,
           isSceneStatusRequestable(status),
+          streaming,
         );
       }),
     };
@@ -893,10 +903,12 @@ export class ScenesService {
       productionDate: string | null;
       date: string | null;
       duration: number | null;
+      url?: string | null;
     },
     source: CatalogProviderKey,
     status: SceneStatusDto,
     requestable: boolean,
+    streaming: boolean,
   ) {
     return {
       id: scene.id,
@@ -913,7 +925,18 @@ export class ScenesService {
       source,
       status,
       requestable,
+      // A Pornhub video not in the library: played streamed (Settings).
+      streamable:
+        streaming &&
+        status.state !== 'AVAILABLE' &&
+        !!scene.url &&
+        pornhubEmbedUrl([{ url: scene.url }]) !== null,
     };
+  }
+
+  /** Whether scenes that are Pornhub videos play streamed (Settings). */
+  private async streamsFromPornhub(): Promise<boolean> {
+    return (await this.appSettingsService.get()).streamFromPornhub;
   }
 
   private normalizeTagIds(tagIds: string[]): string[] {

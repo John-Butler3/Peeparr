@@ -136,6 +136,16 @@ p {
   color: var(--yt-chip-active-text);
 }
 
+// Streams from Pornhub: Play in Pornhub's orange.
+.stream-action {
+  background: #ff9000;
+  color: #000;
+}
+
+.stream-action:hover {
+  background: #ffa733;
+}
+
 .request-action:hover {
   background: var(--yt-chip-hover);
 }

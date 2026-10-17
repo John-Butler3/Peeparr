@@ -16,7 +16,7 @@ import {
 import { ButtonDirective } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { Message } from 'primeng/message';
-import { MultiSelect } from 'primeng/multiselect';
+import { StudioPickerComponent } from '../../shared/studio-picker/studio-picker.component';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -68,7 +68,7 @@ interface MultiSelectGroup {
     ToggleSwitch,
     Message,
     ProgressSpinner,
-    MultiSelect,
+    StudioPickerComponent,
     ButtonDirective,
     Dialog,
     SceneCardComponent,
@@ -366,6 +366,25 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
 
   protected hasDisplayedScenes(): boolean {
     return this.displayedScenes().length > 0;
+  }
+
+  /** Any of the Filters panel's filters set. */
+  protected hasFilters(): boolean {
+    return this.onlyFavoriteStudios() || this.libraryOnly() || this.selectedStudios().length > 0;
+  }
+
+  protected clearFilters(): void {
+    const reload = this.onlyFavoriteStudios() || this.selectedStudios().length > 0;
+    this.onlyFavoriteStudios.set(false);
+    this.selectedStudios.set([]);
+    this.studioSelectedIds.set([]);
+    if (this.libraryOnly()) {
+      this.onLibraryOnlyChanged(false);
+    }
+    if (reload) {
+      this.syncUrlWithCurrentFilters(false);
+      this.resetScenesAndReload();
+    }
   }
 
   protected onLibraryOnlyChanged(nextValue: boolean): void {

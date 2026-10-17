@@ -88,7 +88,19 @@
           </h2>
         }
 
-        @if (requestable) {
+        @if (item.streamable && titleRouterCommands(); as commands) {
+          <!-- Streamed (Pornhub): Play opens its page, where it plays. Request is there too. -->
+          <a
+            class="title-action play-action stream-action"
+            aria-label="Play (streams from Pornhub)"
+            title="Play (streams from Pornhub)"
+            [routerLink]="commands"
+            [queryParams]="titleQueryParams()"
+            (click)="$event.stopPropagation()"
+          >
+            <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z" /></svg>
+          </a>
+        } @else if (requestable) {
           <button
             type="button"
             class="title-action request-action"

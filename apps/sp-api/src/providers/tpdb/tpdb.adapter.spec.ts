@@ -120,6 +120,7 @@ describe('TpdbAdapter', () => {
         releaseDate: '2026-03-01',
         productionDate: null,
         duration: 600,
+        url: null,
         isFromExcludedNetwork: false,
       },
     ]);

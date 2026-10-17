@@ -563,6 +563,7 @@ export class TpdbAdapter implements CatalogAdapter {
       releaseDate: date,
       productionDate: null,
       duration: this.readNumber(record.duration),
+      url: this.readString(record.url),
       isFromExcludedNetwork: this.isFromExcludableNetwork(record, site),
     };
   }

@@ -47,6 +47,8 @@ export interface DiscoverResponse {
 
 export interface SceneExplorerItem extends DiscoverItem {
   requestable: boolean;
+  /** A Pornhub video, not in the library, that plays streamed (Settings). */
+  streamable?: boolean;
 }
 
 export interface ScenesFeedResponse {

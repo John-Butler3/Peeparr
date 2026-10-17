@@ -99,38 +99,18 @@
 
     @if (filtersExpanded()) {
       <div class="controls-row expanded-filters" id="scenes-expanded-filters">
-        <label class="control-field">
-          <span>Studio Filter</span>
-          <div class="studio-picker-shell">
-            <p-multiselect
-              inputId="scenes-studios"
-              [ngModel]="studioSelectedIdsModel()"
-              (ngModelChange)="onStudioSelectionChanged($event)"
-              (onFilter)="onStudioFilterChanged($event.filter)"
-              (onPanelHide)="onStudioFilterPanelHide()"
-              [filter]="true"
-              [filterValue]="studioSearchTerm()"
-              filterPlaceHolder="Search studio networks"
-              [loading]="studioSearchLoading()"
-              [fluid]="true"
-              [options]="studioSelectOptions()"
-              [group]="true"
-              optionGroupLabel="label"
-              optionGroupChildren="items"
-              optionLabel="label"
-              optionValue="value"
-              [showToggleAll]="false"
-              display="chip"
-              [emptyMessage]="studioSelectEmptyMessage()"
-              [emptyFilterMessage]="studioSelectEmptyMessage()"
-              [resetFilterOnHide]="true"
-              [appendTo]="'body'"
-              panelStyleClass="app-overlay-panel"
-              placeholder="Choose studio networks or child studios"
-              scrollHeight="16rem"
-            />
-          </div>
-        </label>
+        <div class="control-field">
+          <label for="scenes-studios"><span>Studio Filter</span></label>
+          <app-studio-picker
+            inputId="scenes-studios"
+            [selected]="selectedStudios()"
+            [groups]="studioSelectOptions()"
+            [loading]="studioSearchLoading()"
+            [emptyMessage]="studioSelectEmptyMessage()"
+            (queryChange)="onStudioFilterChanged($event)"
+            (selectedIdsChange)="onStudioSelectionChanged($event)"
+          />
+        </div>
 
         <label class="control-field">
           <span>Catalog Favorites</span>

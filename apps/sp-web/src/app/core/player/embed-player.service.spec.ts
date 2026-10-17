@@ -52,7 +52,9 @@ describe('EmbedPlayerService', () => {
     expect(layer().style.pointerEvents).toBe('none');
     // The page's player made small: laid out at its size, scaled down.
     expect(frame.style.width).toBe('390px');
-    expect(frame.style.transform).toMatch(/^scale\(0\.25/);
+    expect(frame.style.transform).toMatch(/scale\(0\.25/);
+    // ...with Pornhub's title and control bar cut off (it's taller, shifted up).
+    expect(frame.style.height).toBe(`${219 + EmbedPlayerService.CROP_PX * 2}px`);
   });
 
   it('counts as started once a tap takes the focus into it', () => {
@@ -74,6 +76,19 @@ describe('EmbedPlayerService', () => {
     vi.advanceTimersByTime(10);
     expect(service.wasStarted()).toBe(true);
     expect(started).toHaveBeenCalledTimes(1);
+
+    // Started: the video is covered (a tap on it would open Pornhub), its control bar left free...
+    const shield = document.querySelector<HTMLElement>('.embed-shield')!;
+    expect(shield.style.pointerEvents).toBe('auto');
+    expect(shield.style.bottom).toBe(`${EmbedPlayerService.CONTROL_BAR_PX}px`);
+    expect(frame.style.height).toBe('219px');
+    // ...and left alone, the controls are cut off, all of it covered.
+    vi.advanceTimersByTime(EmbedPlayerService.IDLE_MS);
+    expect(shield.style.bottom).toBe('0px');
+    expect(frame.style.height).toBe(`${219 + EmbedPlayerService.CROP_PX * 2}px`);
+    // A tap brings them back.
+    shield.click();
+    expect(frame.style.height).toBe('219px');
   });
 
   it('another embed, with one in the miniplayer, would replace it', () => {

@@ -19,6 +19,8 @@ export interface SceneCardItem extends SceneCardShellItem {
   releaseDate: string | null;
   duration?: number | null;
   status?: SceneStatus | null;
+  /** A Pornhub video, not in the library, that plays streamed. */
+  streamable?: boolean;
 }
 
 export type SceneCardVariant = 'default' | 'rail';

@@ -270,6 +270,22 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.displayedScenes().length > 0;
   }
 
+  /** Any of the Filters panel's filters set. */
+  protected hasFilters(): boolean {
+    return (
+      this.libraryOnly() || this.selectedFavorites() !== StudioPageComponent.DEFAULT_FAVORITES
+    );
+  }
+
+  protected clearFilters(): void {
+    if (this.selectedFavorites() !== StudioPageComponent.DEFAULT_FAVORITES) {
+      this.onFavoritesChanged(StudioPageComponent.DEFAULT_FAVORITES);
+    }
+    if (this.libraryOnly()) {
+      this.onLibraryOnlyChanged(false);
+    }
+  }
+
   protected onLibraryOnlyChanged(nextValue: boolean): void {
     this.libraryOnly.set(nextValue);
     this.continueLibraryOnlySearch();

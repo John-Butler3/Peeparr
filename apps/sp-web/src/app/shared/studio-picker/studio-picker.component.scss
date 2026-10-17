@@ -1,0 +1,139 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.picker-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 2.4rem 0.35rem 2.2rem;
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-2);
+  cursor: text;
+}
+
+.picker-box:focus-within {
+  border-color: var(--focus-ring);
+}
+
+.picker-icon {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.picker-input {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  // 16px or more: phones don't zoom in on it.
+  font-size: max(1rem, 16px);
+  padding: 0.25rem 0;
+}
+
+.picker-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.picker-clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.picker-clear,
+.picker-chip-remove {
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  max-width: 100%;
+  padding: 0.15rem 0.2rem 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.picker-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-chip-remove i {
+  font-size: 0.7rem;
+}
+
+.picker-results {
+  margin-top: 0.4rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-elevated);
+  padding: 0.3rem 0;
+}
+
+.picker-note {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  color: var(--text-muted);
+}
+
+.picker-group {
+  margin: 0;
+  padding: 0.55rem 0.9rem 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.picker-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-option:hover,
+.picker-option.selected {
+  background: var(--surface-raised);
+}
+
+.picker-option i {
+  color: var(--focus-ring);
+}
