@@ -24,6 +24,8 @@ export class SharedVideoService {
   /** With no miniplayer spot to head for: dragging this far shrinks it to DRAG_MIN_SCALE. */
   static readonly DRAG_SHRINK_PX = 400;
   static readonly DRAG_MIN_SCALE = 0.5;
+  /** A paused video swiped away: how long it takes to fade. */
+  static readonly DISMISS_MS = 180;
   /** Longest a flight waits for its page to show (pages load hidden). */
   static readonly WAIT_FOR_PAGE_MS = 1500;
   /**
@@ -44,6 +46,8 @@ export class SharedVideoService {
   /** Lifted out of its player's slot (still its player's), and that slot. */
   private liftedFrom: HTMLElement | null = null;
   private liftedControls = false;
+  /** A swiped-away video's fade (kept, filled, until the holder is reset). */
+  private dismissing: Animation | null = null;
   /** Where it was when lifted (dragging moves it from there). */
   private liftRect: DOMRect | null = null;
   private flight: number | null = null;
@@ -123,14 +127,30 @@ export class SharedVideoService {
    * kept, which would pause it). True if it did.
    */
   liftIfPlaying(): boolean {
+    return this.lift(true);
+  }
+
+  /** For a drag by hand: lifts it playing or paused. True if it did. */
+  liftForDrag(): boolean {
+    return this.lift(false);
+  }
+
+  /** Whether this scene is loaded in it (playing or paused). */
+  hasScene(sceneId: string): boolean {
+    const video = this.element;
+    return !!video && this.sceneId === sceneId && !!video.getAttribute('src') && !video.ended;
+  }
+
+  private lift(onlyIfPlaying: boolean): boolean {
     const video = this.element;
     const slot = video?.parentElement ?? null;
     if (
       !video ||
       !slot ||
       this.owner === null ||
-      video.paused ||
+      (onlyIfPlaying && video.paused) ||
       video.ended ||
+      !video.getAttribute('src') ||
       slot === this.holder
     ) {
       return false;
@@ -170,16 +190,38 @@ export class SharedVideoService {
     const down = Math.max(0, dy);
     const target = document.querySelector('.mini-target')?.getBoundingClientRect();
     if (target && target.width > 0 && target.top > rect.top) {
-      const t = Math.min(1, down / (target.top - rect.top));
-      this.stopFlight();
-      this.placeHolder(
-        rect.left + (target.left - rect.left) * t,
-        rect.top + (target.top - rect.top) * t,
-        rect.width + (target.width - rect.width) * t,
-        rect.height + (target.height - rect.height) * t,
-      );
+      this.moveLiftedTo(target, down / (target.top - rect.top));
       return;
     }
+    this.moveLiftedDown(down);
+  }
+
+  /** A lifted video part of the way (0 to 1) from where it was lifted to `target`. */
+  moveLiftedTo(target: DOMRect, progress: number): void {
+    const rect = this.liftRect;
+    if (!this.liftedFrom || !rect) {
+      return;
+    }
+    const t = Math.min(1, Math.max(0, progress));
+    this.stopFlight();
+    this.placeHolder(
+      rect.left + (target.left - rect.left) * t,
+      rect.top + (target.top - rect.top) * t,
+      rect.width + (target.width - rect.width) * t,
+      rect.height + (target.height - rect.height) * t,
+    );
+  }
+
+  /**
+   * A lifted video dragged straight down (paused: closing, not off to the
+   * miniplayer): with the finger, shrinking and fading as it goes.
+   */
+  moveLiftedDown(dy: number): void {
+    const rect = this.liftRect;
+    if (!this.liftedFrom || !rect) {
+      return;
+    }
+    const down = Math.max(0, dy);
     const scale = Math.max(
       SharedVideoService.DRAG_MIN_SCALE,
       1 - (down / SharedVideoService.DRAG_SHRINK_PX) * (1 - SharedVideoService.DRAG_MIN_SCALE),
@@ -188,6 +230,31 @@ export class SharedVideoService {
     const height = rect.height * scale;
     this.stopFlight();
     this.placeHolder(rect.left + (rect.width - width) / 2, rect.top + down, width, height);
+    this.parkingSpot().style.opacity = String(
+      Math.max(0.3, 1 - down / SharedVideoService.DRAG_SHRINK_PX),
+    );
+  }
+
+  /** A lifted video let go to close: fades away where it is (then resolves). */
+  dismissLifted(): Promise<void> {
+    const holder = this.holder;
+    if (!this.liftedFrom || !holder || typeof holder.animate !== 'function') {
+      return Promise.resolve();
+    }
+    this.stopFlight();
+    const from = Number(holder.style.opacity || '1');
+    this.dismissing?.cancel();
+    this.dismissing = holder.animate(
+      [
+        { opacity: from, transform: 'translateZ(0) scale(1)' },
+        { opacity: 0, transform: 'translateZ(0) scale(0.9)' },
+      ],
+      { duration: SharedVideoService.DISMISS_MS, easing: 'ease-in', fill: 'forwards' },
+    );
+    return this.dismissing.finished.then(
+      () => undefined,
+      () => undefined,
+    );
   }
 
   /** A drag let go short of the miniplayer: glides back into its player. */
@@ -387,6 +454,8 @@ export class SharedVideoService {
 
   /** The holder on screen at this spot, above everything, showing the video. */
   private placeHolder(left: number, top: number, width: number, height: number): void {
+    this.dismissing?.cancel();
+    this.dismissing = null;
     Object.assign(this.parkingSpot().style, {
       left: `${left}px`,
       top: `${top}px`,
@@ -408,6 +477,8 @@ export class SharedVideoService {
   }
 
   private hideHolder(): void {
+    this.dismissing?.cancel();
+    this.dismissing = null;
     this.waitingOnScreen = false;
     if (this.holder) {
       this.holder.style.cssText = HIDDEN_HOLDER;

@@ -6,7 +6,8 @@
      leaving its page while it played. Tapping it goes back to that page,
      where the page's player picks up from the same moment. -->
 @if (state(); as s) {
-  <div class="miniplayer" data-testid="miniplayer">
+  <!-- Swipe up: back to the scene's page (see onSwipeStart). -->
+  <div class="miniplayer" data-testid="miniplayer" (touchstart)="onSwipeStart($event)">
     <div
       class="mini-video"
       [class.is-wireless]="wireless()"

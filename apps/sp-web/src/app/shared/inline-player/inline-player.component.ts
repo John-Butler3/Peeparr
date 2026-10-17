@@ -105,7 +105,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   @Input() playable = true;
 
   @Output() ended = new EventEmitter<void>();
-  /** Swiped down while playing: carry on in the miniplayer. */
+  /** Swiped down: leave the page (playing, the video carries on in the miniplayer; paused, it's closed). */
   @Output() minimize = new EventEmitter<void>();
 
   protected readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -115,6 +115,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     x: number;
     y: number;
     down: boolean | null;
+    /** Playing when the drag began: off to the miniplayer (else: closing). */
+    playing: boolean;
     /** The video lifted out of the page, following the finger. */
     lifted: boolean;
     dy: number;
@@ -187,11 +189,12 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     this.asleep = false;
     const source = this.source();
     const slot = this.slotElement;
+    // The miniplayer still has it (playing, or paused there).
     const takeBack =
-      this.handedOff && !!source && !!slot && this.sharedVideo.isPlaying(source.stashSceneId);
+      this.handedOff && !!source && !!slot && this.sharedVideo.hasScene(source.stashSceneId);
     this.handedOff = false;
     if (takeBack && source && slot) {
-      // Still playing in the miniplayer: it comes back (flying up) here.
+      // Still in the miniplayer: it comes back (flying up) here.
       this.attachVideo(slot);
       this.playerService.close();
       return;
@@ -222,12 +225,14 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected onDragStart(event: TouchEvent): void {
     const video = this.video;
     const touch = event.touches[0];
+    // Playing: a swipe down goes to the miniplayer. Paused: it closes.
     this.drag =
-      video && !video.paused && touch && event.touches.length === 1
+      video && video.getAttribute('src') && !video.ended && touch && event.touches.length === 1
         ? {
             x: touch.clientX,
             y: touch.clientY,
             down: null,
+            playing: !video.paused,
             lifted: false,
             dy: 0,
             time: event.timeStamp,
@@ -267,14 +272,19 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       drag.dy = dy;
       drag.time = event.timeStamp;
       // The video comes out of the page, in front of everything, and
-      // follows the finger down, shrinking; the page dims behind it.
-      if (!drag.lifted && this.sharedVideo.liftIfPlaying()) {
+      // follows the finger: towards the miniplayer if playing, or straight
+      // down, fading, if paused (closing). The page fades behind it.
+      if (!drag.lifted && this.sharedVideo.liftForDrag()) {
         drag.lifted = true;
         // The page you came from, behind this one, revealed as it fades.
         this.pageFade.revealBehind();
       }
       if (drag.lifted) {
-        this.sharedVideo.moveLifted(dy);
+        if (drag.playing) {
+          this.sharedVideo.moveLifted(dy);
+        } else {
+          this.sharedVideo.moveLiftedDown(dy);
+        }
         this.pageFade.setProgress(dy / (InlinePlayerComponent.MINIMIZE_DRAG_PX * 3));
       } else {
         this.dragOffset.set(Math.max(0, dy));
@@ -295,9 +305,12 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       drag.dy > InlinePlayerComponent.MINIMIZE_DRAG_PX ||
       (drag.speed > InlinePlayerComponent.MINIMIZE_FLICK_SPEED &&
         drag.dy > InlinePlayerComponent.MINIMIZE_FLICK_PX);
-    if (minimise) {
+    if (minimise && drag.playing) {
       // Leaves the page; the video carries on from where the finger left it.
       this.minimize.emit();
+    } else if (minimise) {
+      // Paused: closes. The video fades away, then the page goes (back).
+      void this.sharedVideo.dismissLifted().then(() => this.minimize.emit());
     } else if (drag.lifted) {
       this.sharedVideo.dropBack();
       this.pageFade.cancel();

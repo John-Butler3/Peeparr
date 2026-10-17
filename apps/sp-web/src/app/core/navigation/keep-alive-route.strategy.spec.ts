@@ -59,4 +59,18 @@ describe('KeepAliveRouteStrategy', () => {
       ),
     ).toBe(true);
   });
+
+  it("never lets the miniplayer's scene page go, however many come after it", () => {
+    const keep = strategy();
+    const scene = handle();
+    keep.store(route('library/scene/:sceneId', 'library/scene/412'), scene);
+    keep.pin('/library/scene/412?autoplay=1');
+
+    for (let i = 0; i < KeepAliveRouteStrategy.MAX_PAGES + 3; i++) {
+      keep.store(route('performer/:performerId', `performer/${i}`), handle());
+    }
+
+    expect(scene.componentRef.destroy).not.toHaveBeenCalled();
+    expect(keep.shouldAttach(route('library/scene/:sceneId', 'library/scene/412'))).toBe(true);
+  });
 });

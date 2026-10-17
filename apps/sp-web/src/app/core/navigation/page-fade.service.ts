@@ -65,22 +65,31 @@ export class PageFadeService {
    * it was. True if it's there.
    */
   revealBehind(): boolean {
+    const previous = this.history.previous();
+    return !!previous && this.revealPage(previous.url) !== null;
+  }
+
+  /**
+   * Puts a kept page (by URL) behind this one, as it was: for a page about
+   * to be gone to by a drag (swiping up the miniplayer to its scene). The
+   * page's element, or null if it isn't kept.
+   */
+  revealPage(url: string): HTMLElement | null {
     if (this.behind) {
-      return true;
+      return this.behind;
     }
     const area = this.area;
     const page = this.currentPage();
-    const previous = this.history.previous();
     const strategy =
       this.reuseStrategy instanceof KeepAliveRouteStrategy ? this.reuseStrategy : null;
-    const behind = previous ? strategy?.peekPage(previous.url) : null;
-    if (!area || !page || !behind || !previous || behind.isConnected) {
-      return false;
+    const behind = strategy?.peekPage(url) ?? null;
+    if (!area || !page || !behind || behind.isConnected) {
+      return null;
     }
-    // Where it'll be once you're back: where it started, scrolled as you left it.
+    // Where it'll be once there: where it started, scrolled as it was left.
     const rect = page.getBoundingClientRect();
-    const pageTop = this.pageTops.get(pathOf(previous.url)) ?? rect.top + window.scrollY;
-    const top = pageTop - this.scrollMemory.savedPosition(previous.url);
+    const pageTop = this.pageTops.get(pathOf(url)) ?? rect.top + window.scrollY;
+    const top = pageTop - this.scrollMemory.savedPosition(url);
     behind.classList.add('page-behind');
     Object.assign(behind.style, {
       position: 'fixed',
@@ -99,7 +108,7 @@ export class PageFadeService {
     this.page = page;
     area.appendChild(behind);
     this.behind = behind;
-    return true;
+    return behind;
   }
 
   /** Fades the page with a drag (0 to 1 of the way). */

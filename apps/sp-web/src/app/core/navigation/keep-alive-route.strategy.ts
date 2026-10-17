@@ -40,10 +40,17 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
   /** The page element most recently handed back to the router. */
   private retrievedElement: HTMLElement | null = null;
 
+  /** The miniplayer's scene: kept however many pages come after it. */
+  private pinned: string | null = null;
+
   /** A kept page's element (out of the document), by URL; null if not kept. */
   peekPage(url: string): HTMLElement | null {
-    const key = url.split(/[?#]/)[0].replace(/^\/+/, '');
-    return elementOf(this.pages.get(key) ?? null);
+    return elementOf(this.pages.get(urlKey(url)) ?? null);
+  }
+
+  /** Keeps this page (by URL) whatever else is kept, or stops (null). */
+  pin(url: string | null): void {
+    this.pinned = url ? urlKey(url) : null;
   }
 
   /** Whether this element is the page the router has just brought back. */
@@ -62,13 +69,15 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
       return;
     }
     this.pages.set(key, handle);
-    while (this.pages.size > KeepAliveRouteStrategy.MAX_PAGES) {
-      const [oldestKey, oldest] = this.pages.entries().next().value as [
-        string,
-        DetachedRouteHandle,
-      ];
-      this.pages.delete(oldestKey);
-      destroy(oldest);
+    // The oldest go, but never the pinned one (it doesn't count).
+    const unpinned = () => this.pages.size - (this.pinned && this.pages.has(this.pinned) ? 1 : 0);
+    while (unpinned() > KeepAliveRouteStrategy.MAX_PAGES) {
+      const oldest = [...this.pages.entries()].find(([key]) => key !== this.pinned);
+      if (!oldest) {
+        break;
+      }
+      this.pages.delete(oldest[0]);
+      destroy(oldest[1]);
     }
   }
 
@@ -81,6 +90,11 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
     this.retrievedElement = elementOf(handle);
     return handle;
   }
+}
+
+/** A URL as a page key: its path, without the leading slash or query. */
+function urlKey(url: string): string {
+  return url.split(/[?#]/)[0].replace(/^\/+/, '');
 }
 
 /** The page's path with its ids filled in (no query parameters). */
