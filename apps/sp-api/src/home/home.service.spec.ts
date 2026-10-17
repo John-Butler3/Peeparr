@@ -1634,6 +1634,15 @@ describe('HomeService', () => {
       expect(stashGetRandomUnwatchedScenesMock).not.toHaveBeenCalled();
     });
 
+    it('tries again next time when there were no unwatched picks', async () => {
+      configureStash();
+
+      await service.getHero();
+      await service.getHero();
+
+      expect(stashGetRandomUnwatchedScenesMock).toHaveBeenCalledTimes(2);
+    });
+
     it('keeps its unwatched picks between Home refreshes', async () => {
       configureStash();
       stashGetRandomUnwatchedScenesMock.mockResolvedValue(

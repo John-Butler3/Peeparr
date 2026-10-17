@@ -689,11 +689,7 @@ export class StashAdapter {
 
     return scenes
       .map((scene) =>
-        this.toContinueWatchingItem(
-          scene,
-          config.baseUrl,
-          activeCatalogProviderKey,
-        ),
+        this.toUnwatchedItem(scene, config.baseUrl, activeCatalogProviderKey),
       )
       .filter((scene): scene is StashContinueWatchingItem => scene !== null);
   }
@@ -1837,6 +1833,37 @@ export class StashAdapter {
       activeCatalogSceneId,
       resumeSeconds,
       progressPercent,
+    };
+  }
+
+  // An unwatched scene: as a continue-watching item, but with no progress
+  // (toContinueWatchingItem keeps only scenes part-way through).
+  private toUnwatchedItem(
+    scene: StashLocalSceneRecord,
+    baseUrl: string,
+    activeCatalogProviderKey: CatalogProviderKey | null,
+  ): StashContinueWatchingItem | null {
+    const feedItem = this.toLocalSceneFeedItem(scene, baseUrl);
+    if (!feedItem) {
+      return null;
+    }
+    const linkedEntries = Array.isArray(scene.stash_ids)
+      ? scene.stash_ids
+          .map((entry) => this.toLinkedSceneStashId(entry))
+          .filter((entry): entry is StashLinkedSceneStashId => entry !== null)
+      : [];
+    const activeCatalogSceneId = activeCatalogProviderKey
+      ? findCatalogExternalIdForProvider(
+          this.toLinkedCatalogRefs(linkedEntries),
+          activeCatalogProviderKey,
+        )
+      : null;
+
+    return {
+      ...feedItem,
+      activeCatalogSceneId,
+      resumeSeconds: 0,
+      progressPercent: 0,
     };
   }
 

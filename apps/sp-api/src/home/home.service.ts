@@ -307,10 +307,13 @@ export class HomeService {
         HomeService.HERO_UNWATCHED_CANDIDATES,
         await this.getOptionalCatalogProviderKey(),
       );
-      const items = scenes.map((scene) =>
-        this.toContinueWatchingRailItem(scene),
-      );
-      this.unwatchedPicks = { at: Date.now(), items };
+      // Not started: no progress line.
+      const items = scenes.map((scene) => ({
+        ...this.toContinueWatchingRailItem(scene),
+        progressPercent: null,
+      }));
+      // Kept only when there are some: an empty pick is tried again next time.
+      this.unwatchedPicks = items.length > 0 ? { at: Date.now(), items } : null;
       return items;
     } catch (error) {
       this.logger.warn(

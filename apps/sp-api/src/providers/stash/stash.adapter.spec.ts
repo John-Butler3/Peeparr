@@ -435,6 +435,53 @@ describe('StashAdapter', () => {
     expect(String(body.query)).toContain('paths');
   });
 
+  it('returns random never-played scenes for the Home banner (not only ones part-way through)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScenes: {
+              scenes: [
+                {
+                  id: '66',
+                  title: 'Never Watched',
+                  details: null,
+                  date: '2025-01-02',
+                  resume_time: 0,
+                  paths: { screenshot: 'http://stash.local/images/66.jpg' },
+                  studio: null,
+                  files: [{ width: 1920, height: 1080, duration: 1800 }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getRandomUnwatchedScenes(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      24,
+      null,
+    );
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: '66',
+        title: 'Never Watched',
+        resumeSeconds: 0,
+      }),
+    ]);
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.variables).toMatchObject({
+      filter: { page: 1, per_page: 24, sort: 'random' },
+      sceneFilter: {
+        play_count: { value: 0, modifier: 'EQUALS' },
+        resume_time: { value: 0, modifier: 'EQUALS' },
+      },
+    });
+  });
+
   it('returns in-progress scenes with a computed progress percentage', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
@@ -586,23 +633,48 @@ describe('StashAdapter', () => {
                   resume_time: 450,
                   play_count: 0,
                   stash_ids: [
-                    { endpoint: 'https://stashdb.org/graphql', stash_id: 'catalog-scene-1' },
+                    {
+                      endpoint: 'https://stashdb.org/graphql',
+                      stash_id: 'catalog-scene-1',
+                    },
                   ],
                   files: [{ duration: 1800 }],
                 },
-                { id: '412', resume_time: 1790, play_count: 0, files: [{ duration: 1800 }] },
-                { id: '413', resume_time: 0, play_count: 2, files: [{ duration: 1800 }] },
-                { id: '414', resume_time: 0, play_count: 0, files: [{ duration: 1800 }] },
+                {
+                  id: '412',
+                  resume_time: 1790,
+                  play_count: 0,
+                  files: [{ duration: 1800 }],
+                },
+                {
+                  id: '413',
+                  resume_time: 0,
+                  play_count: 2,
+                  files: [{ duration: 1800 }],
+                },
+                {
+                  id: '414',
+                  resume_time: 0,
+                  play_count: 0,
+                  files: [{ duration: 1800 }],
+                },
               ],
             },
           },
         }),
     } as Response);
 
-    const result = await adapter.getWatchProgress({ baseUrl: 'http://stash.local' }, 'STASHDB');
+    const result = await adapter.getWatchProgress(
+      { baseUrl: 'http://stash.local' },
+      'STASHDB',
+    );
 
     expect(result).toEqual([
-      { id: '411', activeCatalogSceneId: 'catalog-scene-1', progressPercent: 25 },
+      {
+        id: '411',
+        activeCatalogSceneId: 'catalog-scene-1',
+        progressPercent: 25,
+      },
       { id: '412', activeCatalogSceneId: null, progressPercent: 100 },
       { id: '413', activeCatalogSceneId: null, progressPercent: 100 },
     ]);
@@ -659,7 +731,9 @@ describe('StashAdapter', () => {
 
     const [, init] = fetchMock.mock.calls[0] ?? [];
     const body = JSON.parse(String(init?.body));
-    expect(String(body.query)).toContain('sceneResetActivity(id: $id, reset_resume: true, reset_duration: true)');
+    expect(String(body.query)).toContain(
+      'sceneResetActivity(id: $id, reset_resume: true, reset_duration: true)',
+    );
     expect(String(body.query)).toContain('sceneResetPlayCount(id: $id)');
     expect(body.variables).toEqual({ id: '411' });
   });
@@ -927,7 +1001,9 @@ describe('StashAdapter', () => {
                   image_count: 24,
                   created_at: '2026-05-01T00:00:00.000Z',
                   updated_at: '2026-05-02T00:00:00.000Z',
-                  cover: { paths: { thumbnail: 'http://stash.local/gal/1/cover.jpg' } },
+                  cover: {
+                    paths: { thumbnail: 'http://stash.local/gal/1/cover.jpg' },
+                  },
                   studio: {
                     id: 'studio-1',
                     name: 'Archive',
@@ -1021,7 +1097,9 @@ describe('StashAdapter', () => {
       { page: 1, perPage: 24 },
     );
 
-    expect(result.items[0]?.coverImageUrl).toBe('http://stash.local/gallery/1/cover');
+    expect(result.items[0]?.coverImageUrl).toBe(
+      'http://stash.local/gallery/1/cover',
+    );
   });
 
   it('derives a fallback title from the folder name when Stash has no title set', async () => {
@@ -1108,7 +1186,10 @@ describe('StashAdapter', () => {
   it('builds a gallery_filter from tag/studio ids and drops invalid ones', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ data: { findGalleries: { count: 0, galleries: [] } } }),
+      json: () =>
+        Promise.resolve({
+          data: { findGalleries: { count: 0, galleries: [] } },
+        }),
     } as Response);
 
     await adapter.getLocalGalleryFeed(
@@ -1157,7 +1238,11 @@ describe('StashAdapter', () => {
         baseUrl: 'http://stash.local',
         apiKey: 'secret',
       }),
-    ).resolves.toMatchObject({ id: 'gallery-1', title: 'Beach Day', imageCount: 24 });
+    ).resolves.toMatchObject({
+      id: 'gallery-1',
+      title: 'Beach Day',
+      imageCount: 24,
+    });
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -1272,7 +1357,9 @@ describe('StashAdapter', () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: () =>
-        Promise.resolve({ data: { performerUpdate: { id: 'local-performer-1' } } }),
+        Promise.resolve({
+          data: { performerUpdate: { id: 'local-performer-1' } },
+        }),
     } as Response);
 
     await adapter.setPerformerFavorite('local-performer-1', true, {
@@ -1724,7 +1811,10 @@ describe('StashAdapter', () => {
         json: () =>
           Promise.resolve({
             data: {
-              findPerformer: { id: 'performer-1', image_path: 'http://stash.local/p/1.jpg' },
+              findPerformer: {
+                id: 'performer-1',
+                image_path: 'http://stash.local/p/1.jpg',
+              },
             },
           }),
       } as Response)
