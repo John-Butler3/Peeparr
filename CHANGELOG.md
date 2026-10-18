@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.7.0](https://github.com/John-Butler3/Peeparr/compare/v1.6.0...v1.7.0) (2026-10-18)
+
+
+### Features
+
+* **player:** a Picture in picture button, on the scene page and the miniplayer ([71d2259](https://github.com/John-Butler3/Peeparr/commit/71d22591bed9f3bf52f5812836281dbb51689d30))
+* **player:** choose a lower video quality for slow connections ([f13e322](https://github.com/John-Butler3/Peeparr/commit/f13e322b87beec3c72956a4c4385a0ee07978d80))
+* **player:** leaving the app while a scene plays carries it on in picture-in-picture ([b2f6379](https://github.com/John-Butler3/Peeparr/commit/b2f6379404ceb29b6c19f4c0267a0767988adc41))
+* **player:** playback settings behind one button; picture-in-picture via Safari from the home screen ([bebfe57](https://github.com/John-Butler3/Peeparr/commit/bebfe57aa583cb633f0924c09b5fc1a6389709d7))
+* **player:** the quality menu shows a scene's original resolution ([15a07d3](https://github.com/John-Butler3/Peeparr/commit/15a07d32644cd5526c562c81af70380cafa137cf))
+* popular performers -- a row on Home, and Performers opens on them ([b7c30c5](https://github.com/John-Butler3/Peeparr/commit/b7c30c56b1e1559b72bceebe862b71c263a10692))
+* popular sites -- a row on Home, and Sites opens on them ([2facadd](https://github.com/John-Butler3/Peeparr/commit/2facaddffc6260f5c8d00077abeb6048a47dba76))
+
+
+### Bug Fixes
+
+* **home:** Continue Watching shows a scene as soon as you leave it ([73fee29](https://github.com/John-Butler3/Peeparr/commit/73fee29d39885ca4a889c9fdfd2e9c6f95b2afa9))
+* orange Play on a performer's page too (Pornhub creators' scenes) ([e2bd53a](https://github.com/John-Butler3/Peeparr/commit/e2bd53a972e91253b0d7a36aa259fe781b8e2c07))
+* **web:** swiping a playing scene down no longer stalls as it starts ([b1a7b80](https://github.com/John-Butler3/Peeparr/commit/b1a7b80d742ee4b1b725c6e718bbdb128e48bc97))
+
 ## [1.6.0](https://github.com/John-Butler3/Peeparr/compare/v1.5.0...v1.6.0) (2026-10-17)
 
 
