@@ -26,6 +26,7 @@ import {
 } from './dto/performers-query.dto';
 
 import { streamsFromPornhub } from '../scenes/streaming/pornhub-embed.util';
+import { TpdbWebService } from '../tpdb-web/tpdb-web.service';
 @Injectable()
 export class PerformersService {
   private static readonly DEFAULT_PAGE = 1;
@@ -44,6 +45,7 @@ export class PerformersService {
     private readonly performerImagePreferenceService: PerformerImagePreferenceService,
     private readonly integrationsService: IntegrationsService,
     private readonly stashAdapter: StashAdapter,
+    private readonly tpdbWebService: TpdbWebService,
   ) {}
 
   async getPerformersFeed(
@@ -105,6 +107,53 @@ export class PerformersService {
           sceneCount: performer.sceneCount,
           // isFavorite is locally-tracked, not the catalog provider's own
           // flag -- see PerformerFavoritesService for why.
+          isFavorite: favoriteIds.has(performer.id),
+          imageUrl,
+          cardImageUrl: withStashImageSize(imageUrl, 300),
+        };
+      }),
+    };
+  }
+
+  /**
+   * ThePornDB website's popular performers (read with the website login,
+   * like its popular scenes), in its order; none without it, or with
+   * another catalog.
+   */
+  async getPopularPerformers(): Promise<PerformerFeedResponseDto> {
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    const empty = { total: 0, page: 1, perPage: 0, hasMore: false, items: [] };
+    if (catalogProvider.integrationType !== 'TPDB') {
+      return empty;
+    }
+
+    const performers = await this.tpdbWebService.getPopularPerformers({
+      baseUrl: catalogProvider.baseUrl,
+      apiKey: catalogProvider.apiKey,
+    });
+    if (performers.length === 0) {
+      return empty;
+    }
+    const ids = performers.map((performer) => performer.id);
+    const [favoriteIds, mainImageOverrides] = await Promise.all([
+      this.performerFavoritesService.getFavoriteIds(ids),
+      this.performerImagePreferenceService.getMainImageUrls(ids),
+    ]);
+
+    return {
+      total: performers.length,
+      page: 1,
+      perPage: performers.length,
+      hasMore: false,
+      items: performers.map((performer) => {
+        const imageUrl =
+          mainImageOverrides.get(performer.id) ?? performer.imageUrl;
+        return {
+          id: performer.id,
+          name: performer.name,
+          gender: performer.gender,
+          sceneCount: performer.sceneCount,
           isFavorite: favoriteIds.has(performer.id),
           imageUrl,
           cardImageUrl: withStashImageSize(imageUrl, 300),

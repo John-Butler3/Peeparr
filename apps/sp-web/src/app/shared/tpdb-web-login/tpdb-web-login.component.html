@@ -30,10 +30,22 @@
         {{ busy() === 'save' ? 'Signing in...' : 'Save & sign in' }}
       </button>
       @if (status()?.configured) {
-        <button pButton type="button" class="p-button-secondary" [disabled]="busy() !== null" (click)="test()">
+        <button
+          pButton
+          type="button"
+          class="p-button-secondary"
+          [disabled]="busy() !== null"
+          (click)="test()"
+        >
           {{ busy() === 'test' ? 'Checking...' : 'Check now' }}
         </button>
-        <button pButton type="button" class="p-button-text" [disabled]="busy() !== null" (click)="remove()">
+        <button
+          pButton
+          type="button"
+          class="p-button-text"
+          [disabled]="busy() !== null"
+          (click)="remove()"
+        >
           Remove
         </button>
       }
@@ -53,7 +65,8 @@
       } @else if (s.popularFetchedAt) {
         <p class="state ok">
           <i class="pi pi-check-circle" aria-hidden="true"></i>
-          {{ s.popularCount }} popular scenes, read {{ s.popularFetchedAt | date: 'short' }}.
+          {{ s.popularCount }} popular scenes and {{ s.popularPerformerCount }} popular performers,
+          read {{ s.popularFetchedAt | date: 'short' }}.
         </p>
       } @else {
         <p class="state">Not read yet.</p>

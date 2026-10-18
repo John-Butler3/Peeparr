@@ -10,6 +10,8 @@ import { PerformerFavoritesService } from './performer-favorites.service';
 import { PerformerImagePreferenceService } from './performer-image-preference.service';
 import { PerformersService } from './performers.service';
 
+import { TpdbWebService } from '../tpdb-web/tpdb-web.service';
+
 describe('PerformersService', () => {
   const catalogProviderService = {
     getConfiguredCatalogProvider: jest.fn(),
@@ -69,6 +71,8 @@ describe('PerformersService', () => {
     apiKey: 'stash-key',
   };
 
+  const tpdbWebService = { getPopularPerformers: jest.fn() };
+
   let service: PerformersService;
 
   beforeEach(() => {
@@ -81,6 +85,7 @@ describe('PerformersService', () => {
       performerImagePreferenceService,
       integrationsService,
       stashAdapter,
+      tpdbWebService as unknown as TpdbWebService,
     );
 
     performerImagePreferenceService.getMainImageUrl = jest

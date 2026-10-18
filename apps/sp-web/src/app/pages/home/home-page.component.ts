@@ -17,6 +17,7 @@ import { DiscoverService } from '../../core/api/discover.service';
 import { SearchSuggestComponent } from '../../shared/search-suggest/search-suggest.component';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
+  PerformerFeedItem,
   SceneExplorerItem,
   SceneRequestContext,
   isSceneStatusRequestable,
@@ -82,6 +83,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   protected readonly favoriteReleaseItems = signal<SceneExplorerItem[]>([]);
   // ThePornDB website's popular scenes (top of Home); empty when unavailable.
   protected readonly popularItems = signal<SceneExplorerItem[]>([]);
+  protected readonly popularPerformers = signal<PerformerFeedItem[]>([]);
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly pageAlert = computed(() =>
@@ -184,6 +186,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .getPopularScenes()
       .pipe(catchError(() => of({ items: [] as SceneExplorerItem[] })))
       .subscribe((response) => this.popularItems.set(response.items));
+    this.discoverService
+      .getPopularPerformers()
+      .pipe(catchError(() => of({ items: [] as PerformerFeedItem[] })))
+      .subscribe((response) => this.popularPerformers.set(response.items));
   }
 
   ngOnDestroy(): void {

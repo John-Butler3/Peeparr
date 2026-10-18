@@ -6,10 +6,12 @@ export interface TpdbWebStatus {
   configured: boolean;
   email: string | null;
   popularCount: number;
+  popularPerformerCount: number;
   popularFetchedAt: string | null;
   lastAttemptAt: string | null;
   lastError: string | null;
   sourcePath: string | null;
+  performerSourcePath: string | null;
 }
 
 // The optional ThePornDB website login (for its members-only popular scenes).

@@ -2,7 +2,10 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, type TpdbWebAccount } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
-import { type StashdbScene } from '../providers/stashdb/stashdb.adapter';
+import {
+  type StashdbPerformerFeedItem,
+  type StashdbScene,
+} from '../providers/stashdb/stashdb.adapter';
 
 type CookieJar = Record<string, string>;
 
@@ -17,17 +20,21 @@ export interface TpdbWebStatus {
   configured: boolean;
   email: string | null;
   popularCount: number;
+  popularPerformerCount: number;
   popularFetchedAt: string | null;
   lastAttemptAt: string | null;
   lastError: string | null;
   sourcePath: string | null;
+  performerSourcePath: string | null;
 }
 
 /**
  * ThePornDB's "popular scenes" are only on its members' homepage (no API
  * for them). With a website login saved, this signs in (keeping the
  * session), reads the homepage's embedded page data, takes the scene ids
- * from its popular list and resolves them through the real API.
+ * from its popular list and resolves them through the real API. Popular
+ * performers the same way: a list of them on the homepage, else on the
+ * website's performers page.
  *
  * The website is hit rarely: the session is reused (a fresh sign-in only
  * when it has expired), the homepage at most every CACHE_TTL_MS, and after
@@ -41,13 +48,21 @@ export class TpdbWebService {
   static readonly RETRY_AFTER_FAILURE_MS = 60 * 60 * 1000;
   static readonly REQUEST_TIMEOUT_MS = 20_000;
   static readonly MAX_SCENES = 60;
+  static readonly MAX_PERFORMERS = 60;
   private static readonly USER_AGENT =
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
   private readonly logger = new Logger(TpdbWebService.name);
   private refreshing: Promise<void> | null = null;
   // Scenes resolved through the API for the current id list.
-  private resolved: { key: string; scenes: StashdbScene[]; at: number } | null = null;
+  private resolved: { key: string; scenes: StashdbScene[]; at: number } | null =
+    null;
+  // Performers resolved through the API for the current id list.
+  private resolvedPerformers: {
+    key: string;
+    performers: StashdbPerformerFeedItem[];
+    at: number;
+  } | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,22 +70,28 @@ export class TpdbWebService {
   ) {}
 
   async getStatus(): Promise<TpdbWebStatus> {
-    const account = await this.prisma.tpdbWebAccount.findUnique({ where: { id: 1 } });
+    const account = await this.prisma.tpdbWebAccount.findUnique({
+      where: { id: 1 },
+    });
     return {
       configured: !!account,
       email: account?.email ?? null,
       popularCount: account?.popularSceneIds.length ?? 0,
+      popularPerformerCount: account?.popularPerformerIds?.length ?? 0,
       popularFetchedAt: account?.popularFetchedAt?.toISOString() ?? null,
       lastAttemptAt: account?.lastAttemptAt?.toISOString() ?? null,
       lastError: account?.lastError ?? null,
       sourcePath: account?.popularSourcePath ?? null,
+      performerSourcePath: account?.popularPerformerSourcePath ?? null,
     };
   }
 
   /** Saves the login (password kept when left blank) and forgets the old session. */
   async saveAccount(email: string, password?: string): Promise<TpdbWebStatus> {
     const trimmedEmail = email.trim();
-    const existing = await this.prisma.tpdbWebAccount.findUnique({ where: { id: 1 } });
+    const existing = await this.prisma.tpdbWebAccount.findUnique({
+      where: { id: 1 },
+    });
     const nextPassword = password ? password : existing?.password;
     if (!trimmedEmail || !nextPassword) {
       throw new BadRequestException('Email and password are required.');
@@ -87,6 +108,7 @@ export class TpdbWebService {
           ? {
               sessionCookies: Prisma.JsonNull,
               popularSceneIds: [],
+              popularPerformerIds: [],
               popularFetchedAt: null,
               lastAttemptAt: null,
               lastError: null,
@@ -95,17 +117,21 @@ export class TpdbWebService {
       },
     });
     this.resolved = null;
+    this.resolvedPerformers = null;
     return this.getStatus();
   }
 
   async removeAccount(): Promise<void> {
     await this.prisma.tpdbWebAccount.deleteMany({});
     this.resolved = null;
+    this.resolvedPerformers = null;
   }
 
   /** Signs in and reads the homepage now (ignoring the cache); returns the result. */
   async refreshNow(): Promise<TpdbWebStatus> {
-    const account = await this.prisma.tpdbWebAccount.findUnique({ where: { id: 1 } });
+    const account = await this.prisma.tpdbWebAccount.findUnique({
+      where: { id: 1 },
+    });
     if (!account) {
       throw new BadRequestException('No TPDB website login saved.');
     }
@@ -119,8 +145,13 @@ export class TpdbWebService {
    * there's no login or it isn't working. Serves the cached list straight
    * away and refreshes it in the background when it's due.
    */
-  async getPopularScenes(apiConfig: { baseUrl: string; apiKey: string | null }): Promise<StashdbScene[]> {
-    let account = await this.prisma.tpdbWebAccount.findUnique({ where: { id: 1 } });
+  async getPopularScenes(apiConfig: {
+    baseUrl: string;
+    apiKey: string | null;
+  }): Promise<StashdbScene[]> {
+    let account = await this.prisma.tpdbWebAccount.findUnique({
+      where: { id: 1 },
+    });
     if (!account) {
       return [];
     }
@@ -130,7 +161,9 @@ export class TpdbWebService {
       if (account.popularSceneIds.length === 0) {
         // Nothing cached yet: wait for the first fetch.
         await refresh;
-        account = await this.prisma.tpdbWebAccount.findUnique({ where: { id: 1 } });
+        account = await this.prisma.tpdbWebAccount.findUnique({
+          where: { id: 1 },
+        });
         if (!account) {
           return [];
         }
@@ -140,13 +173,87 @@ export class TpdbWebService {
     return this.resolveScenes(account.popularSceneIds, apiConfig);
   }
 
+  /**
+   * The website's popular performers, resolved through the API; empty when
+   * there's no login, it isn't working, or the website shows none.
+   */
+  async getPopularPerformers(apiConfig: {
+    baseUrl: string;
+    apiKey: string | null;
+  }): Promise<StashdbPerformerFeedItem[]> {
+    let account = await this.prisma.tpdbWebAccount.findUnique({
+      where: { id: 1 },
+    });
+    if (!account) {
+      return [];
+    }
+
+    if (this.isDue(account)) {
+      const refresh = this.refresh(account).catch(() => undefined);
+      if (!account.popularFetchedAt) {
+        // Never read yet: wait for the first fetch.
+        await refresh;
+        account = await this.prisma.tpdbWebAccount.findUnique({
+          where: { id: 1 },
+        });
+        if (!account) {
+          return [];
+        }
+      }
+    }
+
+    return this.resolvePerformers(account.popularPerformerIds ?? [], apiConfig);
+  }
+
+  private async resolvePerformers(
+    ids: string[],
+    apiConfig: { baseUrl: string; apiKey: string | null },
+  ): Promise<StashdbPerformerFeedItem[]> {
+    const key = ids.join(',');
+    if (!key) {
+      return [];
+    }
+    const cached = this.resolvedPerformers;
+    if (
+      cached?.key === key &&
+      Date.now() - cached.at < TpdbWebService.CACHE_TTL_MS
+    ) {
+      return cached.performers;
+    }
+
+    const performers: StashdbPerformerFeedItem[] = [];
+    // A few at a time, to go easy on the API.
+    for (let index = 0; index < ids.length; index += 6) {
+      const batch = await Promise.all(
+        ids
+          .slice(index, index + 6)
+          .map((id) => this.tpdbAdapter.getFeedPerformerById(id, apiConfig)),
+      );
+      performers.push(
+        ...batch.filter(
+          (performer): performer is StashdbPerformerFeedItem =>
+            performer !== null,
+        ),
+      );
+    }
+
+    this.resolvedPerformers = { key, performers, at: Date.now() };
+    return performers;
+  }
+
   private isDue(account: TpdbWebAccount): boolean {
     const now = Date.now();
     if (account.lastError && account.lastAttemptAt) {
-      return now - account.lastAttemptAt.getTime() > TpdbWebService.RETRY_AFTER_FAILURE_MS;
+      return (
+        now - account.lastAttemptAt.getTime() >
+        TpdbWebService.RETRY_AFTER_FAILURE_MS
+      );
     }
 
-    return !account.popularFetchedAt || now - account.popularFetchedAt.getTime() > TpdbWebService.CACHE_TTL_MS;
+    return (
+      !account.popularFetchedAt ||
+      now - account.popularFetchedAt.getTime() > TpdbWebService.CACHE_TTL_MS
+    );
   }
 
   private async resolveScenes(
@@ -157,7 +264,10 @@ export class TpdbWebService {
     if (!key) {
       return [];
     }
-    if (this.resolved?.key === key && Date.now() - this.resolved.at < TpdbWebService.CACHE_TTL_MS) {
+    if (
+      this.resolved?.key === key &&
+      Date.now() - this.resolved.at < TpdbWebService.CACHE_TTL_MS
+    ) {
       return this.resolved.scenes;
     }
 
@@ -169,7 +279,9 @@ export class TpdbWebService {
           .slice(index, index + 6)
           .map((id) => this.tpdbAdapter.getFeedSceneById(id, apiConfig)),
       );
-      scenes.push(...batch.filter((scene): scene is StashdbScene => scene !== null));
+      scenes.push(
+        ...batch.filter((scene): scene is StashdbScene => scene !== null),
+      );
     }
 
     this.resolved = { key, scenes, at: Date.now() };
@@ -187,7 +299,9 @@ export class TpdbWebService {
   }
 
   private async performRefresh(account: TpdbWebAccount): Promise<void> {
-    const jar: CookieJar = { ...((account.sessionCookies as CookieJar | null) ?? {}) };
+    const jar: CookieJar = {
+      ...((account.sessionCookies as CookieJar | null) ?? {}),
+    };
     try {
       let home = await this.getPage('/', jar);
       if (this.isSignInPage(home)) {
@@ -198,11 +312,15 @@ export class TpdbWebService {
         throw new Error('Signed in, but TPDB still shows the sign-in page.');
       }
 
-      const found = this.findSceneList(home.props);
+      const found = this.findList(home.props, 'scene');
       if (!found) {
         const keys = Object.keys(home.props).join(', ');
-        throw new Error(`Couldn't find a scene list on the TPDB homepage (page "${home.component}", data: ${keys}).`);
+        throw new Error(
+          `Couldn't find a scene list on the TPDB homepage (page "${home.component}", data: ${keys}).`,
+        );
       }
+
+      const performers = await this.findPopularPerformers(home, jar);
 
       await this.prisma.tpdbWebAccount.update({
         where: { id: 1 },
@@ -210,18 +328,32 @@ export class TpdbWebService {
           sessionCookies: jar,
           popularSceneIds: found.ids.slice(0, TpdbWebService.MAX_SCENES),
           popularSourcePath: found.path,
+          popularPerformerIds:
+            performers?.ids.slice(0, TpdbWebService.MAX_PERFORMERS) ?? [],
+          popularPerformerSourcePath: performers?.path ?? null,
           popularFetchedAt: new Date(),
           lastAttemptAt: new Date(),
           lastError: null,
         },
       });
-      this.logger.log(`Read ${found.ids.length} popular scenes from the TPDB homepage (${found.path}).`);
+      this.logger.log(
+        `Read ${found.ids.length} popular scenes from the TPDB homepage (${found.path}).`,
+      );
+      this.logger.log(
+        performers
+          ? `Read ${performers.ids.length} popular performers from the TPDB website (${performers.path}).`
+          : 'Found no popular performers on the TPDB website (homepage or performers page).',
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`TPDB website: ${message}`);
       await this.prisma.tpdbWebAccount.update({
         where: { id: 1 },
-        data: { sessionCookies: jar, lastAttemptAt: new Date(), lastError: message },
+        data: {
+          sessionCookies: jar,
+          lastAttemptAt: new Date(),
+          lastError: message,
+        },
       });
       throw error;
     }
@@ -237,7 +369,9 @@ export class TpdbWebService {
     const loginPage = await this.getPage('/login', jar);
     const xsrf = jar['XSRF-TOKEN'];
     if (!xsrf) {
-      throw new Error('TPDB sign-in page gave no XSRF token (the site may have changed).');
+      throw new Error(
+        'TPDB sign-in page gave no XSRF token (the site may have changed).',
+      );
     }
 
     const response = await this.request('/login', jar, {
@@ -247,17 +381,28 @@ export class TpdbWebService {
         Accept: 'text/html, application/xhtml+xml',
         'X-Requested-With': 'XMLHttpRequest',
         'X-Inertia': 'true',
-        ...(loginPage.version ? { 'X-Inertia-Version': loginPage.version } : {}),
+        ...(loginPage.version
+          ? { 'X-Inertia-Version': loginPage.version }
+          : {}),
         'X-XSRF-TOKEN': decodeURIComponent(xsrf),
         Origin: TpdbWebService.SITE,
         Referer: `${TpdbWebService.SITE}/login`,
       },
-      body: JSON.stringify({ email: account.email, password: account.password, remember: true }),
+      body: JSON.stringify({
+        email: account.email,
+        password: account.password,
+        remember: true,
+      }),
     });
 
-    const location = response.headers.get('location') ?? response.headers.get('x-inertia-location') ?? '';
+    const location =
+      response.headers.get('location') ??
+      response.headers.get('x-inertia-location') ??
+      '';
     if (/two-factor/i.test(location)) {
-      throw new Error('This TPDB account uses two-factor sign-in, which Peeparr can\'t complete.');
+      throw new Error(
+        "This TPDB account uses two-factor sign-in, which Peeparr can't complete.",
+      );
     }
     if (response.status === 429) {
       throw new Error('TPDB is rate-limiting sign-ins; will try again later.');
@@ -265,9 +410,40 @@ export class TpdbWebService {
     if (/\/login/.test(location)) {
       // Back to the form: read its error message.
       const again = await this.getPage('/login', jar);
-      const errors = again.props['errors'] as Record<string, string | string[]> | undefined;
+      const errors = again.props['errors'] as
+        | Record<string, string | string[]>
+        | undefined;
       const message = errors ? Object.values(errors).flat()[0] : null;
-      throw new Error(`TPDB sign-in failed: ${message ?? 'wrong email or password?'}`);
+      throw new Error(
+        `TPDB sign-in failed: ${message ?? 'wrong email or password?'}`,
+      );
+    }
+  }
+
+  /**
+   * A list of performers on the homepage, else on the website's performers
+   * page (its own order). Null if neither has one -- the scenes are still
+   * kept.
+   */
+  private async findPopularPerformers(
+    home: InertiaPage,
+    jar: CookieJar,
+  ): Promise<{ path: string; ids: string[] } | null> {
+    const onHome = this.findList(home.props, 'performer');
+    if (onHome && /performer/i.test(onHome.path)) {
+      return { path: `/ ${onHome.path}`, ids: onHome.ids };
+    }
+    try {
+      const page = await this.getPage('/performers', jar);
+      const listed = this.findList(page.props, 'performer');
+      return listed
+        ? { path: `/performers ${listed.path}`, ids: listed.ids }
+        : null;
+    } catch (error) {
+      this.logger.warn(
+        `TPDB performers page: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
     }
   }
 
@@ -276,11 +452,22 @@ export class TpdbWebService {
   }
 
   /**
-   * The best-looking list of scenes in the page data: arrays of objects with
-   * a title and an id, preferring a "popular" one (then trending / top).
+   * The best-looking list of scenes (objects with a title and an id) or
+   * performers (a name and an id, no title) in the page data, preferring a
+   * "popular" one (then trending / top) named for its kind.
    */
-  private findSceneList(props: Record<string, unknown>): { path: string; ids: string[] } | null {
-    const candidates: Array<{ path: string; items: Record<string, unknown>[] }> = [];
+  private findList(
+    props: Record<string, unknown>,
+    kind: 'scene' | 'performer',
+  ): { path: string; ids: string[] } | null {
+    const isItem = (item: Record<string, unknown>) =>
+      kind === 'scene'
+        ? typeof item['title'] === 'string'
+        : typeof item['name'] === 'string' && typeof item['title'] !== 'string';
+    const candidates: Array<{
+      path: string;
+      items: Record<string, unknown>[];
+    }> = [];
     const walk = (value: unknown, path: string, depth: number) => {
       if (depth > 6 || value === null || typeof value !== 'object') {
         return;
@@ -288,12 +475,23 @@ export class TpdbWebService {
       if (Array.isArray(value)) {
         const items = value.filter(
           (item): item is Record<string, unknown> =>
-            !!item && typeof item === 'object' && typeof (item as Record<string, unknown>)['title'] === 'string',
+            !!item &&
+            typeof item === 'object' &&
+            isItem(item as Record<string, unknown>),
         );
-        if (items.length >= 3 && items.length >= value.length * 0.8 && items.some((item) => this.sceneId(item))) {
+        // (Not a list inside another's items: a scene's own performers.)
+        const nested = kind === 'performer' && path.includes('[');
+        if (
+          !nested &&
+          items.length >= 3 &&
+          items.length >= value.length * 0.8 &&
+          items.some((item) => this.sceneId(item))
+        ) {
           candidates.push({ path, items });
         }
-        value.forEach((item, index) => walk(item, `${path}[${index}]`, depth + 1));
+        value.forEach((item, index) =>
+          walk(item, `${path}[${index}]`, depth + 1),
+        );
         return;
       }
       for (const [key, child] of Object.entries(value)) {
@@ -302,21 +500,34 @@ export class TpdbWebService {
     };
     walk(props, '', 0);
 
+    const others =
+      kind === 'scene'
+        ? /movie|performer|site|jav/i
+        : /scene|movie|site|studio|jav|tag/i;
     const score = (path: string) =>
-      (/popular/i.test(path) ? 100 : /trend|top|hot|most/i.test(path) ? 50 : 0) +
-      (/scene/i.test(path) ? 10 : 0) -
-      (/movie|performer|site|jav/i.test(path) ? 40 : 0);
-    candidates.sort((a, b) => score(b.path) - score(a.path) || b.items.length - a.items.length);
+      (/popular/i.test(path)
+        ? 100
+        : /trend|top|hot|most/i.test(path)
+          ? 50
+          : 0) +
+      (new RegExp(kind, 'i').test(path) ? 10 : 0) -
+      (others.test(path) ? 40 : 0);
+    candidates.sort(
+      (a, b) =>
+        score(b.path) - score(a.path) || b.items.length - a.items.length,
+    );
     const best = candidates[0];
     if (!best) {
       return null;
     }
 
-    const ids = best.items.map((item) => this.sceneId(item)).filter((id): id is string => !!id);
+    const ids = best.items
+      .map((item) => this.sceneId(item))
+      .filter((id): id is string => !!id);
     return { path: best.path, ids: [...new Set(ids)] };
   }
 
-  // TPDB API scene ids are uuids; take the page's uuid, else whatever id it has.
+  // TPDB API ids (scenes', performers') are uuids; take the page's uuid, else whatever id it has.
   private sceneId(item: Record<string, unknown>): string | null {
     for (const key of ['uuid', 'id', '_id', 'slug']) {
       const value = item[key];
@@ -347,15 +558,22 @@ export class TpdbWebService {
       break;
     }
     if (!response || !response.ok) {
-      throw new Error(`TPDB website answered ${response?.status ?? 'nothing'} for ${path}.`);
+      throw new Error(
+        `TPDB website answered ${response?.status ?? 'nothing'} for ${path}.`,
+      );
     }
 
     const html = await response.text();
-    const inScript = html.match(/<script[^>]*data-page[^>]*>([\s\S]*?)<\/script>/);
+    const inScript = html.match(
+      /<script[^>]*data-page[^>]*>([\s\S]*?)<\/script>/,
+    );
     const inAttribute = html.match(/data-page="([^"]+)"/);
-    const raw = inScript?.[1] ?? (inAttribute ? this.unescapeHtml(inAttribute[1]) : null);
+    const raw =
+      inScript?.[1] ?? (inAttribute ? this.unescapeHtml(inAttribute[1]) : null);
     if (!raw) {
-      throw new Error('TPDB page had no page data (the site may have changed).');
+      throw new Error(
+        'TPDB page had no page data (the site may have changed).',
+      );
     }
 
     const page = JSON.parse(raw) as Partial<InertiaPage>;
@@ -367,7 +585,11 @@ export class TpdbWebService {
     };
   }
 
-  private async request(url: string, jar: CookieJar, init: RequestInit): Promise<Response> {
+  private async request(
+    url: string,
+    jar: CookieJar,
+    init: RequestInit,
+  ): Promise<Response> {
     const absolute = new URL(url, TpdbWebService.SITE).toString();
     if (!absolute.startsWith(TpdbWebService.SITE)) {
       throw new Error('Refusing to follow a redirect off theporndb.net.');

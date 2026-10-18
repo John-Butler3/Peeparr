@@ -222,6 +222,60 @@
     </section>
   }
 
+  <!-- ThePornDB's popular performers (the same website login). -->
+  @if (popularPerformers().length > 0) {
+    <section class="rail-section" data-testid="home-popular-performers">
+      <header class="rail-head">
+        <div class="rail-copy">
+          <p class="rail-kicker">Popular on ThePornDB</p>
+          <h2>Popular performers</h2>
+        </div>
+
+        <div class="rail-actions app-action-row">
+          <a class="see-all-link" [routerLink]="['/performers']">See all</a>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('popular-performers', 'prev')"
+            aria-label="Scroll Popular performers left"
+          >
+            <i class="pi pi-angle-left" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('popular-performers', 'next')"
+            aria-label="Scroll Popular performers right"
+          >
+            <i class="pi pi-angle-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="rail-viewport" #railViewport data-rail-id="popular-performers">
+        <div class="rail-track performer-track">
+          @for (performer of popularPerformers(); track performer.id) {
+            <a class="performer-tile" [routerLink]="['/performer', performer.id]">
+              @if (performer.cardImageUrl || performer.imageUrl) {
+                <img
+                  class="performer-face"
+                  [src]="performer.cardImageUrl ?? performer.imageUrl"
+                  [alt]="performer.name"
+                  loading="lazy"
+                />
+              } @else {
+                <span class="performer-face placeholder" aria-hidden="true">{{
+                  performer.name.charAt(0).toUpperCase()
+                }}</span>
+              }
+              <span class="performer-name">{{ performer.name }}</span>
+            </a>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
   @if (loading()) {
     <div class="home-state loading app-state-block" role="status" aria-live="polite">
       <p-progressspinner

@@ -104,10 +104,9 @@ export class DiscoverService {
       params = params.set('copyId', copyId);
     }
 
-    return this.http.get<ScenePlaybackSource>(
-      `/api/scenes/${encodeURIComponent(stashId)}/stream`,
-      { params },
-    );
+    return this.http.get<ScenePlaybackSource>(`/api/scenes/${encodeURIComponent(stashId)}/stream`, {
+      params,
+    });
   }
 
   getSceneRequestOptions(stashId: string): Observable<SceneRequestOptions> {
@@ -206,6 +205,11 @@ export class DiscoverService {
       `/api/performers/${encodeURIComponent(performerId)}/scenes`,
       { params },
     );
+  }
+
+  /** ThePornDB website's popular performers (empty without a website login). */
+  getPopularPerformers(): Observable<PerformerFeedResponse> {
+    return this.http.get<PerformerFeedResponse>('/api/performers/popular');
   }
 
   searchPerformerStudios(query: string): Observable<PerformerStudioOption[]> {

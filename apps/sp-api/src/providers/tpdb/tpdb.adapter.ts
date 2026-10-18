@@ -636,6 +636,31 @@ export class TpdbAdapter implements CatalogAdapter {
   }
 
   /**
+   * One performer by id (TPDB uuid, numeric id or slug), shaped like a feed
+   * entry -- for the website's popular performers. Null when TPDB doesn't
+   * know them.
+   */
+  async getFeedPerformerById(
+    performerId: string,
+    config: StashdbAdapterBaseConfig,
+  ): Promise<StashdbPerformerFeedItem | null> {
+    try {
+      const payload = await this.fetchJson(
+        this.resolveUrl(
+          config.baseUrl,
+          `performers/${encodeURIComponent(performerId)}`,
+        ),
+        config,
+      );
+      return this.mapPerformerListEntry(
+        (payload as Record<string, unknown>)?.data ?? payload,
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * One scene by id (TPDB uuid, numeric id or slug), shaped like a feed
    * entry -- for lists built outside TPDB's own feed (e.g. the website's
    * popular scenes). Null when TPDB doesn't know it.

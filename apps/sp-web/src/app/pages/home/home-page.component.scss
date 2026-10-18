@@ -172,25 +172,7 @@ p {
   color: var(--text-primary);
 }
 
-
-
-
-
-
-
-
-
-
-
-
 // "Show more" at the end of a group.
-
-
-
-
-
-
-
 
 .state-button.secondary {
   background: var(--surface-hero-button-secondary-background);
@@ -543,5 +525,55 @@ p {
 
   .hero-grid {
     padding: 1.1rem 0.95rem;
+  }
+}
+
+// Popular performers: round faces with names, narrower than scene cards.
+.rail-track.performer-track {
+  grid-auto-columns: 112px;
+}
+
+.performer-tile {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  align-content: start;
+  min-width: 0;
+  color: var(--text-primary);
+  text-align: center;
+  text-decoration: none;
+  scroll-snap-align: start;
+}
+
+.performer-face {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 20%;
+  background: var(--surface-2);
+}
+
+.performer-face.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.performer-name {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 900px) {
+  .rail-track.performer-track {
+    grid-auto-columns: 96px;
   }
 }

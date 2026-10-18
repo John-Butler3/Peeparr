@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { DiscoverResponseDto } from '../discover/dto/discover-item.dto';
 import { PerformerDetailsDto } from './dto/performer-details.dto';
 import { PerformerFeedResponseDto } from './dto/performer-feed-response.dto';
@@ -25,6 +33,13 @@ export class PerformersController {
       direction: query.direction,
       favoritesOnly: query.favoritesOnly,
     });
+  }
+
+  // ThePornDB website's popular performers (Home, and Performers' default
+  // order); empty without a website login.
+  @Get('popular')
+  getPopularPerformers(): Promise<PerformerFeedResponseDto> {
+    return this.performersService.getPopularPerformers();
   }
 
   @Get('studios')
@@ -73,6 +88,9 @@ export class PerformersController {
     @Param('performerId') performerId: string,
     @Body() body: SetPerformerMainImageDto,
   ): Promise<PerformerDetailsDto> {
-    return this.performersService.setMainPerformerImage(performerId, body.imageUrl);
+    return this.performersService.setMainPerformerImage(
+      performerId,
+      body.imageUrl,
+    );
   }
 }

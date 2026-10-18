@@ -11,11 +11,14 @@ import {
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
+  Observable,
   Subject,
   Subscription,
   debounceTime,
   filter,
   finalize,
+  of,
+  switchMap,
 } from 'rxjs';
 import { ButtonDirective } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
@@ -28,10 +31,14 @@ import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import {
   PerformerFeedItem,
+  PerformerFeedResponse,
   PerformerGender,
   PerformerSort,
   SortDirection,
 } from '../../core/api/discover.types';
+
+/** The page's orders: the catalog's, and ThePornDB website's popular performers. */
+type PerformerPageSort = PerformerSort | 'POPULAR';
 
 type GenderOption = PerformerGender | 'NONE';
 
@@ -53,14 +60,15 @@ type GenderOption = PerformerGender | 'NONE';
 export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly PAGE_SIZE = 24;
   private static readonly NAME_FILTER_DEBOUNCE_MS = 300;
-  private static readonly DEFAULT_SORT: PerformerSort = 'NAME';
+  private static readonly DEFAULT_SORT: PerformerPageSort = 'POPULAR';
   private static readonly DEFAULT_DIRECTION: SortDirection = 'ASC';
   private static readonly DEFAULT_GENDER: GenderOption = 'NONE';
 
   protected static readonly SORT_OPTIONS: Array<{
-    value: PerformerSort;
+    value: PerformerPageSort;
     label: string;
   }> = [
+    { value: 'POPULAR', label: 'Popular' },
     { value: 'NAME', label: 'Name' },
     { value: 'BIRTHDATE', label: 'Birthdate' },
     { value: 'SCENE_COUNT', label: 'Scene Count' },
@@ -90,6 +98,8 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly nameFilterTerms = new Subject<string>();
+  /** The website's popular performers aren't available: Popular lists by name. */
+  private popularUnavailable = false;
   /** The name filter the feed was last loaded with. */
   private loadedName = '';
   private nameFilterSubscription: Subscription | null = null;
@@ -130,7 +140,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
   protected readonly items = signal<PerformerFeedItem[]>([]);
   protected readonly nameFilter = signal('');
   protected readonly selectedGender = signal<GenderOption>(PerformersPageComponent.DEFAULT_GENDER);
-  protected readonly selectedSort = signal<PerformerSort>(PerformersPageComponent.DEFAULT_SORT);
+  protected readonly selectedSort = signal<PerformerPageSort>(PerformersPageComponent.DEFAULT_SORT);
   protected readonly selectedDirection = signal<SortDirection>(
     PerformersPageComponent.DEFAULT_DIRECTION,
   );
@@ -232,6 +242,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
 
   protected onSortChanged(nextValue: string): void {
     if (
+      nextValue === 'POPULAR' ||
       nextValue === 'NAME' ||
       nextValue === 'BIRTHDATE' ||
       nextValue === 'SCENE_COUNT' ||
@@ -314,10 +325,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
     return this.favoriteInFlightById()[performerId] === true;
   }
 
-  protected togglePerformerFavorite(
-    event: Event,
-    performer: PerformerFeedItem,
-  ): void {
+  protected togglePerformerFavorite(event: Event, performer: PerformerFeedItem): void {
     event.preventDefault();
     event.stopPropagation();
 
@@ -342,9 +350,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
           } else {
             this.items.update((current) =>
               current.map((item) =>
-                item.id === performer.id
-                  ? { ...item, isFavorite: nextFavorite }
-                  : item,
+                item.id === performer.id ? { ...item, isFavorite: nextFavorite } : item,
               ),
             );
           }
@@ -360,9 +366,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
         },
         error: () => {
           this.notifications.error(
-            nextFavorite
-              ? 'Failed to favorite performer'
-              : 'Failed to unfavorite performer',
+            nextFavorite ? 'Failed to favorite performer' : 'Failed to unfavorite performer',
           );
         },
       });
@@ -370,6 +374,49 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
 
   protected currentRouteUrl(): string {
     return this.router.url;
+  }
+
+  /**
+   * A page of performers. Popular (the default): ThePornDB website's popular
+   * performers, all at once, the gender and favourites filters applied to
+   * them -- or, searching by name or with no website login, the catalog's
+   * list by name. Otherwise the catalog's list in the order chosen.
+   */
+  private performersPage(page: number): Observable<PerformerFeedResponse> {
+    const sort = this.selectedSort();
+    const feed = (by: PerformerSort) =>
+      this.discoverService.getPerformersFeed(page, PerformersPageComponent.PAGE_SIZE, {
+        name: this.normalizedNameFilter(),
+        gender: this.selectedGenderFilter(),
+        sort: by,
+        direction: sort === 'POPULAR' ? 'ASC' : this.selectedDirection(),
+        favoritesOnly: this.favoritesOnly(),
+      });
+    if (sort !== 'POPULAR') {
+      return feed(sort);
+    }
+    if (this.normalizedNameFilter()) {
+      return feed('NAME');
+    }
+    if (this.popularUnavailable) {
+      return feed('NAME');
+    }
+    const gender = this.selectedGenderFilter();
+    const favoritesOnly = this.favoritesOnly();
+    return this.discoverService.getPopularPerformers().pipe(
+      switchMap((popular) => {
+        if (popular.items.length === 0) {
+          // No website login (or nothing read yet): by name instead.
+          this.popularUnavailable = true;
+          return feed('NAME');
+        }
+        const items = popular.items.filter(
+          (performer) =>
+            (!gender || performer.gender === gender) && (!favoritesOnly || performer.isFavorite),
+        );
+        return of({ total: items.length, page: 1, perPage: items.length, hasMore: false, items });
+      }),
+    );
   }
 
   private loadNextPage(): void {
@@ -390,14 +437,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
       this.loadMoreError.set(null);
     }
 
-    this.discoverService
-      .getPerformersFeed(nextPage, PerformersPageComponent.PAGE_SIZE, {
-        name: this.normalizedNameFilter(),
-        gender: this.selectedGenderFilter(),
-        sort: this.selectedSort(),
-        direction: this.selectedDirection(),
-        favoritesOnly: this.favoritesOnly(),
-      })
+    this.performersPage(nextPage)
       .pipe(
         finalize(() => {
           this.inFlight.set(false);
@@ -475,7 +515,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
   private readUrlState(queryParamMap: import('@angular/router').ParamMap): {
     name: string;
     gender: GenderOption;
-    sort: PerformerSort;
+    sort: PerformerPageSort;
     direction: SortDirection;
     favoritesOnly: boolean;
   } {
@@ -495,7 +535,8 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
         : PerformersPageComponent.DEFAULT_GENDER;
 
     const sortParam = queryParamMap.get('sort');
-    const sort: PerformerSort =
+    const sort: PerformerPageSort =
+      sortParam === 'POPULAR' ||
       sortParam === 'NAME' ||
       sortParam === 'BIRTHDATE' ||
       sortParam === 'SCENE_COUNT' ||
@@ -527,7 +568,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
   private applyUrlState(state: {
     name: string;
     gender: GenderOption;
-    sort: PerformerSort;
+    sort: PerformerPageSort;
     direction: SortDirection;
     favoritesOnly: boolean;
   }): boolean {
@@ -559,9 +600,7 @@ export class PerformersPageComponent implements OnInit, AfterViewInit, OnDestroy
           ? null
           : this.selectedGender(),
       sort:
-        this.selectedSort() === PerformersPageComponent.DEFAULT_SORT
-          ? null
-          : this.selectedSort(),
+        this.selectedSort() === PerformersPageComponent.DEFAULT_SORT ? null : this.selectedSort(),
       dir:
         this.selectedDirection() === PerformersPageComponent.DEFAULT_DIRECTION
           ? null

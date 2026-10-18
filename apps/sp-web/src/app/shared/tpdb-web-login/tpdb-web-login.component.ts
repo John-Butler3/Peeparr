@@ -87,10 +87,12 @@ export class TpdbWebLoginComponent implements OnInit {
           configured: false,
           email: null,
           popularCount: 0,
+          popularPerformerCount: 0,
           popularFetchedAt: null,
           lastAttemptAt: null,
           lastError: null,
           sourcePath: null,
+          performerSourcePath: null,
         });
       },
       error: () => this.busy.set(null),
