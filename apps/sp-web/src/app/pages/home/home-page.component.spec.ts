@@ -142,6 +142,9 @@ describe('HomePageComponent', () => {
       getPopularPerformers: vi
         .fn()
         .mockReturnValue(of({ total: 0, page: 1, perPage: 0, hasMore: false, items: [] })),
+      getPopularStudios: vi
+        .fn()
+        .mockReturnValue(of({ total: 0, page: 1, perPage: 0, hasMore: false, items: [] })),
       getScenesFeed: vi
         .fn()
         .mockReturnValue(

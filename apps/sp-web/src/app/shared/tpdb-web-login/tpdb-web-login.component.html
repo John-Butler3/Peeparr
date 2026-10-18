@@ -65,8 +65,8 @@
       } @else if (s.popularFetchedAt) {
         <p class="state ok">
           <i class="pi pi-check-circle" aria-hidden="true"></i>
-          {{ s.popularCount }} popular scenes and {{ s.popularPerformerCount }} popular performers,
-          read {{ s.popularFetchedAt | date: 'short' }}.
+          {{ s.popularCount }} popular scenes, {{ s.popularPerformerCount }} performers and
+          {{ s.popularSiteCount }} sites, read {{ s.popularFetchedAt | date: 'short' }}.
         </p>
       } @else {
         <p class="state">Not read yet.</p>

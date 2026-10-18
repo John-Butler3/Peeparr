@@ -20,6 +20,13 @@ export class StudiosController {
     });
   }
 
+  // ThePornDB website's popular sites (Home, and Sites' default order);
+  // empty without a website login.
+  @Get('popular')
+  getPopularStudios(): Promise<StudioFeedResponseDto> {
+    return this.studiosService.getPopularStudios();
+  }
+
   @Get(':studioId')
   getStudioById(
     @Param('studioId') studioId: string,

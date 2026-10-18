@@ -60,8 +60,27 @@ function fakeSite(options: { password: string }) {
         ['XSRF-TOKEN=tok%3D; path=/', 'session=guest; path=/'],
       );
     }
-    if ((url.pathname === '/' || url.pathname === '/performers') && !signedIn) {
+    if (['/', '/performers', '/sites'].includes(url.pathname) && !signedIn) {
       return respond(302, '', { location: 'https://theporndb.net/login' });
+    }
+    if (url.pathname === '/sites') {
+      // The website's sites page: its list, in its own (popular) order.
+      return respond(
+        200,
+        page(
+          'Sites/Index',
+          {
+            sites: {
+              data: [1, 2, 3].map((n) => ({
+                uuid: `site-${n}`,
+                id: n,
+                name: `Site ${n}`,
+              })),
+            },
+          },
+          '/sites',
+        ),
+      );
     }
     if (url.pathname === '/performers') {
       // The website's performers page: its list, in its own (popular) order.
@@ -116,6 +135,7 @@ describe('TpdbWebService', () => {
   let tpdbAdapter: {
     getFeedSceneById: jest.Mock;
     getFeedPerformerById: jest.Mock;
+    getFeedStudioById: jest.Mock;
   };
 
   beforeEach(() => {
@@ -129,6 +149,7 @@ describe('TpdbWebService', () => {
             : {
                 popularSceneIds: [],
                 popularPerformerIds: [],
+                popularSiteIds: [],
                 sessionCookies: null,
                 ...create,
               };
@@ -150,6 +171,7 @@ describe('TpdbWebService', () => {
         isFromExcludedNetwork: false,
       })),
       getFeedPerformerById: jest.fn(async (id: string) => ({ id, name: id })),
+      getFeedStudioById: jest.fn(async (id: string) => ({ id, name: id })),
     };
     service = new TpdbWebService(prisma, tpdbAdapter as unknown as TpdbAdapter);
   });
@@ -198,7 +220,7 @@ describe('TpdbWebService', () => {
 
     await service.refreshNow();
 
-    expect(site.calls).toEqual(['GET /', 'GET /performers']);
+    expect(site.calls).toEqual(['GET /', 'GET /performers', 'GET /sites']);
   });
 
   it("reads popular performers too -- not a scene's own cast -- from the performers page", async () => {
@@ -220,6 +242,27 @@ describe('TpdbWebService', () => {
     ]);
     expect(row?.popularPerformerSourcePath).toBe('/performers performers.data');
     expect((await service.getStatus()).popularPerformerCount).toBe(3);
+  });
+
+  it('reads popular sites too, from the sites page', async () => {
+    const site = fakeSite({ password: 'secret' });
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(site.fetchMock as unknown as typeof fetch);
+    await service.saveAccount('me@example.com', 'secret');
+
+    const sites = await service.getPopularSites({
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'k',
+    });
+
+    expect(sites.map((popular) => popular.id)).toEqual([
+      'site-1',
+      'site-2',
+      'site-3',
+    ]);
+    expect(row?.popularSiteSourcePath).toBe('/sites sites.data');
+    expect((await service.getStatus()).popularSiteCount).toBe(3);
   });
 
   it('records the error and returns nothing when the password is wrong', async () => {

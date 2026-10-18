@@ -207,6 +207,11 @@ export class DiscoverService {
     );
   }
 
+  /** ThePornDB website's popular sites (empty without a website login). */
+  getPopularStudios(): Observable<StudioFeedResponse> {
+    return this.http.get<StudioFeedResponse>('/api/studios/popular');
+  }
+
   /** ThePornDB website's popular performers (empty without a website login). */
   getPopularPerformers(): Observable<PerformerFeedResponse> {
     return this.http.get<PerformerFeedResponse>('/api/performers/popular');

@@ -636,6 +636,27 @@ export class TpdbAdapter implements CatalogAdapter {
   }
 
   /**
+   * One site by id (TPDB uuid, numeric id or slug), shaped like a feed
+   * entry -- for the website's popular sites. Null when TPDB doesn't know it.
+   */
+  async getFeedStudioById(
+    siteId: string,
+    config: StashdbAdapterBaseConfig,
+  ): Promise<StashdbStudioFeedItem | null> {
+    try {
+      const payload = await this.fetchJson(
+        this.resolveUrl(config.baseUrl, `sites/${encodeURIComponent(siteId)}`),
+        config,
+      );
+      return this.mapStudioListEntry(
+        (payload as Record<string, unknown>)?.data ?? payload,
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * One performer by id (TPDB uuid, numeric id or slug), shaped like a feed
    * entry -- for the website's popular performers. Null when TPDB doesn't
    * know them.

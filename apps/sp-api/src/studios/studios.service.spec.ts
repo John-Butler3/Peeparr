@@ -4,6 +4,8 @@ import { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { StudioFavoritesService } from './studio-favorites.service';
 import { StudiosService } from './studios.service';
 
+import { TpdbWebService } from '../tpdb-web/tpdb-web.service';
+
 describe('StudiosService', () => {
   const catalogProviderService = {
     getConfiguredCatalogProvider: jest.fn(),
@@ -32,8 +34,14 @@ describe('StudiosService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new StudiosService(catalogProviderService, studioFavoritesService);
-    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+    service = new StudiosService(
+      catalogProviderService,
+      studioFavoritesService,
+      { getPopularSites: jest.fn() } as unknown as TpdbWebService,
+    );
+    studioFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set());
     studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
 
     catalogProviderService.getConfiguredCatalogProvider = jest
@@ -205,7 +213,9 @@ describe('StudiosService', () => {
 
     await service.getStudiosFeed();
 
-    expect(catalogProviderService.getConfiguredCatalogAdapter).toHaveBeenCalled();
+    expect(
+      catalogProviderService.getConfiguredCatalogAdapter,
+    ).toHaveBeenCalled();
     expect(catalogAdapter.getStudiosFeed).toHaveBeenCalledWith(
       expect.objectContaining({
         baseUrl: 'https://api.theporndb.net',
@@ -284,15 +294,31 @@ describe('StudiosService', () => {
     );
   });
 
-  it("marks studios favorited in Peeparr as favorites (TPDB never reports it)", async () => {
+  it('marks studios favorited in Peeparr as favorites (TPDB never reports it)', async () => {
     catalogAdapter.getStudiosFeed = jest.fn().mockResolvedValue({
       total: 2,
       studios: [
-        { id: 'st-1', name: 'One', isFavorite: false, imageUrl: null, parentStudio: null, childStudios: [] },
-        { id: 'st-2', name: 'Two', isFavorite: false, imageUrl: null, parentStudio: null, childStudios: [] },
+        {
+          id: 'st-1',
+          name: 'One',
+          isFavorite: false,
+          imageUrl: null,
+          parentStudio: null,
+          childStudios: [],
+        },
+        {
+          id: 'st-2',
+          name: 'Two',
+          isFavorite: false,
+          imageUrl: null,
+          parentStudio: null,
+          childStudios: [],
+        },
       ],
     });
-    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set(['st-2']));
+    studioFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set(['st-2']));
 
     const result = await service.getStudiosFeed(1, 24);
 
@@ -303,13 +329,23 @@ describe('StudiosService', () => {
   });
 
   it("lists favorites-only from Peeparr's own list, looked up by id, A-Z", async () => {
-    studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['st-z', 'st-a', 'gone']);
-    catalogAdapter.getStudioById = jest.fn().mockImplementation(async (id: string) => {
-      if (id === 'gone') {
-        throw new NotFoundException();
-      }
-      return { id, name: id === 'st-z' ? 'Zeta' : 'Alpha', imageUrl: null, parentStudio: null, childStudios: [] };
-    });
+    studioFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['st-z', 'st-a', 'gone']);
+    catalogAdapter.getStudioById = jest
+      .fn()
+      .mockImplementation(async (id: string) => {
+        if (id === 'gone') {
+          throw new NotFoundException();
+        }
+        return {
+          id,
+          name: id === 'st-z' ? 'Zeta' : 'Alpha',
+          imageUrl: null,
+          parentStudio: null,
+          childStudios: [],
+        };
+      });
 
     const result = await service.getStudiosFeed(1, 24, { favoritesOnly: true });
 

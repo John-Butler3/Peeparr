@@ -20,6 +20,7 @@ import {
   PerformerFeedItem,
   SceneExplorerItem,
   SceneRequestContext,
+  StudioFeedItem,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
@@ -43,9 +44,11 @@ import {
 import { HomeHeroComponent } from './home-hero/home-hero.component';
 
 import { onShowingPage } from '../../core/navigation/page-fade.service';
+import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
 @Component({
   selector: 'app-home-page',
   imports: [
+    LogoContrastDirective,
     SearchSuggestComponent,
     RouterLink,
     FormsModule,
@@ -84,6 +87,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   // ThePornDB website's popular scenes (top of Home); empty when unavailable.
   protected readonly popularItems = signal<SceneExplorerItem[]>([]);
   protected readonly popularPerformers = signal<PerformerFeedItem[]>([]);
+  protected readonly popularSites = signal<StudioFeedItem[]>([]);
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly pageAlert = computed(() =>
@@ -190,6 +194,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .getPopularPerformers()
       .pipe(catchError(() => of({ items: [] as PerformerFeedItem[] })))
       .subscribe((response) => this.popularPerformers.set(response.items));
+    this.discoverService
+      .getPopularStudios()
+      .pipe(catchError(() => of({ items: [] as StudioFeedItem[] })))
+      .subscribe((response) => this.popularSites.set(response.items));
   }
 
   ngOnDestroy(): void {

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
 import {
   type StashdbPerformerFeedItem,
+  type StashdbStudioFeedItem,
   type StashdbScene,
 } from '../providers/stashdb/stashdb.adapter';
 
@@ -21,11 +22,13 @@ export interface TpdbWebStatus {
   email: string | null;
   popularCount: number;
   popularPerformerCount: number;
+  popularSiteCount: number;
   popularFetchedAt: string | null;
   lastAttemptAt: string | null;
   lastError: string | null;
   sourcePath: string | null;
   performerSourcePath: string | null;
+  siteSourcePath: string | null;
 }
 
 /**
@@ -33,8 +36,8 @@ export interface TpdbWebStatus {
  * for them). With a website login saved, this signs in (keeping the
  * session), reads the homepage's embedded page data, takes the scene ids
  * from its popular list and resolves them through the real API. Popular
- * performers the same way: a list of them on the homepage, else on the
- * website's performers page.
+ * performers and sites the same way: a list of them on the homepage, else
+ * on the website's performers (sites) page.
  *
  * The website is hit rarely: the session is reused (a fresh sign-in only
  * when it has expired), the homepage at most every CACHE_TTL_MS, and after
@@ -49,6 +52,7 @@ export class TpdbWebService {
   static readonly REQUEST_TIMEOUT_MS = 20_000;
   static readonly MAX_SCENES = 60;
   static readonly MAX_PERFORMERS = 60;
+  static readonly MAX_SITES = 60;
   private static readonly USER_AGENT =
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
@@ -57,6 +61,12 @@ export class TpdbWebService {
   // Scenes resolved through the API for the current id list.
   private resolved: { key: string; scenes: StashdbScene[]; at: number } | null =
     null;
+  // Sites resolved through the API for the current id list.
+  private resolvedSites: {
+    key: string;
+    sites: StashdbStudioFeedItem[];
+    at: number;
+  } | null = null;
   // Performers resolved through the API for the current id list.
   private resolvedPerformers: {
     key: string;
@@ -78,11 +88,13 @@ export class TpdbWebService {
       email: account?.email ?? null,
       popularCount: account?.popularSceneIds.length ?? 0,
       popularPerformerCount: account?.popularPerformerIds?.length ?? 0,
+      popularSiteCount: account?.popularSiteIds?.length ?? 0,
       popularFetchedAt: account?.popularFetchedAt?.toISOString() ?? null,
       lastAttemptAt: account?.lastAttemptAt?.toISOString() ?? null,
       lastError: account?.lastError ?? null,
       sourcePath: account?.popularSourcePath ?? null,
       performerSourcePath: account?.popularPerformerSourcePath ?? null,
+      siteSourcePath: account?.popularSiteSourcePath ?? null,
     };
   }
 
@@ -109,6 +121,7 @@ export class TpdbWebService {
               sessionCookies: Prisma.JsonNull,
               popularSceneIds: [],
               popularPerformerIds: [],
+              popularSiteIds: [],
               popularFetchedAt: null,
               lastAttemptAt: null,
               lastError: null,
@@ -118,6 +131,7 @@ export class TpdbWebService {
     });
     this.resolved = null;
     this.resolvedPerformers = null;
+    this.resolvedSites = null;
     return this.getStatus();
   }
 
@@ -125,6 +139,7 @@ export class TpdbWebService {
     await this.prisma.tpdbWebAccount.deleteMany({});
     this.resolved = null;
     this.resolvedPerformers = null;
+    this.resolvedSites = null;
   }
 
   /** Signs in and reads the homepage now (ignoring the cache); returns the result. */
@@ -203,6 +218,63 @@ export class TpdbWebService {
     }
 
     return this.resolvePerformers(account.popularPerformerIds ?? [], apiConfig);
+  }
+
+  /**
+   * The website's popular sites, resolved through the API; empty when
+   * there's no login, it isn't working, or the website shows none.
+   */
+  async getPopularSites(apiConfig: {
+    baseUrl: string;
+    apiKey: string | null;
+  }): Promise<StashdbStudioFeedItem[]> {
+    let account = await this.prisma.tpdbWebAccount.findUnique({
+      where: { id: 1 },
+    });
+    if (!account) {
+      return [];
+    }
+
+    if (this.isDue(account)) {
+      const refresh = this.refresh(account).catch(() => undefined);
+      if (!account.popularFetchedAt) {
+        // Never read yet: wait for the first fetch.
+        await refresh;
+        account = await this.prisma.tpdbWebAccount.findUnique({
+          where: { id: 1 },
+        });
+        if (!account) {
+          return [];
+        }
+      }
+    }
+
+    const ids = account.popularSiteIds ?? [];
+    const key = ids.join(',');
+    if (!key) {
+      return [];
+    }
+    const cached = this.resolvedSites;
+    if (
+      cached?.key === key &&
+      Date.now() - cached.at < TpdbWebService.CACHE_TTL_MS
+    ) {
+      return cached.sites;
+    }
+    const sites: StashdbStudioFeedItem[] = [];
+    // A few at a time, to go easy on the API.
+    for (let index = 0; index < ids.length; index += 6) {
+      const batch = await Promise.all(
+        ids
+          .slice(index, index + 6)
+          .map((id) => this.tpdbAdapter.getFeedStudioById(id, apiConfig)),
+      );
+      sites.push(
+        ...batch.filter((site): site is StashdbStudioFeedItem => site !== null),
+      );
+    }
+    this.resolvedSites = { key, sites, at: Date.now() };
+    return sites;
   }
 
   private async resolvePerformers(
@@ -320,7 +392,8 @@ export class TpdbWebService {
         );
       }
 
-      const performers = await this.findPopularPerformers(home, jar);
+      const performers = await this.findPopular(home, jar, 'performer');
+      const sites = await this.findPopular(home, jar, 'site');
 
       await this.prisma.tpdbWebAccount.update({
         where: { id: 1 },
@@ -331,6 +404,8 @@ export class TpdbWebService {
           popularPerformerIds:
             performers?.ids.slice(0, TpdbWebService.MAX_PERFORMERS) ?? [],
           popularPerformerSourcePath: performers?.path ?? null,
+          popularSiteIds: sites?.ids.slice(0, TpdbWebService.MAX_SITES) ?? [],
+          popularSiteSourcePath: sites?.path ?? null,
           popularFetchedAt: new Date(),
           lastAttemptAt: new Date(),
           lastError: null,
@@ -343,6 +418,11 @@ export class TpdbWebService {
         performers
           ? `Read ${performers.ids.length} popular performers from the TPDB website (${performers.path}).`
           : 'Found no popular performers on the TPDB website (homepage or performers page).',
+      );
+      this.logger.log(
+        sites
+          ? `Read ${sites.ids.length} popular sites from the TPDB website (${sites.path}).`
+          : 'Found no popular sites on the TPDB website (homepage or sites page).',
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -421,27 +501,31 @@ export class TpdbWebService {
   }
 
   /**
-   * A list of performers on the homepage, else on the website's performers
-   * page (its own order). Null if neither has one -- the scenes are still
-   * kept.
+   * A list of performers (sites) on the homepage, else on the website's
+   * performers (sites) page, in its own order. Null if neither has one --
+   * the scenes are still kept.
    */
-  private async findPopularPerformers(
+  private async findPopular(
     home: InertiaPage,
     jar: CookieJar,
+    kind: 'performer' | 'site',
   ): Promise<{ path: string; ids: string[] } | null> {
-    const onHome = this.findList(home.props, 'performer');
-    if (onHome && /performer/i.test(onHome.path)) {
+    const named =
+      kind === 'performer' ? /performer|model|star/i : /site|studio|channel/i;
+    const onHome = this.findList(home.props, kind);
+    if (onHome && named.test(onHome.path)) {
       return { path: `/ ${onHome.path}`, ids: onHome.ids };
     }
+    const pagePath = kind === 'performer' ? '/performers' : '/sites';
     try {
-      const page = await this.getPage('/performers', jar);
-      const listed = this.findList(page.props, 'performer');
+      const page = await this.getPage(pagePath, jar);
+      const listed = this.findList(page.props, kind);
       return listed
-        ? { path: `/performers ${listed.path}`, ids: listed.ids }
+        ? { path: `${pagePath} ${listed.path}`, ids: listed.ids }
         : null;
     } catch (error) {
       this.logger.warn(
-        `TPDB performers page: ${error instanceof Error ? error.message : String(error)}`,
+        `TPDB ${pagePath} page: ${error instanceof Error ? error.message : String(error)}`,
       );
       return null;
     }
@@ -452,13 +536,13 @@ export class TpdbWebService {
   }
 
   /**
-   * The best-looking list of scenes (objects with a title and an id) or
-   * performers (a name and an id, no title) in the page data, preferring a
-   * "popular" one (then trending / top) named for its kind.
+   * The best-looking list of scenes (objects with a title and an id), or
+   * performers or sites (a name and an id, no title) in the page data,
+   * preferring a "popular" one (then trending / top) named for its kind.
    */
   private findList(
     props: Record<string, unknown>,
-    kind: 'scene' | 'performer',
+    kind: 'scene' | 'performer' | 'site',
   ): { path: string; ids: string[] } | null {
     const isItem = (item: Record<string, unknown>) =>
       kind === 'scene'
@@ -480,7 +564,7 @@ export class TpdbWebService {
             isItem(item as Record<string, unknown>),
         );
         // (Not a list inside another's items: a scene's own performers.)
-        const nested = kind === 'performer' && path.includes('[');
+        const nested = kind !== 'scene' && path.includes('[');
         if (
           !nested &&
           items.length >= 3 &&
@@ -500,10 +584,11 @@ export class TpdbWebService {
     };
     walk(props, '', 0);
 
-    const others =
-      kind === 'scene'
-        ? /movie|performer|site|jav/i
-        : /scene|movie|site|studio|jav|tag/i;
+    const others = {
+      scene: /movie|performer|site|jav/i,
+      performer: /scene|movie|site|studio|jav|tag/i,
+      site: /scene|movie|performer|model|jav|tag/i,
+    }[kind];
     const score = (path: string) =>
       (/popular/i.test(path)
         ? 100

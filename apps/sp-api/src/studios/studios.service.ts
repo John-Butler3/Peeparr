@@ -6,6 +6,7 @@ import { StudioFeedResponseDto } from './dto/studio-feed-response.dto';
 import { StudioSort } from './dto/studios-query.dto';
 import { StudioFavoritesService } from './studio-favorites.service';
 
+import { TpdbWebService } from '../tpdb-web/tpdb-web.service';
 @Injectable()
 export class StudiosService {
   private static readonly DEFAULT_PAGE = 1;
@@ -16,7 +17,45 @@ export class StudiosService {
   constructor(
     private readonly catalogProviderService: CatalogProviderService,
     private readonly studioFavoritesService: StudioFavoritesService,
+    private readonly tpdbWebService: TpdbWebService,
   ) {}
+
+  /**
+   * ThePornDB website's popular sites (read with the website login, like its
+   * popular scenes), in its order; none without it, or with another catalog.
+   */
+  async getPopularStudios(): Promise<StudioFeedResponseDto> {
+    const empty = { total: 0, page: 1, perPage: 0, hasMore: false, items: [] };
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    if (catalogProvider.integrationType !== 'TPDB') {
+      return empty;
+    }
+    const sites = await this.tpdbWebService.getPopularSites({
+      baseUrl: catalogProvider.baseUrl,
+      apiKey: catalogProvider.apiKey,
+    });
+    if (sites.length === 0) {
+      return empty;
+    }
+    const favoriteIds = await this.studioFavoritesService.getFavoriteIds(
+      sites.map((site) => site.id),
+    );
+    return {
+      total: sites.length,
+      page: 1,
+      perPage: sites.length,
+      hasMore: false,
+      items: sites.map((site) => ({
+        id: site.id,
+        name: site.name,
+        isFavorite: site.isFavorite || favoriteIds.has(site.id),
+        imageUrl: site.imageUrl,
+        parentStudio: site.parentStudio,
+        childStudios: site.childStudios,
+      })),
+    };
+  }
 
   async getStudiosFeed(
     page = StudiosService.DEFAULT_PAGE,
@@ -29,9 +68,15 @@ export class StudiosService {
     },
   ): Promise<StudioFeedResponseDto> {
     if (filters?.favoritesOnly) {
-      const localFavoriteIds = await this.studioFavoritesService.listAllFavoriteIds();
+      const localFavoriteIds =
+        await this.studioFavoritesService.listAllFavoriteIds();
       if (localFavoriteIds.length > 0) {
-        return this.getFavoritedStudiosFeed(localFavoriteIds, page, perPage, filters.name);
+        return this.getFavoritedStudiosFeed(
+          localFavoriteIds,
+          page,
+          perPage,
+          filters.name,
+        );
       }
     }
 
@@ -91,9 +136,11 @@ export class StudiosService {
     ).filter((studio): studio is NonNullable<typeof studio> => studio !== null);
 
     const query = name?.trim().toLowerCase();
-    const matching = (query ? studios.filter((studio) => studio.name.toLowerCase().includes(query)) : studios).sort(
-      (a, b) => a.name.localeCompare(b.name),
-    );
+    const matching = (
+      query
+        ? studios.filter((studio) => studio.name.toLowerCase().includes(query))
+        : studios
+    ).sort((a, b) => a.name.localeCompare(b.name));
     const start = (page - 1) * perPage;
 
     return {
@@ -126,7 +173,9 @@ export class StudiosService {
       config,
     );
 
-    const favoritedLocally = (await this.studioFavoritesService.getFavoriteIds([studio.id])).has(studio.id);
+    const favoritedLocally = (
+      await this.studioFavoritesService.getFavoriteIds([studio.id])
+    ).has(studio.id);
 
     return {
       id: studio.id,

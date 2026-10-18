@@ -276,6 +276,57 @@
     </section>
   }
 
+  <!-- ThePornDB's popular sites (the same website login). -->
+  @if (popularSites().length > 0) {
+    <section class="rail-section" data-testid="home-popular-sites">
+      <header class="rail-head">
+        <div class="rail-copy">
+          <p class="rail-kicker">Popular on ThePornDB</p>
+          <h2>Popular sites</h2>
+        </div>
+
+        <div class="rail-actions app-action-row">
+          <a class="see-all-link" [routerLink]="['/studios']">See all</a>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('popular-sites', 'prev')"
+            aria-label="Scroll Popular sites left"
+          >
+            <i class="pi pi-angle-left" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="scroll-button"
+            (click)="scrollRail('popular-sites', 'next')"
+            aria-label="Scroll Popular sites right"
+          >
+            <i class="pi pi-angle-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="rail-viewport" #railViewport data-rail-id="popular-sites">
+        <div class="rail-track site-track">
+          @for (site of popularSites(); track site.id) {
+            <a class="site-tile" [routerLink]="['/studio', site.id]">
+              @if (site.imageUrl) {
+                <span class="site-logo">
+                  <img appLogoContrast [src]="site.imageUrl" [alt]="site.name" loading="lazy" />
+                </span>
+              } @else {
+                <span class="site-logo placeholder" aria-hidden="true">{{
+                  site.name.charAt(0).toUpperCase()
+                }}</span>
+              }
+              <span class="site-name">{{ site.name }}</span>
+            </a>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
   @if (loading()) {
     <div class="home-state loading app-state-block" role="status" aria-live="polite">
       <p-progressspinner

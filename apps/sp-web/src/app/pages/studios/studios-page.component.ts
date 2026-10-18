@@ -10,7 +10,16 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, Subscription, debounceTime, filter, finalize } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  Subscription,
+  debounceTime,
+  filter,
+  finalize,
+  of,
+  switchMap,
+} from 'rxjs';
 import { ButtonDirective } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { Message } from 'primeng/message';
@@ -19,7 +28,15 @@ import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
-import { SortDirection, StudioFeedItem, StudioFeedSort } from '../../core/api/discover.types';
+import {
+  SortDirection,
+  StudioFeedItem,
+  StudioFeedResponse,
+  StudioFeedSort,
+} from '../../core/api/discover.types';
+
+/** The page's orders: the catalog's, and ThePornDB website's popular sites. */
+type StudioPageSort = StudioFeedSort | 'POPULAR';
 
 @Component({
   selector: 'app-studios-page',
@@ -39,13 +56,14 @@ import { SortDirection, StudioFeedItem, StudioFeedSort } from '../../core/api/di
 export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly PAGE_SIZE = 24;
   private static readonly NAME_FILTER_DEBOUNCE_MS = 300;
-  private static readonly DEFAULT_SORT: StudioFeedSort = 'NAME';
+  private static readonly DEFAULT_SORT: StudioPageSort = 'POPULAR';
   private static readonly DEFAULT_DIRECTION: SortDirection = 'ASC';
 
   protected static readonly SORT_OPTIONS: Array<{
-    value: StudioFeedSort;
+    value: StudioPageSort;
     label: string;
   }> = [
+    { value: 'POPULAR', label: 'Popular' },
     { value: 'NAME', label: 'Name' },
     { value: 'CREATED_AT', label: 'Created At' },
     { value: 'UPDATED_AT', label: 'Updated At' },
@@ -56,6 +74,8 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly nameFilterTerms = new Subject<string>();
+  /** The website's popular sites aren't available: Popular lists by name. */
+  private popularUnavailable = false;
   /** The name filter the feed was last loaded with. */
   private loadedName = '';
   private nameFilterSubscription: Subscription | null = null;
@@ -95,7 +115,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly inFlight = signal(false);
   protected readonly items = signal<StudioFeedItem[]>([]);
   protected readonly nameFilter = signal('');
-  protected readonly selectedSort = signal<StudioFeedSort>(StudiosPageComponent.DEFAULT_SORT);
+  protected readonly selectedSort = signal<StudioPageSort>(StudiosPageComponent.DEFAULT_SORT);
   protected readonly selectedDirection = signal<SortDirection>(
     StudiosPageComponent.DEFAULT_DIRECTION,
   );
@@ -173,6 +193,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected onSortChanged(nextValue: string): void {
     if (
+      nextValue === 'POPULAR' ||
       nextValue === 'NAME' ||
       nextValue === 'CREATED_AT' ||
       nextValue === 'UPDATED_AT'
@@ -275,9 +296,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
 
-          this.notifications.success(
-            nextFavorite ? 'Studio favorited' : 'Studio unfavorited',
-          );
+          this.notifications.success(nextFavorite ? 'Studio favorited' : 'Studio unfavorited');
         },
         error: () => {
           this.notifications.error(
@@ -300,6 +319,41 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.router.url;
   }
 
+  /**
+   * A page of sites. Popular (the default): ThePornDB website's popular
+   * sites, all at once, the favourites filter applied to them -- or,
+   * searching by name or with no website login, the catalog's list by name.
+   * Otherwise the catalog's list in the order chosen.
+   */
+  private studiosPage(page: number): Observable<StudioFeedResponse> {
+    const sort = this.selectedSort();
+    const feed = (by: StudioFeedSort) =>
+      this.discoverService.getStudiosFeed(page, StudiosPageComponent.PAGE_SIZE, {
+        name: this.normalizedNameFilter(),
+        sort: by,
+        direction: sort === 'POPULAR' ? 'ASC' : this.selectedDirection(),
+        favoritesOnly: this.favoritesOnly(),
+      });
+    if (sort !== 'POPULAR') {
+      return feed(sort);
+    }
+    if (this.normalizedNameFilter() || this.popularUnavailable) {
+      return feed('NAME');
+    }
+    const favoritesOnly = this.favoritesOnly();
+    return this.discoverService.getPopularStudios().pipe(
+      switchMap((popular) => {
+        if (popular.items.length === 0) {
+          // No website login (or nothing read yet): by name instead.
+          this.popularUnavailable = true;
+          return feed('NAME');
+        }
+        const items = popular.items.filter((site) => !favoritesOnly || site.isFavorite);
+        return of({ total: items.length, page: 1, perPage: items.length, hasMore: false, items });
+      }),
+    );
+  }
+
   private loadNextPage(): void {
     if (this.inFlight() || !this.hasMore()) {
       return;
@@ -318,13 +372,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loadMoreError.set(null);
     }
 
-    this.discoverService
-      .getStudiosFeed(nextPage, StudiosPageComponent.PAGE_SIZE, {
-        name: this.normalizedNameFilter(),
-        sort: this.selectedSort(),
-        direction: this.selectedDirection(),
-        favoritesOnly: this.favoritesOnly(),
-      })
+    this.studiosPage(nextPage)
       .pipe(
         finalize(() => {
           this.inFlight.set(false);
@@ -396,14 +444,15 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private readUrlState(queryParamMap: import('@angular/router').ParamMap): {
     name: string;
-    sort: StudioFeedSort;
+    sort: StudioPageSort;
     direction: SortDirection;
     favoritesOnly: boolean;
   } {
     const name = (queryParamMap.get('q') ?? '').trim();
 
     const sortParam = queryParamMap.get('sort');
-    const sort: StudioFeedSort =
+    const sort: StudioPageSort =
+      sortParam === 'POPULAR' ||
       sortParam === 'NAME' ||
       sortParam === 'CREATED_AT' ||
       sortParam === 'UPDATED_AT'
@@ -428,7 +477,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyUrlState(state: {
     name: string;
-    sort: StudioFeedSort;
+    sort: StudioPageSort;
     direction: SortDirection;
     favoritesOnly: boolean;
   }): boolean {
@@ -453,10 +502,7 @@ export class StudiosPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const normalizedName = this.nameFilter().trim();
     const next = {
       q: normalizedName.length > 0 ? normalizedName : null,
-      sort:
-        this.selectedSort() === StudiosPageComponent.DEFAULT_SORT
-          ? null
-          : this.selectedSort(),
+      sort: this.selectedSort() === StudiosPageComponent.DEFAULT_SORT ? null : this.selectedSort(),
       dir:
         this.selectedDirection() === StudiosPageComponent.DEFAULT_DIRECTION
           ? null
