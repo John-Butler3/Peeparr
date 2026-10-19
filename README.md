@@ -9,6 +9,10 @@ A self-hosted hub for your adult library, alongside Stash and Whisparr: discover
 </p>
 
 <p align="center">
+<b>Stash front-end</b> · <b>Whisparr request manager</b> · <b>StashDB / FansDB / ThePornDB discovery</b> · <b>Docker &amp; Proxmox</b>
+</p>
+
+<p align="center">
 
 [![Latest release](https://img.shields.io/github/v/release/John-Butler3/Peeparr?display_name=tag&sort=semver&style=for-the-badge)](https://github.com/John-Butler3/Peeparr/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/John-Butler3/Peeparr/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/John-Butler3/Peeparr/actions/workflows/ci.yml)
@@ -19,6 +23,21 @@ A self-hosted hub for your adult library, alongside Stash and Whisparr: discover
 <p align="center">
   <img src="docs/assets/peeparr-ad.gif" alt="Peeparr in use: search for scenes, request them, follow the downloads, and watch, on desktop and on a phone" width="100%" />
 </p>
+
+## What is Peeparr?
+
+Peeparr is a free, open-source (GPL-3.0), self-hosted web app for managing and
+watching an adult video library. It sits on top of
+[Stash](https://github.com/stashapp/stash), the adult media organiser, and
+[Whisparr](https://github.com/Whisparr/Whisparr), the adult counterpart of
+Sonarr and Radarr: you discover scenes in the StashDB, FansDB or ThePornDB
+catalog, request them with one tap, follow each download into your library,
+and watch them in a player built for phones as much as desktops.
+
+If you know Overseerr or Jellyseerr for Plex and Jellyfin, Peeparr plays that
+part for Stash and Whisparr, and adds the player and library browsing as well.
+It runs on your own server (Docker, or a Proxmox LXC); nothing is sent to a
+cloud service.
 
 Questions about how it fits with your setup? See **[Common questions](docs/FAQ.md)**.
 
@@ -34,6 +53,7 @@ Questions about how it fits with your setup? See **[Common questions](docs/FAQ.m
 
 **Discover and request**
 - Browse the catalog by popular, latest or oldest; filter by tags, studios and favourites.
+- Popular scenes, performers and sites from ThePornDB, on Home and as the default order.
 - One-tap requests, with each scene's status: requested, downloading, importing, failed or in your library.
 - Monitor performers to request their new scenes automatically.
 - Acquisition: every request in the pipeline, failures first.
@@ -42,9 +62,11 @@ Questions about how it fits with your setup? See **[Common questions](docs/FAQ.m
 
 **Watch**
 - Plays your Stash library, with previews on hover or while scrolling.
-- Resume where you stopped, on any device; mark as watched or unwatched.
+- Video quality for slow connections: original, 1080p, 720p, 480p or 240p (converted by Stash as you watch).
+- Resume where you stopped, on any device; continue watching on Home; mark as watched or unwatched.
 - Up next and series (from Stash groups), played in order.
-- Miniplayer, lock-screen controls and AirPlay.
+- Miniplayer, picture-in-picture, lock-screen controls and AirPlay.
+- Optional: scenes that are Pornhub videos (per ThePornDB) stream in Pornhub's embedded player, without being in your library.
 - Galleries with a full-resolution, zoomable photo viewer.
 
 **Library and home**
@@ -58,6 +80,21 @@ Questions about how it fits with your setup? See **[Common questions](docs/FAQ.m
 - Reverse-proxy ready: remote-access option in setup, security headers, cross-site request protection.
 - Discreet mode: a plain logo and home-screen icon, per device.
 - Works on phones like an app (add to home screen), with swipe gestures.
+
+## Screenshots
+
+| Home | Scene |
+| --- | --- |
+| ![Peeparr home screen: a banner of new and unwatched scenes, then rows to continue watching](docs/screenshots/home.png) | ![Peeparr scene page: the player, the scene's details, request status and similar scenes](docs/screenshots/scene.png) |
+| **Discover** | **Acquisition** |
+| ![Browsing the StashDB or ThePornDB catalog with filters and request buttons](docs/screenshots/scenes.png) | ![Every requested scene in the Whisparr pipeline, from requested to in the library](docs/screenshots/acquisition.png) |
+
+<p align="center">
+  <img src="docs/screenshots/phone-home.png" width="24%" alt="Peeparr on a phone: home screen" />
+  <img src="docs/screenshots/phone-scene.png" width="24%" alt="Peeparr on a phone: watching a scene" />
+  <img src="docs/screenshots/phone-scene-docked.png" width="24%" alt="Peeparr on a phone: the scene in the miniplayer while browsing" />
+  <img src="docs/screenshots/phone-search.png" width="24%" alt="Peeparr on a phone: search with live results" />
+</p>
 
 ## What you need
 

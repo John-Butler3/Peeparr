@@ -1,5 +1,35 @@
 {
   "name": "peeparr",
+  "description": "Self-hosted hub for an adult video library alongside Stash and Whisparr: discover scenes from StashDB, FansDB or ThePornDB, request them, follow the downloads and watch.",
+  "keywords": [
+    "stash",
+    "stashapp",
+    "whisparr",
+    "stashdb",
+    "fansdb",
+    "theporndb",
+    "self-hosted",
+    "homelab",
+    "media-server",
+    "media-requests",
+    "overseerr-alternative",
+    "jellyseerr-alternative",
+    "arr",
+    "docker",
+    "proxmox",
+    "pwa",
+    "angular",
+    "nestjs"
+  ],
+  "homepage": "https://github.com/John-Butler3/Peeparr#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/John-Butler3/Peeparr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/John-Butler3/Peeparr/issues"
+  },
+  "license": "GPL-3.0-only",
   "private": true,
   "packageManager": "pnpm@10.32.0",
   "scripts": {

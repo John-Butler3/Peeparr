@@ -1,0 +1,32 @@
+# Peeparr
+
+> Peeparr is a free, open-source (GPL-3.0), self-hosted web app for an adult video library. It works alongside Stash (the adult media organiser) and Whisparr (the adult counterpart of Sonarr/Radarr): discover scenes in the StashDB, FansDB or ThePornDB catalog, request them with one tap, follow each download into the library, and watch them -- on desktop or on a phone like an app. It plays the part Overseerr or Jellyseerr play for Plex and Jellyfin, plus its own player and library browsing. It runs on your own server (Docker, or a native Proxmox LXC) and sends nothing to a cloud service.
+
+Built with Angular (web) and NestJS with PostgreSQL/Prisma (API). Based on Stasharr Portal by enymawse.
+
+## What it does
+
+- Discover: browse the StashDB, FansDB or ThePornDB catalog (popular, latest, oldest), filter by tags, studios and favourites; popular scenes, performers and sites from ThePornDB.
+- Request: one-tap requests to Whisparr (v2 or Eros), with each scene's status -- requested, downloading, importing, failed, in the library; monitor performers to request their new scenes automatically; an Acquisition view of the whole pipeline; an Upcoming calendar.
+- Watch: plays the Stash library with previews; video quality choice for slow connections (original, 1080p, 720p, 480p, 240p via Stash's HLS conversion); resume and continue watching; series (Stash groups) and up next; miniplayer, picture-in-picture, lock-screen controls and AirPlay; galleries with a zoomable photo viewer; optionally, scenes that are Pornhub videos stream in Pornhub's embedded player.
+- Set up: guided setup with connection checks, one local admin account, reverse-proxy ready, a discreet mode (plain logo and icon), works as a home-screen app on phones.
+
+## Docs
+
+- [README](https://github.com/John-Butler3/Peeparr/blob/main/README.md): features, requirements, install, updating
+- [Common questions](https://github.com/John-Butler3/Peeparr/blob/main/docs/FAQ.md): how it fits with Stash, Whisparr and other media servers
+- [Deployment](https://github.com/John-Butler3/Peeparr/blob/main/docs/DEPLOYMENT.md): Docker, Proxmox LXC, reverse proxy, environment variables
+- [Changelog](https://github.com/John-Butler3/Peeparr/blob/main/CHANGELOG.md): what's in each release
+- [Security](https://github.com/John-Butler3/Peeparr/blob/main/SECURITY.md): reporting vulnerabilities
+- [Contributing](https://github.com/John-Butler3/Peeparr/blob/main/CONTRIBUTING.md): development setup
+
+## Install
+
+- Proxmox VE (native LXC): `bash -c "$(curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/infrastructure/proxmox/community-scripts/ct/peeparr.sh)"`
+- Docker (Debian/Ubuntu, as root): `curl -fsSL https://raw.githubusercontent.com/John-Butler3/Peeparr/main/scripts/install.sh | bash`
+- Then open `http://<host>:3000` and create the admin account.
+
+## Optional
+
+- [Releases](https://github.com/John-Butler3/Peeparr/releases): versioned release bundles
+- [Stasharr Portal](https://github.com/enymawse/stasharr-portal): the project Peeparr is built on
