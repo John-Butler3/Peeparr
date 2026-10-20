@@ -1,3 +1,4 @@
+import { ConfirmationService } from 'primeng/api';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -96,6 +97,7 @@ describe('LocalScenePageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [LocalScenePageComponent],
       providers: [
+        ConfirmationService,
         provideRouter([]),
         provideNoopAnimations(),
         { provide: LibraryService, useValue: libraryService },

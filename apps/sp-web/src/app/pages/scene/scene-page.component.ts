@@ -58,6 +58,7 @@ import { NavigationHistoryService } from '../../core/navigation/navigation-histo
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
+import { LibraryDeletionService } from '../../core/library/library-deletion.service';
 @Component({
   selector: 'app-scene-page',
   imports: [
@@ -91,6 +92,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly groupsService = inject(GroupsService);
   private readonly libraryService = inject(LibraryService);
+  private readonly libraryDeletion = inject(LibraryDeletionService);
   protected readonly watchProgress = inject(WatchProgressService);
   private seriesSubscription: Subscription | null = null;
   private upNextSubscription: Subscription | null = null;
@@ -133,6 +135,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly autoplay = signal(false);
   protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
   protected readonly removingRequest = signal(false);
+  protected readonly deleting = signal(false);
 
   ngOnInit(): void {
     this.routeSubscription = combineLatest([
@@ -247,6 +250,19 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   }
 
   // "Mark as unwatched": clears the watch history in Stash.
+  /** Deletes it from the library (every copy) and from Whisparr, once confirmed. */
+  protected deleteFromLibrary(scene: SceneDetails): void {
+    if (this.deleting()) {
+      return;
+    }
+    this.libraryDeletion.confirmDelete({
+      title: scene.title,
+      stashSceneIds: this.stashCopyIds(scene),
+      catalogSceneId: scene.id,
+      busy: (busy) => this.deleting.set(busy),
+    });
+  }
+
   protected markUnwatched(stashSceneIds: readonly string[]): void {
     if (this.markingUnwatched() || stashSceneIds.length === 0) {
       return;

@@ -118,6 +118,16 @@
             >
               <i class="pi pi-external-link" aria-hidden="true"></i> Open in Stash
             </a>
+            <button
+              type="button"
+              class="pill pill-danger"
+              data-testid="local-scene-delete"
+              [disabled]="deleting()"
+              [attr.aria-busy]="deleting()"
+              (click)="deleteFromLibrary(scene)"
+            >
+              <i class="pi pi-trash" aria-hidden="true"></i> Delete
+            </button>
           </div>
 
           @if (series().length > 0) {

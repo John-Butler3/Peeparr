@@ -389,6 +389,14 @@ export class SharedVideoService {
     }, SharedVideoService.UNCLAIMED_MS);
   }
 
+  /** Stops it if it's one of these scenes (deleted), whichever player has it. */
+  stopScene(sceneIds: readonly string[]): void {
+    if (this.sceneId && sceneIds.includes(this.sceneId)) {
+      this.owner = null;
+      this.stop();
+    }
+  }
+
   /** Stops it: its player is done with it. */
   release(owner: object): void {
     if (this.owner !== owner || !this.element) {

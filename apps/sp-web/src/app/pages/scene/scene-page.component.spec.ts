@@ -1,3 +1,4 @@
+import { ConfirmationService } from 'primeng/api';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -85,6 +86,7 @@ describe('ScenePageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ScenePageComponent],
       providers: [
+        ConfirmationService,
         provideRouter([]),
         {
           provide: DiscoverService,

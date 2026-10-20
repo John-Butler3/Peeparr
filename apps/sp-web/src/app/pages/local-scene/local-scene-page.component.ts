@@ -25,6 +25,7 @@ import { NavigationHistoryService } from '../../core/navigation/navigation-histo
 // from the local library index, with a link out to the scene in Stash.
 // Scenes that do match the catalog use the regular /scene/:stashId page.
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
+import { LibraryDeletionService } from '../../core/library/library-deletion.service';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
@@ -47,6 +48,8 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notifications = inject(AppNotificationsService);
+  private readonly libraryDeletion = inject(LibraryDeletionService);
+  protected readonly deleting = signal(false);
   protected readonly watchProgress = inject(WatchProgressService);
   protected readonly markingUnwatched = signal(false);
   private paramSubscription: Subscription | null = null;
@@ -133,6 +136,19 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     if (next) {
       void this.router.navigate([...next.commands], { queryParams: { autoplay: '1' } });
     }
+  }
+
+  /** Deletes it from the library and (if it's a catalog scene) Whisparr, once confirmed. */
+  protected deleteFromLibrary(scene: LibrarySceneDetail): void {
+    if (this.deleting()) {
+      return;
+    }
+    this.libraryDeletion.confirmDelete({
+      title: scene.title,
+      stashSceneIds: [scene.id],
+      catalogSceneId: scene.activeCatalogSceneId,
+      busy: (busy) => this.deleting.set(busy),
+    });
   }
 
   // "Mark as unwatched": clears the watch history in Stash.

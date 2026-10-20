@@ -294,6 +294,20 @@
               </a>
             }
 
+            <!-- Deleting for good, last. -->
+            @if (hasStashCopy(scene)) {
+              <button
+                type="button"
+                class="pill pill-danger"
+                data-testid="scene-delete"
+                [disabled]="deleting()"
+                [attr.aria-busy]="deleting()"
+                (click)="deleteFromLibrary(scene)"
+              >
+                <i class="pi pi-trash" aria-hidden="true"></i> Delete
+              </button>
+            }
+
             @if (hasMultipleStashCopies(scene)) {
               <label class="copy-select">
                 <span class="sr-only">Stash copy</span>

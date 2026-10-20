@@ -11,6 +11,7 @@ import { HomeModule } from './home/home.module';
 import { IndexingModule } from './indexing/indexing.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { LibraryModule } from './library/library.module';
+import { LibraryDeletionModule } from './library-deletion/library-deletion.module';
 import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PerformerMonitoringModule } from './performers/performer-monitoring.module';
@@ -38,6 +39,7 @@ import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.mo
     HomeModule,
     MediaModule,
     LibraryModule,
+    LibraryDeletionModule,
     GalleriesModule,
     GroupsModule,
     RecommendationsModule,

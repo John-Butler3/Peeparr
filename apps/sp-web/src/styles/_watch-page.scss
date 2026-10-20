@@ -268,6 +268,15 @@ p {
   background: var(--yt-chip-hover);
 }
 
+// Deleting for good: red.
+.pill.pill-danger {
+  color: #ff6b62;
+}
+
+.pill.pill-danger:not(:disabled):hover {
+  background: rgb(255 78 69 / 16%);
+}
+
 .pill--primary {
   background: var(--yt-chip-active-bg);
   color: var(--yt-chip-active-text);

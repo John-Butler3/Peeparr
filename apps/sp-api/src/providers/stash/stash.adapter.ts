@@ -392,6 +392,7 @@ interface StashPerformerMatchRecord {
 
 interface StashGraphqlResponse {
   data?: {
+    scenesDestroy?: unknown;
     findScenes?: {
       count?: unknown;
       scenes?: StashLocalSceneRecord[];
@@ -738,6 +739,31 @@ export class StashAdapter {
     return scenes
       .map((scene) => this.toWatchProgressItem(scene, activeCatalogProviderKey))
       .filter((item): item is StashWatchProgressItem => item !== null);
+  }
+
+  /**
+   * Deletes scenes from Stash for good: their video files on disk, what
+   * Stash generated for them (previews, sprites) and their records.
+   */
+  async destroyScenes(
+    sceneIds: string[],
+    config: StashAdapterBaseConfig,
+  ): Promise<void> {
+    const ids = sceneIds
+      .map((id) => this.normalizeEntityId(id))
+      .filter((id): id is string => !!id);
+    if (ids.length === 0) {
+      return;
+    }
+    const mutation = `
+      mutation ScenesDestroy($ids: [ID!]!) {
+        scenesDestroy(input: { ids: $ids, delete_file: true, delete_generated: true })
+      }
+    `;
+    const payload = await this.executeQuery(config, mutation, { ids });
+    if (payload.data?.scenesDestroy !== true) {
+      throw new Error('Stash did not delete the scene.');
+    }
   }
 
   async saveSceneProgress(

@@ -48,6 +48,19 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
     return elementOf(this.pages.get(urlKey(url)) ?? null);
   }
 
+  /** Drops a kept page (by URL) for good: what it showed is gone (deleted). */
+  forget(url: string): void {
+    const key = urlKey(url);
+    const handle = this.pages.get(key);
+    if (handle) {
+      this.pages.delete(key);
+      destroy(handle);
+    }
+    if (this.pinned === key) {
+      this.pinned = null;
+    }
+  }
+
   /** Keeps this page (by URL) whatever else is kept, or stops (null). */
   pin(url: string | null): void {
     this.pinned = url ? urlKey(url) : null;
