@@ -55,6 +55,9 @@ export class PageFadeService {
     const router = inject(Router);
     router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
+        if (this.reuseStrategy instanceof KeepAliveRouteStrategy) {
+          this.reuseStrategy.navigationStarted();
+        }
         const page = this.currentPage();
         if (page) {
           this.pageTops.set(pathOf(router.url), page.getBoundingClientRect().top + window.scrollY);

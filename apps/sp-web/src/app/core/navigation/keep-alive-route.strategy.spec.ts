@@ -43,6 +43,21 @@ describe('KeepAliveRouteStrategy', () => {
     expect(keep.shouldAttach(back)).toBe(false);
   });
 
+  it('only counts a page as just brought back within the same navigation', () => {
+    const keep = strategy();
+    const performers = document.createElement('main');
+    const kept = { componentRef: { destroy: vi.fn(), location: { nativeElement: performers } } };
+    keep.store(route('performers', 'performers'), kept as unknown as DetachedRouteHandle);
+
+    // Gone back to Performers: just brought back.
+    keep.retrieve(route('performers', 'performers'));
+    expect(keep.wasJustRetrieved(performers)).toBe(true);
+
+    // A later navigation that goes somewhere else: it wasn't.
+    keep.navigationStarted();
+    expect(keep.wasJustRetrieved(performers)).toBe(false);
+  });
+
   it('keeps the most recent few, closing older ones properly', () => {
     const keep = strategy();
     const handles = Array.from({ length: KeepAliveRouteStrategy.MAX_PAGES + 1 }, () => handle());

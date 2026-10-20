@@ -53,9 +53,21 @@ export class KeepAliveRouteStrategy extends BaseRouteReuseStrategy {
     this.pinned = url ? urlKey(url) : null;
   }
 
-  /** Whether this element is the page the router has just brought back. */
+  /**
+   * Whether this element is the page the router has just brought back, in
+   * this navigation (see navigationStarted).
+   */
   wasJustRetrieved(element: HTMLElement): boolean {
     return this.retrievedElement === element;
+  }
+
+  /**
+   * A navigation is starting: no page has been brought back in it yet. (Left
+   * from an earlier one, a page put behind this one and not gone to would
+   * pass for one that had been -- and stay in the page, under the next.)
+   */
+  navigationStarted(): void {
+    this.retrievedElement = null;
   }
 
   override shouldDetach(route: ActivatedRouteSnapshot): boolean {
