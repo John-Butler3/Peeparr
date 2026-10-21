@@ -168,4 +168,45 @@ describe('SharedVideoService', () => {
     expect(video.controls).toBe(true);
     vi.useRealTimers();
   });
+
+  it('let go short, goes straight back -- not held up by the page readied behind -- and can be caught again', () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    });
+    // The scene page, with the page you came from readied behind it.
+    const area = document.createElement('div');
+    area.className = 'route-view';
+    const page = document.createElement('main');
+    const behind = document.createElement('main');
+    behind.className = 'page-behind';
+    const pageSlot = document.createElement('div');
+    page.appendChild(pageSlot);
+    area.append(document.createElement('router-outlet'), page, behind);
+    document.body.appendChild(area);
+    pageSlot.getBoundingClientRect = () => new DOMRect(0, 0, 390, 219);
+
+    service.attach(scenePage, pageSlot, '411', '/a', { controls: true });
+    const video = service.video;
+    video.setAttribute('src', '/a');
+    video.getBoundingClientRect = () => new DOMRect(0, 0, 390, 219);
+
+    // A paused scene swiped a little way down, then let go.
+    expect(service.liftForDrag()).toBe(true);
+    service.moveLiftedDown(60);
+    const holder = video.parentElement!;
+    holder.getBoundingClientRect = () => new DOMRect(10, 60, 370, 208);
+    service.dropBack();
+
+    // Caught again on its way back: lifted from where it is.
+    vi.advanceTimersByTime(SharedVideoService.FLIGHT_MS / 3);
+    expect(service.liftForDrag()).toBe(true);
+    service.dropBack();
+
+    // Back in its player well within a flight, not after a wait.
+    vi.advanceTimersByTime(SharedVideoService.FLIGHT_MS + 100);
+    expect(video.parentElement).toBe(pageSlot);
+    expect(video.controls).toBe(true);
+    area.remove();
+    vi.useRealTimers();
+  });
 });

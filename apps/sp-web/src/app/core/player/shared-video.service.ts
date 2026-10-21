@@ -204,6 +204,19 @@ export class SharedVideoService {
   private lift(onlyIfPlaying: boolean): boolean {
     const video = this.element;
     const slot = video?.parentElement ?? null;
+    // Grabbed again on its way back (let go short): from where it is now.
+    if (
+      video &&
+      this.holder &&
+      this.liftedFrom &&
+      slot === this.holder &&
+      this.owner !== null &&
+      !(onlyIfPlaying && video.paused)
+    ) {
+      this.stopFlight();
+      this.liftRect = this.holder.getBoundingClientRect();
+      return true;
+    }
     if (
       !video ||
       !slot ||
@@ -323,7 +336,8 @@ export class SharedVideoService {
     if (!slot) {
       return;
     }
-    this.flyTo(slot, () => this.putBack());
+    // Its own page, already there: straight back, no waiting on it.
+    this.flyTo(slot, () => this.putBack(), false);
   }
 
   /** The page change didn't happen after all: back into its player. */
@@ -466,7 +480,7 @@ export class SharedVideoService {
    * Moves and resizes the holder (with the video in it) from where it is to
    * `slot`, following the slot if it moves meanwhile, then lands it there.
    */
-  private flyTo(slot: HTMLElement, land: () => void): void {
+  private flyTo(slot: HTMLElement, land: () => void, waitForPage = true): void {
     this.stopFlight();
     const from = this.parkingSpot().getBoundingClientRect();
     let start: number | null = null;
@@ -480,7 +494,11 @@ export class SharedVideoService {
       // Its page is still loading (hidden), or the page before it is still
       // on its way out (pushing it down): stay put, showing, until it's
       // settled, rather than flying to where it isn't going to be.
-      if (start === null && (slot.closest('.is-pending') || pageStillLeaving(slot))) {
+      if (
+        waitForPage &&
+        start === null &&
+        (slot.closest('.is-pending') || pageStillLeaving(slot))
+      ) {
         waitingSince ??= now;
         if (now - waitingSince < SharedVideoService.WAIT_FOR_PAGE_MS) {
           this.flight = requestAnimationFrame(step);
@@ -574,7 +592,10 @@ const HIDDEN_HOLDER =
 /** Another page is still in the page area alongside the slot's (leaving). */
 function pageStillLeaving(slot: HTMLElement): boolean {
   const area = slot.closest('.route-view');
-  return !!area && area.querySelectorAll(':scope > :not(router-outlet)').length > 1;
+  // (Not a page only put behind this one: readied for a swipe, it stays.)
+  return (
+    !!area && area.querySelectorAll(':scope > :not(router-outlet):not(.page-behind)').length > 1
+  );
 }
 
 function isWireless(video: HTMLVideoElement): boolean {

@@ -224,7 +224,8 @@ export class EmbedPlayerService {
     const spot = this.spot;
     this.liftRect = null;
     if (spot) {
-      this.flyTo(spot, () => this.settle());
+      // Its own page, already there: straight back, no waiting on it.
+      this.flyTo(spot, () => this.settle(), false);
     }
   }
 
@@ -425,7 +426,7 @@ export class EmbedPlayerService {
     }
   }
 
-  private flyTo(spot: HTMLElement, land: () => void): void {
+  private flyTo(spot: HTMLElement, land: () => void, waitForPage = true): void {
     this.stopTracking();
     this.stopFlight();
     if (!this.layer) {
@@ -445,7 +446,11 @@ export class EmbedPlayerService {
         return;
       }
       // Its page still loading (hidden) or the one before still leaving: wait.
-      if (start === null && (spot.closest('.is-pending') || pageStillLeaving(spot))) {
+      if (
+        waitForPage &&
+        start === null &&
+        (spot.closest('.is-pending') || pageStillLeaving(spot))
+      ) {
         waitingSince ??= now;
         if (now - waitingSince < EmbedPlayerService.WAIT_FOR_PAGE_MS) {
           this.flight = requestAnimationFrame(step);
@@ -558,7 +563,10 @@ function topBarBottom(): number {
 /** Another page is still in the page area alongside the spot's (leaving). */
 function pageStillLeaving(spot: HTMLElement): boolean {
   const area = spot.closest('.route-view');
-  return !!area && area.querySelectorAll(':scope > :not(router-outlet)').length > 1;
+  // (Not a page only put behind this one: readied for a swipe, it stays.)
+  return (
+    !!area && area.querySelectorAll(':scope > :not(router-outlet):not(.page-behind)').length > 1
+  );
 }
 
 /**
