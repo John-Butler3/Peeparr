@@ -86,8 +86,14 @@ describe('EmbedPlayerService', () => {
     vi.advanceTimersByTime(EmbedPlayerService.IDLE_MS);
     expect(shield.style.bottom).toBe('0px');
     expect(frame.style.height).toBe(`${219 + EmbedPlayerService.CROP_PX * 2}px`);
-    // A tap brings them back.
+    // Covered all over again, the corner too.
+    expect(shield.style.clipPath).toBe('');
+    // A tap brings them back, and leaves the top-right corner (a pop-up's close) uncovered.
     shield.click();
+    expect(shield.style.clipPath).toContain('polygon');
+    expect(document.querySelector<HTMLElement>('.embed-grab')!.style.clipPath).toBe(
+      `inset(0 ${EmbedPlayerService.OPEN_CORNER} 0 0)`,
+    );
     expect(frame.style.height).toBe('219px');
   });
 

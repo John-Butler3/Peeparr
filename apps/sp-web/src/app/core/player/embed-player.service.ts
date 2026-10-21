@@ -59,6 +59,12 @@ export class EmbedPlayerService {
   static readonly CROP_PX = 56;
   /** Pornhub's control bar, left uncovered while the controls show. */
   static readonly CONTROL_BAR_PX = 52;
+  /**
+   * While the controls show, the player's top-right corner is left
+   * uncovered (this much of its width, and the top half): where Pornhub's
+   * pop-ups ("watch the full scene") have their close button.
+   */
+  static readonly OPEN_CORNER = '30%';
 
   private layer: HTMLElement | null = null;
   private frame: HTMLIFrameElement | null = null;
@@ -272,6 +278,7 @@ export class EmbedPlayerService {
       this.shield.style.pointerEvents = this.started ? 'auto' : 'none';
       this.shield.style.bottom = `${EmbedPlayerService.CONTROL_BAR_PX}px`;
     }
+    this.openCorner(true);
     this.replace();
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
@@ -293,7 +300,26 @@ export class EmbedPlayerService {
     if (this.shield) {
       this.shield.style.bottom = '0';
     }
+    this.openCorner(false);
     this.replace();
+  }
+
+  /**
+   * Leaves the top-right corner uncovered (or covers it again): a pop-up's
+   * close button there can be tapped. Cut out of the strip and the shield
+   * (a clipped-away part takes no touches).
+   */
+  private openCorner(open: boolean): void {
+    const corner = EmbedPlayerService.OPEN_CORNER;
+    const keep = `calc(100% - ${corner})`;
+    if (this.grabStrip) {
+      this.grabStrip.style.clipPath = open ? `inset(0 ${corner} 0 0)` : '';
+    }
+    if (this.shield) {
+      this.shield.style.clipPath = open
+        ? `polygon(0 0, ${keep} 0, ${keep} 50%, 100% 50%, 100% 100%, 0 100%)`
+        : '';
+    }
   }
 
   /** Placed again where it is (its layout changed). */
