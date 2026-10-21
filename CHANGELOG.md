@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.0](https://github.com/John-Butler3/Peeparr/compare/v1.7.0...v1.8.0) (2026-10-21)
+
+
+### Features
+
+* delete a scene from the library -- its files in Stash, and from Whisparr ([14ddbe8](https://github.com/John-Butler3/Peeparr/commit/14ddbe881910e10bc5e50f8b8de4ab57c8cd9a31))
+
+
+### Bug Fixes
+
+* **player:** a short swipe down on a paused scene no longer freezes it part-way ([a97d0d5](https://github.com/John-Butler3/Peeparr/commit/a97d0d503da7d58ea164ac8102fbdfdba4239dea))
+* **player:** a streamed scene's "watch the full scene" pop-up can be closed ([ebe5f1e](https://github.com/John-Butler3/Peeparr/commit/ebe5f1ee3202f973ab5cacbdda283e8d65ce6ff6))
+* **web:** a page left behind a scene no longer stays at the bottom of the next one ([f7fa017](https://github.com/John-Butler3/Peeparr/commit/f7fa0178f11a8901a3600619556c06b2272091ec))
+
 ## [1.7.0](https://github.com/John-Butler3/Peeparr/compare/v1.6.0...v1.7.0) (2026-10-18)
 
 
