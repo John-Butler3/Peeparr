@@ -57,12 +57,14 @@ import { WatchDockDirective } from './watch-dock.directive';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
+import { SimilarScenesComponent } from '../../shared/similar-scenes/similar-scenes.component';
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 import { LibraryDeletionService } from '../../core/library/library-deletion.service';
 @Component({
   selector: 'app-scene-page',
   imports: [
     PlaybackMenuComponent,
+    SimilarScenesComponent,
     BackLinkDirective,
     WatchDockDirective,
     RouterLink,
@@ -511,6 +513,21 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       this.requestContext.set(item);
       this.requestModalOpen.set(true);
     });
+  }
+
+  /** "More from <her>", or "More from these performers" with more than one. */
+  protected moreFromHeading(scene: SceneDetails): string {
+    const women = scene.performers.filter((performer) => performer.gender === 'FEMALE');
+    return women.length === 1 ? `More from ${women[0].name}` : 'More from these performers';
+  }
+
+  protected tagNames(scene: SceneDetails): string[] {
+    return scene.tags.map((tag) => tag.name);
+  }
+
+  /** This scene and the ones shown above (not suggested again as similar). */
+  protected shownScenes(scene: SceneDetails): string[] {
+    return [scene.id, ...this.similarScenes().map((item) => item.id)];
   }
 
   protected scrollSimilarRail(direction: 'prev' | 'next'): void {

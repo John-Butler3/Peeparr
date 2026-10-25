@@ -1,0 +1,62 @@
+// The scene pages' shelf (as "More from this performer"): a sideways row of cards.
+:host {
+  display: block;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.similar-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.similar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.similar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.scroll-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.scroll-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.similar-viewport {
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.similar-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 300px);
+  gap: 16px;
+}
+
+.similar-track > .similar-card {
+  scroll-snap-align: start;
+}

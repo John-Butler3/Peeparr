@@ -386,18 +386,18 @@
             </section>
           }
 
-          <!-- In the library, Up next is library picks; the catalog's similar
-               scenes (requestable) get their own shelf. -->
+          <!-- In the library, Up next is library picks; more of its performers'
+               scenes get their own shelf. -->
           @if (hasStashCopy(scene) && similarScenes().length > 0) {
-            <section class="similar-section">
+            <section class="similar-section" data-testid="more-from-performer">
               <div class="similar-head">
-                <h2>Similar scenes</h2>
+                <h2>{{ moreFromHeading(scene) }}</h2>
                 <div class="similar-actions">
                   <button
                     type="button"
                     class="scroll-button"
                     (click)="scrollSimilarRail('prev')"
-                    aria-label="Scroll similar scenes left"
+                    aria-label="Scroll more from this performer left"
                   >
                     <i class="pi pi-angle-left" aria-hidden="true"></i>
                   </button>
@@ -405,7 +405,7 @@
                     type="button"
                     class="scroll-button"
                     (click)="scrollSimilarRail('next')"
-                    aria-label="Scroll similar scenes right"
+                    aria-label="Scroll more from this performer right"
                   >
                     <i class="pi pi-angle-right" aria-hidden="true"></i>
                   </button>
@@ -428,6 +428,14 @@
               </div>
             </section>
           }
+
+          <!-- Similar scenes: ones in the library sharing its tags. -->
+          <app-similar-scenes
+            [tagNames]="tagNames(scene)"
+            [excludeIds]="stashCopyIds(scene)"
+            [alsoShown]="shownScenes(scene)"
+            [returnTo]="currentRouteUrl()"
+          />
         </div>
       </div>
 

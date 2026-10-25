@@ -1,9 +1,19 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { LibrarySimilarByTagsDto } from './dto/library-similar.dto';
 import { LibrarySearchService } from './library-search.service';
 import { LibraryService } from './library.service';
 import { LibraryOptionsQueryDto } from './dto/library-options-query.dto';
 import {
   LibrarySceneDetailDto,
+  LibrarySceneFeedItemDto,
   LibraryScenesFeedDto,
 } from './dto/library-scenes-feed.dto';
 import { LibraryScenesQueryDto } from './dto/library-scenes-query.dto';
@@ -40,6 +50,21 @@ export class LibraryController {
       query.favoriteTagsOnly,
       query.performerIds,
     );
+  }
+
+  // Similar scenes: library scenes sharing a scene's tags, rarest first.
+  @Post('similar')
+  @HttpCode(200)
+  async getSimilarByTags(
+    @Body() body: LibrarySimilarByTagsDto,
+  ): Promise<{ items: LibrarySceneFeedItemDto[] }> {
+    return {
+      items: await this.libraryService.getSimilarByTags(
+        body.tagNames,
+        body.excludeIds,
+        body.limit,
+      ),
+    };
   }
 
   @Get('scenes/:sceneId')

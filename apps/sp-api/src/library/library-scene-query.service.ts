@@ -116,8 +116,67 @@ export class LibrarySceneQueryService {
     return rows.map((row) => this.toSceneFeedItem(row));
   }
 
+  /**
+   * Library scenes like one with these tags (names, any case): ranked by the
+   * tags they share with it, a rarer tag counting for more than a common one
+   * (#gangbang says more than #hd).
+   */
+  async getSimilarByTags(
+    tagNames: string[],
+    excludeIds: string[] = [],
+    limit = 20,
+  ): Promise<LibrarySceneFeedItemDto[]> {
+    const wanted = [
+      ...new Set(
+        tagNames.map((name) => name.trim().toLowerCase()).filter(Boolean),
+      ),
+    ];
+    if (wanted.length === 0) {
+      return [];
+    }
+    const exclude = excludeIds.map((id) => id.trim()).filter(Boolean);
+
+    // How common each of these tags is in the library: its weight.
+    const counts = await this.prisma.$queryRaw<
+      Array<{ tag: string; n: bigint }>
+    >`
+      SELECT lower(t) AS tag, count(*) AS n
+      FROM "LibrarySceneIndex", unnest("tagNames") AS t
+      WHERE lower(t) = ANY(${wanted}::text[])
+      GROUP BY lower(t)`;
+    const weight = new Map(
+      counts.map((row) => [row.tag, 1 / Math.log(2 + Number(row.n))]),
+    );
+
+    const candidates = await this.prisma.$queryRaw<
+      Array<{ stashSceneId: string; shared: string[] }>
+    >`
+      SELECT "stashSceneId",
+             ARRAY(SELECT DISTINCT lower(t) FROM unnest("tagNames") AS t
+                   WHERE lower(t) = ANY(${wanted}::text[])) AS shared
+      FROM "LibrarySceneIndex"
+      WHERE EXISTS (SELECT 1 FROM unnest("tagNames") AS t WHERE lower(t) = ANY(${wanted}::text[]))
+        AND NOT ("stashSceneId" = ANY(${exclude}::text[]))
+      LIMIT 3000`;
+
+    const ranked = candidates
+      .map((row) => ({
+        id: row.stashSceneId,
+        score: row.shared.reduce((sum, tag) => sum + (weight.get(tag) ?? 0), 0),
+        shared: row.shared.length,
+      }))
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score || b.shared - a.shared)
+      .slice(0, limit)
+      .map((row) => row.id);
+
+    return this.getScenesByIds(ranked);
+  }
+
   // One indexed scene with its performers and tags, for the local scene page.
-  async getSceneDetail(stashSceneId: string): Promise<LibrarySceneDetailDto | null> {
+  async getSceneDetail(
+    stashSceneId: string,
+  ): Promise<LibrarySceneDetailDto | null> {
     const row = await this.prisma.librarySceneIndex.findUnique({
       where: { stashSceneId },
       select: {
@@ -140,7 +199,10 @@ export class LibrarySceneQueryService {
         name: row.performerNames[index] ?? id,
         imageUrl: `/api/media/stash/performers/${encodeURIComponent(id)}/photo`,
       })),
-      tags: row.tagIds.map((id, index) => ({ id, name: row.tagNames[index] ?? id })),
+      tags: row.tagIds.map((id, index) => ({
+        id,
+        name: row.tagNames[index] ?? id,
+      })),
     };
   }
 
@@ -286,9 +348,7 @@ export class LibrarySceneQueryService {
     }
   }
 
-  private toSceneFeedItem(
-    row: LibrarySceneListRow,
-  ): LibrarySceneFeedItemDto {
+  private toSceneFeedItem(row: LibrarySceneListRow): LibrarySceneFeedItemDto {
     const screenshotUrl = stashScreenshotUrl(row.stashSceneId, row.imageUrl);
     const studioLogoUrl =
       row.studioId && row.studioImageUrl

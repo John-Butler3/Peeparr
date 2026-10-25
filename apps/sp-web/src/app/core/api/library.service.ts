@@ -73,9 +73,7 @@ export class LibraryService {
   }
 
   getScene(sceneId: string): Observable<LibrarySceneDetail> {
-    return this.http.get<LibrarySceneDetail>(
-      `/api/library/scenes/${encodeURIComponent(sceneId)}`,
-    );
+    return this.http.get<LibrarySceneDetail>(`/api/library/scenes/${encodeURIComponent(sceneId)}`);
   }
 
   /** Other library scenes with all-female performers ("Up next"). */
@@ -88,6 +86,19 @@ export class LibraryService {
       params: new HttpParams()
         .set('performers', catalogPerformerIds.join(','))
         .set('limit', limit.toString()),
+    });
+  }
+
+  /** Library scenes sharing these tags (by name), the rarer shared tags first. */
+  getSimilarByTags(
+    tagNames: readonly string[],
+    excludeIds: readonly string[] = [],
+    limit = 20,
+  ): Observable<{ items: LibrarySceneItem[] }> {
+    return this.http.post<{ items: LibrarySceneItem[] }>('/api/library/similar', {
+      tagNames,
+      excludeIds,
+      limit,
     });
   }
 

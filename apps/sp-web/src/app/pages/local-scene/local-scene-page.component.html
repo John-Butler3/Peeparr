@@ -168,6 +168,14 @@
               }
             </section>
           }
+
+          <!-- Similar scenes: others in the library sharing its tags. -->
+          <app-similar-scenes
+            [tagNames]="tagNames(scene)"
+            [excludeIds]="[scene.id]"
+            [alsoShown]="scene.activeCatalogSceneId ? [scene.activeCatalogSceneId] : []"
+            [returnTo]="currentRouteUrl()"
+          />
         </div>
       </div>
 

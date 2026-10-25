@@ -30,7 +30,9 @@ function buildScene(overrides: Partial<LibrarySceneDetail> = {}): LibrarySceneDe
     source: 'STASH',
     viewUrl: 'http://stash.local/scenes/412',
     libraryStudioId: '3',
-    performers: [{ id: '7', name: 'Performer One', imageUrl: '/api/media/stash/performers/7/photo' }],
+    performers: [
+      { id: '7', name: 'Performer One', imageUrl: '/api/media/stash/performers/7/photo' },
+    ],
     tags: [{ id: '12', name: 'Outdoor' }],
     ...overrides,
   };
@@ -50,10 +52,13 @@ describe('LocalScenePageComponent', () => {
       getRecommended: vi
         .fn()
         .mockReturnValue(of({ items: [buildScene({ id: '500', title: 'Recommended Pick' })] })),
+      getSimilarByTags: vi.fn().mockReturnValue(of({ items: [] })),
     };
     const groupsService = {
       getSeriesForScene: vi.fn().mockReturnValue(of([{ id: '5', name: 'Trilogy', sceneIndex: 2 }])),
-      getSeries: vi.fn().mockReturnValue(of({ total: 0, page: 1, perPage: 50, hasMore: false, items: [] })),
+      getSeries: vi
+        .fn()
+        .mockReturnValue(of({ total: 0, page: 1, perPage: 50, hasMore: false, items: [] })),
       getSeriesDetail: vi.fn().mockReturnValue(
         of({
           id: '5',
@@ -76,9 +81,16 @@ describe('LocalScenePageComponent', () => {
       close: vi.fn(),
       saveProgress: vi.fn(),
       handOff: vi.fn(),
-      resolveLocalSource: vi.fn().mockReturnValue(
-        of({ streamUrl: '/api/media/stash/scenes/412/stream', stashSceneId: '412', resumeSeconds: 0, duration: 3725 }),
-      ),
+      resolveLocalSource: vi
+        .fn()
+        .mockReturnValue(
+          of({
+            streamUrl: '/api/media/stash/scenes/412/stream',
+            stashSceneId: '412',
+            resumeSeconds: 0,
+            duration: 3725,
+          }),
+        ),
     };
     const queryParams = options.returnTo ? { returnTo: options.returnTo } : {};
     let watched = options.watched ?? false;
@@ -134,11 +146,15 @@ describe('LocalScenePageComponent', () => {
 
   it('offers Mark as unwatched only for a watched scene, and clears it', async () => {
     const unwatched = await render();
-    expect(unwatched.element.querySelector('[data-testid="local-scene-mark-unwatched"]')).toBeNull();
+    expect(
+      unwatched.element.querySelector('[data-testid="local-scene-mark-unwatched"]'),
+    ).toBeNull();
     TestBed.resetTestingModule();
 
     const { element, fixture, watchProgress, notifications } = await render({ watched: true });
-    const button = element.querySelector<HTMLButtonElement>('[data-testid="local-scene-mark-unwatched"]');
+    const button = element.querySelector<HTMLButtonElement>(
+      '[data-testid="local-scene-mark-unwatched"]',
+    );
     expect(button?.textContent).toContain('Mark as unwatched');
 
     button!.click();
@@ -167,7 +183,9 @@ describe('LocalScenePageComponent', () => {
     const { element } = await render();
 
     expect(
-      element.querySelector('a[aria-label="Library scenes with Performer One"]')?.getAttribute('href'),
+      element
+        .querySelector('a[aria-label="Library scenes with Performer One"]')
+        ?.getAttribute('href'),
     ).toBe('/library?performers=7&performerNames=Performer%20One');
     expect(element.querySelector('.studio-link')?.getAttribute('href')).toBe(
       '/library?studios=3&studioNames=Archive',
@@ -209,7 +227,9 @@ describe('LocalScenePageComponent', () => {
 
   it('goes back to the page that linked here, but only for in-app paths', async () => {
     const fromSeries = await render({ returnTo: '/series/5' });
-    expect(fromSeries.element.querySelector('.app-back-link')?.getAttribute('href')).toBe('/series/5');
+    expect(fromSeries.element.querySelector('.app-back-link')?.getAttribute('href')).toBe(
+      '/series/5',
+    );
     TestBed.resetTestingModule();
 
     const offsite = await render({ returnTo: '//evil.example' });

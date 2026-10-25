@@ -24,12 +24,14 @@ import { NavigationHistoryService } from '../../core/navigation/navigation-histo
 // Scene page for a library scene with no catalog match ("Local only"): built
 // from the local library index, with a link out to the scene in Stash.
 // Scenes that do match the catalog use the regular /scene/:stashId page.
+import { SimilarScenesComponent } from '../../shared/similar-scenes/similar-scenes.component';
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 import { LibraryDeletionService } from '../../core/library/library-deletion.service';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
     PlaybackMenuComponent,
+    SimilarScenesComponent,
     RouterLink,
     Message,
     ProgressSpinner,
@@ -136,6 +138,14 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     if (next) {
       void this.router.navigate([...next.commands], { queryParams: { autoplay: '1' } });
     }
+  }
+
+  protected currentRouteUrl(): string {
+    return this.router.url;
+  }
+
+  protected tagNames(scene: LibrarySceneDetail): string[] {
+    return scene.tags.map((tag) => tag.name);
   }
 
   /** Deletes it from the library and (if it's a catalog scene) Whisparr, once confirmed. */

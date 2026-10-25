@@ -75,6 +75,19 @@ export class LibraryService {
     });
   }
 
+  /** Library scenes sharing these tags (see LibrarySceneQueryService.getSimilarByTags). */
+  getSimilarByTags(
+    tagNames: string[],
+    excludeIds?: string[],
+    limit?: number,
+  ): Promise<LibrarySceneFeedItemDto[]> {
+    return this.librarySceneQueryService.getSimilarByTags(
+      tagNames,
+      excludeIds,
+      limit,
+    );
+  }
+
   async getSceneDetail(sceneId: string): Promise<LibrarySceneDetailDto> {
     const normalizedId = sceneId.trim();
     const scene = normalizedId
