@@ -74,13 +74,14 @@ describe('ScenePageComponent', () => {
       ),
     };
     const libraryService = {
-      getRecommended: vi.fn().mockReturnValue(of({ items: [] })),
+      getRandomUnplayed: vi.fn().mockReturnValue(of({ items: [] })),
+      getSimilarByTags: vi.fn().mockReturnValue(of({ items: [] })),
     };
 
     const acquisitionService = {
-      removeSceneRequest: vi.fn().mockReturnValue(
-        of({ removed: true, stashId: scene.id, whisparrMovieId: null }),
-      ),
+      removeSceneRequest: vi
+        .fn()
+        .mockReturnValue(of({ removed: true, stashId: scene.id, whisparrMovieId: null })),
     };
 
     await TestBed.configureTestingModule({
@@ -105,7 +106,10 @@ describe('ScenePageComponent', () => {
           useValue: playerService,
         },
         { provide: LibraryService, useValue: libraryService },
-        { provide: GroupsService, useValue: { getSeriesForScene: vi.fn().mockReturnValue(of([])) } },
+        {
+          provide: GroupsService,
+          useValue: { getSeriesForScene: vi.fn().mockReturnValue(of([])) },
+        },
         {
           provide: AcquisitionService,
           useValue: acquisitionService,
@@ -224,7 +228,7 @@ describe('ScenePageComponent', () => {
     expect(fixture.nativeElement.querySelector('.watch-media video')?.getAttribute('src')).toBe(
       '/api/media/stash/scenes/stash-scene-1/stream',
     );
-    // Up next comes from the library recommendations for the Stash copy.
-    expect(libraryService.getRecommended).toHaveBeenCalledWith('stash-scene-1');
+    // Up next: a random few not played yet, not this scene (its Stash copy).
+    expect(libraryService.getRandomUnplayed).toHaveBeenCalledWith(['stash-scene-1']);
   });
 });

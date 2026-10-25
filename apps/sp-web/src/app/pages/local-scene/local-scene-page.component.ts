@@ -247,8 +247,9 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     this.upNextSubscription?.unsubscribe();
     this.recommendedUpNext.set([]);
     this.upNextLoading.set(true);
+    // After the series' next parts: a random few not played yet.
     this.upNextSubscription = this.libraryService
-      .getRecommended(sceneId)
+      .getRandomUnplayed([sceneId])
       .pipe(catchError(() => of({ items: [] })))
       .subscribe((response) => {
         this.upNextLoading.set(false);

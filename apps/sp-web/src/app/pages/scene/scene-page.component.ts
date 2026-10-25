@@ -811,19 +811,8 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private loadUpNext(scene: SceneDetails): void {
     this.upNextSubscription?.unsubscribe();
     this.recommendedUpNext.set([]);
-    const copyId = this.selectedStashCopyId(scene);
-    const femalePerformerIds = scene.performers
-      .filter((performer) => performer.gender === 'FEMALE')
-      .map((performer) => performer.id);
-    const request = copyId
-      ? this.libraryService.getRecommended(copyId)
-      : femalePerformerIds.length > 0
-        ? this.libraryService.getRecommendedForPerformers(femalePerformerIds)
-        : null;
-    if (!request) {
-      this.upNextLoading.set(false);
-      return;
-    }
+    // After the series' next parts: a random few not played yet (not this one).
+    const request = this.libraryService.getRandomUnplayed(this.stashCopyIds(scene));
 
     this.upNextLoading.set(true);
     this.upNextSubscription = request

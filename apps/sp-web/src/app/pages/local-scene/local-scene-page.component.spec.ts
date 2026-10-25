@@ -49,7 +49,7 @@ describe('LocalScenePageComponent', () => {
       getScene: vi
         .fn()
         .mockReturnValue(scene instanceof Error ? throwError(() => scene) : of(scene)),
-      getRecommended: vi
+      getRandomUnplayed: vi
         .fn()
         .mockReturnValue(of({ items: [buildScene({ id: '500', title: 'Recommended Pick' })] })),
       getSimilarByTags: vi.fn().mockReturnValue(of({ items: [] })),
@@ -81,16 +81,14 @@ describe('LocalScenePageComponent', () => {
       close: vi.fn(),
       saveProgress: vi.fn(),
       handOff: vi.fn(),
-      resolveLocalSource: vi
-        .fn()
-        .mockReturnValue(
-          of({
-            streamUrl: '/api/media/stash/scenes/412/stream',
-            stashSceneId: '412',
-            resumeSeconds: 0,
-            duration: 3725,
-          }),
-        ),
+      resolveLocalSource: vi.fn().mockReturnValue(
+        of({
+          streamUrl: '/api/media/stash/scenes/412/stream',
+          stashSceneId: '412',
+          resumeSeconds: 0,
+          duration: 3725,
+        }),
+      ),
     };
     const queryParams = options.returnTo ? { returnTo: options.returnTo } : {};
     let watched = options.watched ?? false;
@@ -205,7 +203,8 @@ describe('LocalScenePageComponent', () => {
     expect(element.querySelector('.watch-media video')?.getAttribute('src')).toBe(
       '/api/media/stash/scenes/412/stream',
     );
-    expect(libraryService.getRecommended).toHaveBeenCalledWith('412');
+    // Up next: a random few not played yet, not this one.
+    expect(libraryService.getRandomUnplayed).toHaveBeenCalledWith(['412']);
   });
 
   it('puts the next part of the series first in Up next and autoplays it', async () => {

@@ -102,6 +102,18 @@ export class LibraryService {
     });
   }
 
+  /** A random handful of library scenes not played yet (Up next). */
+  getRandomUnplayed(
+    excludeIds: readonly string[] = [],
+    limit = 12,
+  ): Observable<{ items: LibrarySceneItem[] }> {
+    let params = new HttpParams().set('limit', limit.toString());
+    if (excludeIds.length) {
+      params = params.set('exclude', excludeIds.join(','));
+    }
+    return this.http.get<{ items: LibrarySceneItem[] }>('/api/library/unplayed', { params });
+  }
+
   getRecommended(sceneId: string, limit = 20): Observable<{ items: LibrarySceneItem[] }> {
     return this.http.get<{ items: LibrarySceneItem[] }>(
       `/api/library/scenes/${encodeURIComponent(sceneId)}/recommended`,

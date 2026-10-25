@@ -60,3 +60,10 @@ h2 {
 .similar-track > .similar-card {
   scroll-snap-align: start;
 }
+
+// Phones: swiped, no arrows (as "More from this performer").
+@media (max-width: 720px) {
+  .scroll-button {
+    display: none;
+  }
+}
