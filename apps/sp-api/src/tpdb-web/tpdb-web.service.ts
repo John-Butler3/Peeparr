@@ -87,8 +87,15 @@ export class TpdbWebService {
       configured: !!account,
       email: account?.email ?? null,
       popularCount: account?.popularSceneIds.length ?? 0,
-      popularPerformerCount: account?.popularPerformerIds?.length ?? 0,
-      popularSiteCount: account?.popularSiteIds?.length ?? 0,
+      // (Ranked from the popular scenes when the homepage has no list.)
+      popularPerformerCount:
+        (account?.popularPerformerSourcePath?.startsWith('/ ')
+          ? account.popularPerformerIds?.length
+          : this.resolvedPerformers?.performers.length) ?? 0,
+      popularSiteCount:
+        (account?.popularSiteSourcePath?.startsWith('/ ')
+          ? account.popularSiteIds?.length
+          : this.resolvedSites?.sites.length) ?? 0,
       popularFetchedAt: account?.popularFetchedAt?.toISOString() ?? null,
       lastAttemptAt: account?.lastAttemptAt?.toISOString() ?? null,
       lastError: account?.lastError ?? null,
@@ -217,7 +224,57 @@ export class TpdbWebService {
       }
     }
 
-    return this.resolvePerformers(account.popularPerformerIds ?? [], apiConfig);
+    // (Only a homepage list: one read from the performers page, newest first, isn't.)
+    const listed = account.popularPerformerSourcePath?.startsWith('/ ')
+      ? (account.popularPerformerIds ?? [])
+      : [];
+    const ids = listed.length
+      ? listed
+      : await this.rankFromPopularScenes(
+          account.popularSceneIds,
+          apiConfig,
+          'performer',
+        );
+    return this.resolvePerformers(ids, apiConfig);
+  }
+
+  /**
+   * Performers (sites) ranked by how many of the popular scenes they're in;
+   * ties go to the one in the more popular scene. For when the website
+   * doesn't list popular ones itself.
+   */
+  private async rankFromPopularScenes(
+    sceneIds: string[],
+    apiConfig: { baseUrl: string; apiKey: string | null },
+    kind: 'performer' | 'site',
+  ): Promise<string[]> {
+    const scenes = await this.resolveScenes(sceneIds, apiConfig);
+    const tally = new Map<string, { count: number; first: number }>();
+    scenes.forEach((scene, index) => {
+      const ids =
+        kind === 'performer'
+          ? (scene.performerIds ?? [])
+          : scene.studioId
+            ? [scene.studioId]
+            : [];
+      for (const id of new Set(ids)) {
+        const entry = tally.get(id);
+        if (entry) {
+          entry.count += 1;
+        } else {
+          tally.set(id, { count: 1, first: index });
+        }
+      }
+    });
+    return [...tally.entries()]
+      .sort((a, b) => b[1].count - a[1].count || a[1].first - b[1].first)
+      .slice(
+        0,
+        kind === 'performer'
+          ? TpdbWebService.MAX_PERFORMERS
+          : TpdbWebService.MAX_SITES,
+      )
+      .map(([id]) => id);
   }
 
   /**
@@ -249,7 +306,16 @@ export class TpdbWebService {
       }
     }
 
-    const ids = account.popularSiteIds ?? [];
+    const listedSites = account.popularSiteSourcePath?.startsWith('/ ')
+      ? (account.popularSiteIds ?? [])
+      : [];
+    const ids = listedSites.length
+      ? listedSites
+      : await this.rankFromPopularScenes(
+          account.popularSceneIds,
+          apiConfig,
+          'site',
+        );
     const key = ids.join(',');
     if (!key) {
       return [];
@@ -392,8 +458,8 @@ export class TpdbWebService {
         );
       }
 
-      const performers = await this.findPopular(home, jar, 'performer');
-      const sites = await this.findPopular(home, jar, 'site');
+      const performers = this.findPopular(home, 'performer');
+      const sites = this.findPopular(home, 'site');
 
       await this.prisma.tpdbWebAccount.update({
         where: { id: 1 },
@@ -417,12 +483,12 @@ export class TpdbWebService {
       this.logger.log(
         performers
           ? `Read ${performers.ids.length} popular performers from the TPDB website (${performers.path}).`
-          : 'Found no popular performers on the TPDB website (homepage or performers page).',
+          : 'No popular performers list on the TPDB homepage: ranked from the popular scenes.',
       );
       this.logger.log(
         sites
           ? `Read ${sites.ids.length} popular sites from the TPDB website (${sites.path}).`
-          : 'Found no popular sites on the TPDB website (homepage or sites page).',
+          : 'No popular sites list on the TPDB homepage: ranked from the popular scenes.',
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -501,34 +567,23 @@ export class TpdbWebService {
   }
 
   /**
-   * A list of performers (sites) on the homepage, else on the website's
-   * performers (sites) page, in its own order. Null if neither has one --
-   * the scenes are still kept.
+   * A list of popular performers (sites) on the homepage -- one labelled
+   * popular / trending / top. Null without one: they're then ranked from
+   * the popular scenes (see rankFromPopularScenes). (The website's
+   * performers and sites pages list the newest first: not used.)
    */
-  private async findPopular(
+  private findPopular(
     home: InertiaPage,
-    jar: CookieJar,
     kind: 'performer' | 'site',
-  ): Promise<{ path: string; ids: string[] } | null> {
+  ): { path: string; ids: string[] } | null {
     const named =
       kind === 'performer' ? /performer|model|star/i : /site|studio|channel/i;
     const onHome = this.findList(home.props, kind);
-    if (onHome && named.test(onHome.path)) {
-      return { path: `/ ${onHome.path}`, ids: onHome.ids };
-    }
-    const pagePath = kind === 'performer' ? '/performers' : '/sites';
-    try {
-      const page = await this.getPage(pagePath, jar);
-      const listed = this.findList(page.props, kind);
-      return listed
-        ? { path: `${pagePath} ${listed.path}`, ids: listed.ids }
-        : null;
-    } catch (error) {
-      this.logger.warn(
-        `TPDB ${pagePath} page: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return null;
-    }
+    return onHome &&
+      named.test(onHome.path) &&
+      /popular|trend|top|hot|most/i.test(onHome.path)
+      ? { path: `/ ${onHome.path}`, ids: onHome.ids }
+      : null;
   }
 
   private isSignInPage(page: InertiaPage): boolean {

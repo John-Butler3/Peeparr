@@ -169,6 +169,13 @@ describe('TpdbWebService', () => {
         id,
         title: id,
         isFromExcludedNetwork: false,
+        // Who's in each popular scene, and its site.
+        ...{
+          'popular-1': { performerIds: ['p-a', 'p-b'], studioId: 's-1' },
+          'popular-2': { performerIds: ['p-c'], studioId: 's-2' },
+          'popular-3': { performerIds: ['p-b', 'p-a'], studioId: 's-1' },
+          'popular-4': { performerIds: ['p-a'], studioId: 's-1' },
+        }[id],
       })),
       getFeedPerformerById: jest.fn(async (id: string) => ({ id, name: id })),
       getFeedStudioById: jest.fn(async (id: string) => ({ id, name: id })),
@@ -220,49 +227,33 @@ describe('TpdbWebService', () => {
 
     await service.refreshNow();
 
-    expect(site.calls).toEqual(['GET /', 'GET /performers', 'GET /sites']);
+    expect(site.calls).toEqual(['GET /']);
   });
 
-  it("reads popular performers too -- not a scene's own cast -- from the performers page", async () => {
+  it("ranks popular performers and sites by the popular scenes they're in -- not a page of the newest", async () => {
     const site = fakeSite({ password: 'secret' });
     jest
       .spyOn(global, 'fetch')
       .mockImplementation(site.fetchMock as unknown as typeof fetch);
     await service.saveAccount('me@example.com', 'secret');
+    const api = { baseUrl: 'https://api.theporndb.net', apiKey: 'k' };
 
-    const performers = await service.getPopularPerformers({
-      baseUrl: 'https://api.theporndb.net',
-      apiKey: 'k',
-    });
+    const performers = await service.getPopularPerformers(api);
+    const sites = await service.getPopularSites(api);
 
+    // p-a is in three, p-b two, p-c one; s-1 three, s-2 one.
     expect(performers.map((performer) => performer.id)).toEqual([
-      'performer-1',
-      'performer-2',
-      'performer-3',
+      'p-a',
+      'p-b',
+      'p-c',
     ]);
-    expect(row?.popularPerformerSourcePath).toBe('/performers performers.data');
-    expect((await service.getStatus()).popularPerformerCount).toBe(3);
-  });
-
-  it('reads popular sites too, from the sites page', async () => {
-    const site = fakeSite({ password: 'secret' });
-    jest
-      .spyOn(global, 'fetch')
-      .mockImplementation(site.fetchMock as unknown as typeof fetch);
-    await service.saveAccount('me@example.com', 'secret');
-
-    const sites = await service.getPopularSites({
-      baseUrl: 'https://api.theporndb.net',
-      apiKey: 'k',
-    });
-
-    expect(sites.map((popular) => popular.id)).toEqual([
-      'site-1',
-      'site-2',
-      'site-3',
-    ]);
-    expect(row?.popularSiteSourcePath).toBe('/sites sites.data');
-    expect((await service.getStatus()).popularSiteCount).toBe(3);
+    expect(sites.map((popular) => popular.id)).toEqual(['s-1', 's-2']);
+    // Never the website's performers or sites pages (their newest first).
+    expect(site.calls).not.toContain('GET /performers');
+    expect(site.calls).not.toContain('GET /sites');
+    const status = await service.getStatus();
+    expect(status.popularPerformerCount).toBe(3);
+    expect(status.popularSiteCount).toBe(2);
   });
 
   it('records the error and returns nothing when the password is wrong', async () => {

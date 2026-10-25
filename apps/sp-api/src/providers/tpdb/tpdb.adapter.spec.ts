@@ -135,6 +135,7 @@ describe('TpdbAdapter', () => {
         productionDate: null,
         duration: 600,
         url: null,
+        performerIds: [],
         isFromExcludedNetwork: false,
       },
     ]);

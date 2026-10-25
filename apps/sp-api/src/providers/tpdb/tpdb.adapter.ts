@@ -735,6 +735,15 @@ export class TpdbAdapter implements CatalogAdapter {
       productionDate: null,
       duration: this.readNumber(record.duration),
       url: this.readString(record.url),
+      // The fetchable performer is a site profile's parent (see getSceneById).
+      performerIds: this.readArray(record.performers)
+        .map((entry) => this.asRecord(entry))
+        .map((performer) =>
+          this.readIdAsString(
+            this.asRecord(performer?.parent)?.id ?? performer?.id,
+          ),
+        )
+        .filter((performerId): performerId is string => !!performerId),
       isFromExcludedNetwork: this.isFromExcludableNetwork(record, site),
     };
   }
