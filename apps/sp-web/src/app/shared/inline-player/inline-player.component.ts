@@ -44,6 +44,16 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   /** ...or a flick this fast (px/ms) and this far. */
   private static readonly MINIMIZE_FLICK_SPEED = 0.5;
   private static readonly MINIMIZE_FLICK_PX = 40;
+  /**
+   * The video's own control bar (the timeline, along its bottom): a touch
+   * there is the controls', never a swipe.
+   */
+  private static readonly CONTROL_BAR_PX = 56;
+  /**
+   * Lifted and then nothing heard for this long: the swipe has ended without
+   * saying (iOS can keep a touch its own controls took), so it's ended here.
+   */
+  private static readonly DRAG_SILENCE_MS = 1200;
   /** This long after it starts playing, the page you came from is readied behind. */
   private static readonly PREPARE_BEHIND_MS = 1500;
 
@@ -57,6 +67,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private handedOff = false;
   private slotElement: HTMLElement | null = null;
   private dragListeners: AbortController | null = null;
+  private dragSilence: ReturnType<typeof setTimeout> | null = null;
   /**
    * Where the video was on screen as navigation away began (the page is
    * gone by the time this player is destroyed): the miniplayer's video
@@ -234,9 +245,18 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected onDragStart(event: TouchEvent): void {
     const video = this.video;
     const touch = event.touches[0];
+    const onControlBar =
+      !!video &&
+      !!touch &&
+      touch.clientY > video.getBoundingClientRect().bottom - InlinePlayerComponent.CONTROL_BAR_PX;
     // Playing: a swipe down goes to the miniplayer. Paused: it closes.
     this.drag =
-      video && video.getAttribute('src') && !video.ended && touch && event.touches.length === 1
+      video &&
+      video.getAttribute('src') &&
+      !video.ended &&
+      touch &&
+      event.touches.length === 1 &&
+      !onControlBar
         ? {
             x: touch.clientX,
             y: touch.clientY,
@@ -310,6 +330,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
         this.pageFade.revealBehindSoon(() => this.drag === drag);
       }
       if (drag.lifted) {
+        this.listenForSilence();
         if (drag.playing) {
           this.sharedVideo.moveLifted(dy);
         } else {
@@ -322,7 +343,24 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
   }
 
+  /** (Re)starts the wait for a lifted swipe that ends without saying so. */
+  private listenForSilence(): void {
+    if (this.dragSilence) {
+      clearTimeout(this.dragSilence);
+    }
+    this.dragSilence = setTimeout(() => {
+      this.dragSilence = null;
+      if (this.drag?.lifted) {
+        this.onDragEnd();
+      }
+    }, InlinePlayerComponent.DRAG_SILENCE_MS);
+  }
+
   protected onDragEnd(): void {
+    if (this.dragSilence) {
+      clearTimeout(this.dragSilence);
+      this.dragSilence = null;
+    }
     const drag = this.drag;
     this.drag = null;
     this.dragListeners?.abort();
@@ -513,6 +551,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   private cleanup(): void {
+    if (this.dragSilence) {
+      clearTimeout(this.dragSilence);
+      this.dragSilence = null;
+    }
     if (this.prepareTimer) {
       clearTimeout(this.prepareTimer);
       this.prepareTimer = null;
