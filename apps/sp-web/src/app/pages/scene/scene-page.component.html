@@ -85,6 +85,7 @@
               [details]="playerDetails(scene)"
               [playable]="hasStashCopy(scene)"
               [autoplay]="autoplay()"
+              [markers]="chapterMarkers()"
               (ended)="playNextUp()"
               (minimize)="leaveToMiniplayer()"
             />
@@ -92,6 +93,14 @@
         </div>
 
         <div class="watch-info">
+          <!-- Its chapters (markers): played from with a tap. -->
+          @if (hasStashCopy(scene) && !streamUrl(scene)) {
+            <app-scene-chapters
+              [markers]="chapterMarkers()"
+              [sceneIds]="stashCopyIds(scene)"
+              (seek)="playFromChapter($event)"
+            />
+          }
           <a
             class="watch-back"
             [appBackLink]="backLinkPath()"

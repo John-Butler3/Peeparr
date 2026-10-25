@@ -661,6 +661,7 @@ export class ScenesService {
         };
       }),
       sourceUrls: scene.sourceUrls,
+      markers: scene.markers ?? [],
       streamEmbedUrl: (await this.appSettingsService.get()).streamFromPornhub
         ? pornhubEmbedUrl(scene.sourceUrls)
         : null,

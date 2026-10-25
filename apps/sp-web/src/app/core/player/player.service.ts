@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, Subject, catchError, map, of } from 'rxjs';
 import { DiscoverService } from '../api/discover.service';
-import { ScenePlaybackSource } from '../api/discover.types';
+import { SceneMarker, ScenePlaybackSource } from '../api/discover.types';
 import { VideoQualityService } from './video-quality.service';
 import { WatchProgressService } from './watch-progress.service';
 
@@ -213,6 +213,18 @@ export class PlayerService {
     void this.router.navigate([...(link?.commands ?? fallback)], {
       queryParams: { ...(link?.queryParams ?? {}), autoplay: '1' },
     });
+  }
+
+  /** A library scene's markers (chapters) in Stash; none if it can't say. */
+  sceneMarkers(localSceneId: string): Observable<SceneMarker[]> {
+    return this.http
+      .get<{
+        markers: SceneMarker[];
+      }>(`/api/media/stash/scenes/${encodeURIComponent(localSceneId)}/markers`)
+      .pipe(
+        map((response) => response.markers ?? []),
+        catchError(() => of([] as SceneMarker[])),
+      );
   }
 
   /** A Stash scene's original quality, as its file's height (null if unknown). */

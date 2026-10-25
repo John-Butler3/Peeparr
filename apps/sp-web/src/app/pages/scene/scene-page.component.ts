@@ -23,6 +23,7 @@ import { AppNotificationsService } from '../../core/notifications/app-notificati
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
   SceneDetails,
+  SceneMarker,
   ScenePerformer,
   SceneExplorerItem,
   SceneRequestContext,
@@ -57,6 +58,7 @@ import { WatchDockDirective } from './watch-dock.directive';
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
+import { SceneChaptersComponent } from '../../shared/scene-chapters/scene-chapters.component';
 import { SimilarScenesComponent } from '../../shared/similar-scenes/similar-scenes.component';
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 import { LibraryDeletionService } from '../../core/library/library-deletion.service';
@@ -65,6 +67,7 @@ import { LibraryDeletionService } from '../../core/library/library-deletion.serv
   imports: [
     PlaybackMenuComponent,
     SimilarScenesComponent,
+    SceneChaptersComponent,
     BackLinkDirective,
     WatchDockDirective,
     RouterLink,
@@ -138,6 +141,9 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
   protected readonly removingRequest = signal(false);
   protected readonly deleting = signal(false);
+  /** Its markers: from Stash (its copy), else from the catalog. */
+  protected readonly chapterMarkers = signal<SceneMarker[]>([]);
+  @ViewChild('player') private player?: InlinePlayerComponent;
 
   ngOnInit(): void {
     this.routeSubscription = combineLatest([
@@ -761,6 +767,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
             imageUrl: scene.imageUrl,
           });
           this.loadSimilarScenes(scene.id);
+          this.loadChapters(scene);
         },
         error: () => {
           this.error.set('Failed to load scene details from the API.');
@@ -841,6 +848,24 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       duration: item.duration,
       commands: ['/scene', item.id],
     }));
+  }
+
+  private loadChapters(scene: SceneDetails): void {
+    this.chapterMarkers.set(scene.markers ?? []);
+    const copyId = this.selectedStashCopyId(scene);
+    if (!copyId) {
+      return;
+    }
+    this.playerService.sceneMarkers(copyId).subscribe((markers) => {
+      if (markers.length > 0 && this.scene()?.id === scene.id) {
+        this.chapterMarkers.set(markers);
+      }
+    });
+  }
+
+  /** A chapter tapped: played from there. */
+  protected playFromChapter(seconds: number): void {
+    this.player?.playFrom(seconds);
   }
 
   private loadSimilarScenes(stashId: string): void {

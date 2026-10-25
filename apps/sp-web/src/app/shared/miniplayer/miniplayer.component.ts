@@ -22,6 +22,7 @@ import { SharedVideoService } from '../../core/player/shared-video.service';
  * leaving the page. Tap it to go back to the page (its player picks up from
  * the same moment); play/pause and close from the bar; Escape closes it.
  */
+import { tidyMarkers } from '../scene-chapters/scene-chapters.component';
 @Component({
   selector: 'app-miniplayer',
   templateUrl: './miniplayer.component.html',
@@ -106,6 +107,15 @@ export class MiniplayerComponent implements OnDestroy {
   protected readonly wireless = signal(false);
   /** Playback position 0..1, drawn as the red progress line. */
   protected readonly progress = signal(0);
+  private readonly duration = signal(0);
+  /** Its chapters, as ticks along the progress line (fractions of the way). */
+  protected readonly ticks = computed(() => {
+    const duration = this.duration() || this.state()?.source.duration || 0;
+    const markers = tidyMarkers(this.state()?.source.markers ?? []);
+    return duration > 0
+      ? markers.map((marker) => marker.seconds / duration).filter((at) => at > 0.005 && at < 0.995)
+      : [];
+  });
   protected readonly subtitle = computed(() => {
     const details = this.playerService.details();
     return [details?.studio, details?.releaseDate].filter(Boolean).join(' · ');
@@ -424,6 +434,7 @@ export class MiniplayerComponent implements OnDestroy {
       return;
     }
 
+    this.duration.set(video.duration);
     this.progress.set(Math.min(1, Math.max(0, video.currentTime / video.duration)));
   }
 

@@ -60,6 +60,7 @@ describe('ScenePageComponent', () => {
     };
 
     const playerService = {
+      sceneMarkers: vi.fn().mockReturnValue(of([])),
       openByCatalogSceneId: vi.fn(),
       close: vi.fn(),
       saveProgress: vi.fn(),

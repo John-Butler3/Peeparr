@@ -63,6 +63,11 @@ p {
   flex: none;
 }
 
+// The chapters straight under the video, above the back link.
+app-scene-chapters {
+  order: -2;
+}
+
 .watch-back {
   order: -1;
   display: inline-flex;

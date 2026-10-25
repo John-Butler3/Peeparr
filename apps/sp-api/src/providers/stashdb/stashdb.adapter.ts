@@ -297,12 +297,20 @@ export interface StashdbSceneUrl {
   type: string | null;
 }
 
+/** A moment in a scene (a marker / chapter): where, and what. */
+export interface SceneMarker {
+  seconds: number;
+  title: string;
+}
+
 export interface StashdbSceneDetails extends StashdbSceneMetadata {
   images: StashdbSceneImage[];
   studioIsFavorite: boolean;
   tags: StashdbSceneTag[];
   performers: StashdbScenePerformer[];
   sourceUrls: StashdbSceneUrl[];
+  /** Its markers, where the catalog has them (TPDB). */
+  markers?: SceneMarker[];
 }
 
 type StashdbSceneMetadataSource = {

@@ -42,6 +42,9 @@
         [attr.aria-valuenow]="(progress() * 100).toFixed(0)"
       >
         <div class="mini-progress-fill" [style.transform]="'scaleX(' + progress() + ')'"></div>
+        @for (at of ticks(); track $index) {
+          <span class="mini-tick" [style.left.%]="at * 100"></span>
+        }
       </div>
     }
 

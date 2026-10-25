@@ -1,0 +1,19 @@
+@if (chapters().length > 0) {
+  <section class="chapters" aria-label="Chapters">
+    <div class="chapters-row" #row>
+      @for (chapter of chapters(); track $index) {
+        <button
+          type="button"
+          class="chapter"
+          [class.current]="$index === current()"
+          [attr.aria-current]="$index === current() ? 'true' : null"
+          [title]="label(chapter.seconds) + ' ' + chapter.title"
+          (click)="seek.emit(chapter.seconds)"
+        >
+          <span class="chapter-time">{{ label(chapter.seconds) }}</span>
+          <span class="chapter-title">{{ chapter.title }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}

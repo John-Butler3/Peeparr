@@ -68,6 +68,8 @@ export class SceneDetailsDto {
    * streaming from Pornhub is on (Settings); otherwise null.
    */
   streamEmbedUrl!: string | null;
+  /** The catalog's markers for it (TPDB), time and title; empty if none. */
+  markers!: Array<{ seconds: number; title: string }>;
   source!: CatalogProviderKey;
   status!: SceneStatusDto;
   stash!: SceneStashAvailabilityDto | null;

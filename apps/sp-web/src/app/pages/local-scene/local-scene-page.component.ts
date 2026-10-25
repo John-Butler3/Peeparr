@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal, effect } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -13,7 +22,8 @@ import {
   mergeUpNext,
   seriesUpNextItems,
 } from '../../core/player/player-details.util';
-import { PlayerDetails } from '../../core/player/player.service';
+import { PlayerDetails, PlayerService } from '../../core/player/player.service';
+import { SceneMarker } from '../../core/api/discover.types';
 import { WatchProgressService } from '../../core/player/watch-progress.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { InlinePlayerComponent } from '../../shared/inline-player/inline-player.component';
@@ -24,6 +34,7 @@ import { NavigationHistoryService } from '../../core/navigation/navigation-histo
 // Scene page for a library scene with no catalog match ("Local only"): built
 // from the local library index, with a link out to the scene in Stash.
 // Scenes that do match the catalog use the regular /scene/:stashId page.
+import { SceneChaptersComponent } from '../../shared/scene-chapters/scene-chapters.component';
 import { SimilarScenesComponent } from '../../shared/similar-scenes/similar-scenes.component';
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 import { LibraryDeletionService } from '../../core/library/library-deletion.service';
@@ -32,6 +43,7 @@ import { LibraryDeletionService } from '../../core/library/library-deletion.serv
   imports: [
     PlaybackMenuComponent,
     SimilarScenesComponent,
+    SceneChaptersComponent,
     RouterLink,
     Message,
     ProgressSpinner,
@@ -51,7 +63,11 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly notifications = inject(AppNotificationsService);
   private readonly libraryDeletion = inject(LibraryDeletionService);
+  private readonly playerService = inject(PlayerService);
   protected readonly deleting = signal(false);
+  /** Its markers (chapters) in Stash. */
+  protected readonly chapterMarkers = signal<SceneMarker[]>([]);
+  @ViewChild('player') private player?: InlinePlayerComponent;
   protected readonly watchProgress = inject(WatchProgressService);
   protected readonly markingUnwatched = signal(false);
   private paramSubscription: Subscription | null = null;
@@ -142,6 +158,11 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
 
   protected currentRouteUrl(): string {
     return this.router.url;
+  }
+
+  /** A chapter tapped: played from there. */
+  protected playFromChapter(seconds: number): void {
+    this.player?.playFrom(seconds);
   }
 
   protected tagNames(scene: LibrarySceneDetail): string[] {
@@ -243,6 +264,12 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
         this.scene.set(null);
         this.error.set('This scene is not in the local library index.');
       },
+    });
+    this.chapterMarkers.set([]);
+    this.playerService.sceneMarkers(sceneId).subscribe((markers) => {
+      if (this.scene()?.id === sceneId || !this.scene()) {
+        this.chapterMarkers.set(markers);
+      }
     });
     this.upNextSubscription?.unsubscribe();
     this.recommendedUpNext.set([]);

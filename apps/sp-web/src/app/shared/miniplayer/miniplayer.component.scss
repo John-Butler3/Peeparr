@@ -101,6 +101,16 @@
   pointer-events: none;
 }
 
+// Chapters: small gaps in the line.
+.mini-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgb(0 0 0 / 70%);
+}
+
 .mini-progress-fill {
   height: 100%;
   background: var(--yt-red, #f00);

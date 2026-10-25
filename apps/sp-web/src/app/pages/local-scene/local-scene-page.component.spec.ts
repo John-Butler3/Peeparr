@@ -78,6 +78,7 @@ describe('LocalScenePageComponent', () => {
       ),
     };
     const playerService = {
+      sceneMarkers: vi.fn().mockReturnValue(of([])),
       close: vi.fn(),
       saveProgress: vi.fn(),
       handOff: vi.fn(),

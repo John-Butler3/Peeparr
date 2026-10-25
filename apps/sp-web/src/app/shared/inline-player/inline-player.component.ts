@@ -14,7 +14,7 @@ import {
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Observable, Subscription } from 'rxjs';
-import { ScenePlaybackSource } from '../../core/api/discover.types';
+import { SceneMarker, ScenePlaybackSource } from '../../core/api/discover.types';
 import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
@@ -96,6 +96,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private listeners: AbortController | null = null;
   /** Start position set for this load (metadata can arrive again, e.g. AirPlay). */
   private positioned = false;
+  /** A chapter chosen before it was playing: started there. */
+  private startAt: number | null = null;
 
   // The slot appears once the source is ready: the shared video goes in.
   @ViewChild('videoSlot') private set videoSlot(slot: ElementRef<HTMLElement> | undefined) {
@@ -122,6 +124,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   @Input() autoplay = false;
   /** False when the scene can't be played (not in Stash): poster only. */
   @Input() playable = true;
+  /** Its markers (chapters): carried into the miniplayer. */
+  @Input() markers: SceneMarker[] = [];
 
   @Output() ended = new EventEmitter<void>();
   /** Swiped down: leave the page (playing, the video carries on in the miniplayer; paused, it's closed). */
@@ -185,7 +189,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     this.playerService.handOff({
       title: this.title,
       imageUrl: this.posterUrl,
-      source: { ...source, resumeSeconds: video.currentTime },
+      source: { ...source, resumeSeconds: video.currentTime, markers: this.markers },
       details: this.details,
     });
     return true;
@@ -227,6 +231,21 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
         this.start();
       }
     }
+  }
+
+  /**
+   * Plays from this moment (a chapter): jumps there if it's playing here,
+   * else starts it there.
+   */
+  playFrom(seconds: number): void {
+    const video = this.video;
+    if (this.status() === 'ready' && video) {
+      video.currentTime = seconds;
+      void video.play().catch(() => undefined);
+      return;
+    }
+    this.startAt = seconds;
+    this.start();
   }
 
   /** The page's own Play button: start, or carry on if already loaded. */
@@ -470,9 +489,16 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
     this.positioned = true;
 
-    // Back from the miniplayer: carry on exactly where it was.
-    const resume = this.playerService.takeHandBack(source.stashSceneId) ?? source.resumeSeconds;
-    if (resume > 0 && resume < video.duration - InlinePlayerComponent.RESUME_END_MARGIN_S) {
+    // A chapter chosen to start at; else, back from the miniplayer, carry on
+    // exactly where it was; else where you left off.
+    const chosen = this.startAt;
+    this.startAt = null;
+    const resume =
+      chosen ?? this.playerService.takeHandBack(source.stashSceneId) ?? source.resumeSeconds;
+    if (chosen !== null) {
+      // A chapter: exactly there, wherever it is.
+      video.currentTime = Math.min(chosen, Math.max(0, video.duration - 1));
+    } else if (resume > 0 && resume < video.duration - InlinePlayerComponent.RESUME_END_MARGIN_S) {
       video.currentTime = resume;
     }
     video.play().catch(() => {

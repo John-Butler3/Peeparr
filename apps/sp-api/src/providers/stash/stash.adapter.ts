@@ -1403,6 +1403,64 @@ export class StashAdapter {
     return { resumeSeconds, duration, height };
   }
 
+  /** A scene's markers in Stash (chapters): time and title (else its tag), in order. */
+  async getSceneMarkers(
+    sceneId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<Array<{ seconds: number; title: string }>> {
+    const normalizedSceneId = this.normalizeEntityId(sceneId);
+    if (!normalizedSceneId) {
+      return [];
+    }
+    const query = `
+      query FindSceneMarkers($id: ID!) {
+        findScene(id: $id) {
+          id
+          scene_markers {
+            title
+            seconds
+            primary_tag {
+              name
+            }
+          }
+        }
+      }
+    `;
+    const payload = await this.executeQuery(config, query, {
+      id: normalizedSceneId,
+    });
+    const markers = (
+      payload.data?.findScene as { scene_markers?: unknown } | null | undefined
+    )?.scene_markers;
+    if (!Array.isArray(markers)) {
+      return [];
+    }
+    return markers
+      .map(
+        (marker: {
+          title?: unknown;
+          seconds?: unknown;
+          primary_tag?: { name?: unknown } | null;
+        }) => {
+          const seconds =
+            typeof marker.seconds === 'number' ? marker.seconds : NaN;
+          const title =
+            (typeof marker.title === 'string' && marker.title.trim()) ||
+            (typeof marker.primary_tag?.name === 'string' &&
+              marker.primary_tag.name.trim()) ||
+            '';
+          return Number.isFinite(seconds) && seconds >= 0 && title
+            ? { seconds, title }
+            : null;
+        },
+      )
+      .filter(
+        (marker): marker is { seconds: number; title: string } =>
+          marker !== null,
+      )
+      .sort((a, b) => a.seconds - b.seconds);
+  }
+
   async getSceneStreamUrl(
     sceneId: string,
     config: StashAdapterBaseConfig,

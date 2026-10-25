@@ -286,6 +286,14 @@ export class MediaController {
     };
   }
 
+  // Its markers (chapters): time and title.
+  @Get('stash/scenes/:sceneId/markers')
+  async getSceneMarkers(
+    @Param('sceneId') sceneId: string,
+  ): Promise<{ markers: Array<{ seconds: number; title: string }> }> {
+    return { markers: await this.mediaService.getSceneMarkers(sceneId) };
+  }
+
   @Post('stash/scenes/:sceneId/progress')
   saveScenePlaybackProgress(
     @Param('sceneId') sceneId: string,

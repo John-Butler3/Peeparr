@@ -142,6 +142,8 @@ export interface SceneDetails {
   sourceUrls: SceneUrl[];
   /** Pornhub's embed player, when it's a Pornhub video and streaming from Pornhub is on. */
   streamEmbedUrl?: string | null;
+  /** The catalog's markers (TPDB). */
+  markers?: SceneMarker[];
   source: CatalogProviderType;
   status: SceneStatus;
   stash: SceneStashAvailability | null;
@@ -368,8 +370,16 @@ export interface StudioDetails {
   childStudios: StudioDetailsChild[];
 }
 
+/** A moment in a scene (a marker / chapter): where, and what. */
+export interface SceneMarker {
+  seconds: number;
+  title: string;
+}
+
 export interface ScenePlaybackSource {
   streamUrl: string;
+  /** Its markers (chapters), for the miniplayer's progress line. */
+  markers?: SceneMarker[];
   stashSceneId: string;
   resumeSeconds: number;
   duration: number | null;

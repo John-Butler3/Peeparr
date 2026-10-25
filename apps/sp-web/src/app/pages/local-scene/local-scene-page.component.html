@@ -26,12 +26,19 @@
             [localSceneId]="scene.id"
             [details]="playerDetails(scene)"
             [autoplay]="autoplay()"
+            [markers]="chapterMarkers()"
             (ended)="playNextUp()"
             (minimize)="leaveToMiniplayer()"
           />
         </div>
 
         <div class="watch-info">
+          <!-- Its chapters (markers in Stash): played from with a tap. -->
+          <app-scene-chapters
+            [markers]="chapterMarkers()"
+            [sceneIds]="[scene.id]"
+            (seek)="playFromChapter($event)"
+          />
           <a class="watch-back app-back-link" [href]="backLink()" (click)="goBack($event)">
             <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ backLinkLabel() }}
           </a>

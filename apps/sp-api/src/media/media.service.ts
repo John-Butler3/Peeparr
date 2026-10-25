@@ -268,9 +268,7 @@ export class MediaService {
     return url;
   }
 
-  async getScenePlaybackInfo(
-    sceneId: string,
-  ): Promise<{
+  async getScenePlaybackInfo(sceneId: string): Promise<{
     resumeSeconds: number;
     duration: number | null;
     height: number | null;
@@ -282,6 +280,14 @@ export class MediaService {
     }
 
     return info;
+  }
+
+  /** A library scene's markers (chapters) in Stash. */
+  async getSceneMarkers(
+    sceneId: string,
+  ): Promise<Array<{ seconds: number; title: string }>> {
+    const config = await this.getStashConfig();
+    return this.stashAdapter.getSceneMarkers(sceneId, config);
   }
 
   async saveScenePlaybackProgress(

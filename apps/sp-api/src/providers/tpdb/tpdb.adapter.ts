@@ -15,6 +15,7 @@ import {
   StashdbFavoriteResult,
   StashdbPerformerDetails,
   StashdbPerformerFeedConfig,
+  SceneMarker,
   StashdbPerformerFeedItem,
   StashdbPerformerScenesConfig,
   StashdbPerformersFeedResult,
@@ -588,8 +589,31 @@ export class TpdbAdapter implements CatalogAdapter {
         tags,
         performers,
         sourceUrls,
+        markers: this.sceneMarkers(record),
       };
     });
+  }
+
+  /** A scene's markers (contributors' timestamps), in order: start time and title. */
+  private sceneMarkers(record: Record<string, unknown>): SceneMarker[] {
+    return this.readArray(record.markers)
+      .map((entry) => this.asRecord(entry))
+      .map((marker): SceneMarker | null => {
+        const seconds =
+          readSeconds(marker?.start_time) ??
+          readSeconds(marker?.seconds) ??
+          readSeconds(marker?.start);
+        const tag = this.asRecord(marker?.tag);
+        const title =
+          this.readString(marker?.title) ??
+          this.readString(marker?.name) ??
+          this.readString(tag?.name);
+        return seconds !== null && seconds >= 0 && title
+          ? { seconds, title }
+          : null;
+      })
+      .filter((marker): marker is SceneMarker => marker !== null)
+      .sort((a, b) => a.seconds - b.seconds);
   }
 
   async getSceneMetadataByIds(
@@ -1300,4 +1324,27 @@ export class TpdbAdapter implements CatalogAdapter {
     }
     return 'unknown error';
   }
+}
+
+/** Seconds from a number, a numeric string, or "h:mm:ss" / "m:ss". */
+function readSeconds(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    return null;
+  }
+  const text = value.trim();
+  if (/^\d+(\.\d+)?$/.test(text)) {
+    return Number(text);
+  }
+  const parts = text.split(':');
+  if (
+    parts.length < 2 ||
+    parts.length > 3 ||
+    parts.some((part) => !/^\d+(\.\d+)?$/.test(part))
+  ) {
+    return null;
+  }
+  return parts.reduce((total, part) => total * 60 + Number(part), 0);
 }

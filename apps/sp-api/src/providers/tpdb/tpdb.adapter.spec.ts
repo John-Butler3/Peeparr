@@ -366,6 +366,37 @@ describe('TpdbAdapter', () => {
     ]);
   });
 
+  it("reads a scene's markers in order, whatever form their time takes", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          id: 'scene-uuid-1',
+          title: 'A Scene',
+          description: null,
+          date: null,
+          duration: null,
+          performers: [],
+          tags: [],
+          url: null,
+          markers: [
+            { title: 'Outro', start_time: '0:21:05' },
+            { title: 'Intro', start_time: 0 },
+            { start_time: '312', tag: { name: 'Blowjob' } },
+            { title: 'No time' },
+          ],
+        },
+      }),
+    );
+
+    const scene = await adapter.getSceneById('scene-uuid-1', config);
+
+    expect(scene.markers).toEqual([
+      { seconds: 0, title: 'Intro' },
+      { seconds: 312, title: 'Blowjob' },
+      { seconds: 1265, title: 'Outro' },
+    ]);
+  });
+
   it('falls back to the generic image field with unknown dimensions when there is no dedicated poster', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {

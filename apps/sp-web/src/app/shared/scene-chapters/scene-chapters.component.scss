@@ -1,0 +1,73 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// One neat row of chips, swiped sideways; no bar.
+.chapters-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+
+.chapters-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chapter {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 220px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.chapter:hover {
+  background: var(--yt-chip-hover, var(--surface-raised));
+}
+
+.chapter:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+// Times line up: same width digits.
+.chapter-time {
+  flex: none;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.chapter-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Playing now.
+.chapter.current {
+  border-color: var(--yt-red, #f00);
+  background: color-mix(in srgb, var(--yt-red, #f00) 14%, var(--button-bg));
+}
+
+.chapter.current .chapter-time {
+  color: var(--text-primary);
+}
