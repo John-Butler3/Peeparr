@@ -1,5 +1,5 @@
 import { ApplicationRef, Component, OnDestroy, inject } from '@angular/core';
-import { releaseBootSplash, takeBootSplash } from './boot-splash';
+import { releaseBootSplash, rememberSignedIn, takeBootSplash } from './boot-splash';
 
 /**
  * 'reveal': the logo in the middle of the screen zooms gently, then nested
@@ -39,6 +39,8 @@ export class AppSplashComponent implements OnDestroy {
   private destroyed = false;
 
   constructor() {
+    // The app shell: signed in.
+    rememberSignedIn(true);
     const mode = nextSplash;
     nextSplash = null;
     if (!mode) {

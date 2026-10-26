@@ -1,4 +1,5 @@
 import { Directive, ElementRef, afterNextRender, inject } from '@angular/core';
+import { rememberSignedIn } from '../../shared/app-splash/boot-splash';
 
 /**
  * Sign-in intro on the auth card: the logo plays its slide-out dead centre
@@ -20,6 +21,8 @@ export class AuthIntroDirective {
   private readonly card = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   constructor() {
+    // Signed out: next time, the loading logo stays still for this intro.
+    rememberSignedIn(false);
     const reducedMotion =
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;

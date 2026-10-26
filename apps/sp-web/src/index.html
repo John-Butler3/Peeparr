@@ -143,34 +143,29 @@
       .discreet-logo .mark-almond {
         display: inline;
       }
-      .mark-ripples {
-        display: none;
-      }
-      .auth-brand .mark-ripples {
-        display: inline;
-      }
       #boot-splash .splash-art {
         display: block;
         width: 100%;
         height: 100%;
       }
       /*
-        While it loads (as on the GitHub page): almond outlines zoom out
-        from behind the logo, one after another, and the logo breathes.
-        On the sign-in page, the same inside the logo's tile.
+        While the app loads (signed in last time, see boot.js), as on the
+        GitHub page: almond outlines zoom out from behind the logo, one
+        after another, and the logo breathes. Signed out, the logo stays
+        still and the sign-in page's own intro (the name sliding out)
+        carries on from it.
       */
-      #boot-splash .splash-ripple,
-      .auth-brand .mark-ripple {
+      #boot-splash .splash-ripple {
         transform-origin: 0 0;
         opacity: 0;
+      }
+      .boot-signed-in #boot-splash .splash-ripple {
         animation: almond-ripple 3s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
       }
-      #boot-splash .r2,
-      .auth-brand .r2 {
+      .boot-signed-in #boot-splash .r2 {
         animation-delay: 1s;
       }
-      #boot-splash .r3,
-      .auth-brand .r3 {
+      .boot-signed-in #boot-splash .r3 {
         animation-delay: 2s;
       }
       @keyframes almond-ripple {
@@ -186,7 +181,7 @@
           opacity: 0;
         }
       }
-      #boot-splash .splash-breathe {
+      .boot-signed-in #boot-splash .splash-breathe {
         transform-origin: 0 -16px;
         animation: almond-breathe 3s ease-in-out infinite;
       }
@@ -200,18 +195,15 @@
         }
       }
       #boot-splash.is-revealing .splash-ripple,
-      #boot-splash.is-revealing .splash-breathe {
+      #boot-splash.is-revealing .splash-breathe,
+      #boot-splash.is-dismissing .splash-ripple,
+      #boot-splash.is-dismissing .splash-breathe {
         animation: none;
-        opacity: 0;
-      }
-      #boot-splash.is-revealing .splash-breathe {
-        opacity: 1;
       }
       @media (prefers-reduced-motion: reduce) {
         #boot-splash .splash-ripple,
-        #boot-splash .splash-breathe,
-        .auth-brand .mark-ripple {
-          animation: none;
+        #boot-splash .splash-breathe {
+          animation: none !important;
         }
       }
     </style>

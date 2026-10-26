@@ -35,3 +35,23 @@ export function dismissBootSplash(): void {
   splash.classList.add('is-dismissing');
   setTimeout(() => releaseBootSplash(splash), 300);
 }
+
+// Whether this device was signed in last time (read by boot.js): the
+// loading logo only ripples when the app is what's coming. Signed out, the
+// sign-in page's own intro takes over from a still logo.
+const SIGNED_IN_KEY = 'peeparr.signedIn';
+
+/** Remembers whether the next load will most likely open signed in. */
+export function rememberSignedIn(signedIn: boolean): void {
+  try {
+    if (signedIn) {
+      localStorage.setItem(SIGNED_IN_KEY, '1');
+    } else {
+      localStorage.removeItem(SIGNED_IN_KEY);
+      // (And still from now on: the splash after signing in, too.)
+      document.documentElement.classList.remove('boot-signed-in');
+    }
+  } catch {
+    // (Storage unavailable: the logo just stays still.)
+  }
+}
