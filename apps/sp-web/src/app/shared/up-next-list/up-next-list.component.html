@@ -15,17 +15,19 @@
     }
 
     @for (item of items; track item.id) {
-      <a class="row" [routerLink]="item.commands" [queryParams]="item.queryParams ?? null">
-        <span
-          class="thumb"
-          [appScenePreview]="previewLoader(item)"
-        >
+      <!-- Chosen: it plays (as when it comes up next by itself). -->
+      <a class="row" [routerLink]="item.commands" [queryParams]="playing(item)">
+        <span class="thumb" [appScenePreview]="previewLoader(item)">
           @if (item.imageUrl) {
             <img [src]="item.imageUrl" alt="" loading="lazy" />
           }
           @if (item.studioImageUrl) {
             <span class="logo-plaque">
-              <img [src]="item.studioImageUrl" [alt]="(item.studio ?? 'Studio') + ' logo'" loading="lazy" />
+              <img
+                [src]="item.studioImageUrl"
+                [alt]="(item.studio ?? 'Studio') + ' logo'"
+                loading="lazy"
+              />
             </span>
           }
           @if (durationLabel(item.duration); as duration) {
@@ -38,7 +40,9 @@
         <span class="text">
           <span class="title">{{ item.title }}</span>
           @if (item.label) {
-            <span class="meta label"><i class="pi pi-list" aria-hidden="true"></i> {{ item.label }}</span>
+            <span class="meta label"
+              ><i class="pi pi-list" aria-hidden="true"></i> {{ item.label }}</span
+            >
           }
           @if (item.studio) {
             <span class="meta">{{ item.studio }}</span>

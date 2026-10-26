@@ -2,7 +2,10 @@ import { Component, Input, inject } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { WatchProgressService } from '../../core/player/watch-progress.service';
 import { ScenePreviewService } from '../scene-card/scene-preview.service';
-import { ScenePreviewDirective, ScenePreviewLoader } from '../scene-preview/scene-preview.directive';
+import {
+  ScenePreviewDirective,
+  ScenePreviewLoader,
+} from '../scene-preview/scene-preview.directive';
 
 export interface UpNextItem {
   id: string;
@@ -31,6 +34,11 @@ export interface UpNextItem {
   styleUrl: './up-next-list.component.scss',
 })
 export class UpNextListComponent {
+  /** Its link's query: autoplaying, so it plays and the one playing gives way. */
+  protected playing(item: UpNextItem): Params {
+    return { ...(item.queryParams ?? {}), autoplay: '1' };
+  }
+
   @Input() heading = 'Up next';
   @Input() items: readonly UpNextItem[] = [];
   @Input() loading = false;
@@ -71,6 +79,8 @@ export class UpNextListComponent {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const rest = String(Math.floor(seconds % 60)).padStart(2, '0');
-    return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
+    return hours > 0
+      ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}`
+      : `${minutes}:${rest}`;
   }
 }

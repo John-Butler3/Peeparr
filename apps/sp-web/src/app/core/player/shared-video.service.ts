@@ -147,6 +147,13 @@ export class SharedVideoService {
     const carriesOn =
       this.sceneId === sceneId && sameStream(video.getAttribute('src'), src) && !video.ended;
     if (!carriesOn) {
+      if (video.getAttribute('src') && this.sceneId !== sceneId) {
+        // Another scene: emptied first. Given a new source straight away,
+        // Safari goes on showing the last scene's last frame until the new
+        // one has a frame -- the previous scene's picture on this one.
+        video.removeAttribute('src');
+        video.load();
+      }
       this.sceneId = sceneId;
       this.loadedScene.set(sceneId);
       video.src = src;
