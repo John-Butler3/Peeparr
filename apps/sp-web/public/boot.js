@@ -7,5 +7,8 @@ try {
     document.querySelector('link[rel="icon"][type="image/svg+xml"]').href = 'favicon-discreet.svg';
     document.querySelector('link[rel="manifest"]').href = 'manifest-discreet.webmanifest';
     document.querySelector('link[rel="apple-touch-icon"]').href = 'icons/apple-touch-icon-discreet.png';
+    document.querySelectorAll('link[rel="apple-touch-startup-image"]').forEach(function (link) {
+      link.href = link.getAttribute('href').replace('.png', '-discreet.png');
+    });
   }
 } catch (e) {}
