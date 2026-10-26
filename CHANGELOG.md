@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.8.0](https://github.com/John-Butler3/Peeparr/compare/v1.7.0...v1.8.0) (2026-10-26)
+
+
+### Features
+
+* "More from &lt;performer&gt;", and a new "Similar scenes" by tags ([c248be2](https://github.com/John-Butler3/Peeparr/commit/c248be24556ee43338cbefc28e79060de503acb5))
+* delete a scene from the library -- its files in Stash, and from Whisparr ([14ddbe8](https://github.com/John-Butler3/Peeparr/commit/14ddbe881910e10bc5e50f8b8de4ab57c8cd9a31))
+* **player:** chapters -- a scene's markers under the video, tap to play from there ([ab7b52a](https://github.com/John-Butler3/Peeparr/commit/ab7b52a578a6124a5dcb00c415e9968e00478890))
+* Up next is a random few you haven't played; Similar scenes matches its shelf ([17123b8](https://github.com/John-Butler3/Peeparr/commit/17123b8d124a1ec6b7db046bed815a0e7888f847))
+
+
+### Bug Fixes
+
+* **api:** popular performers and sites are the popular ones, not the newest ([90283c2](https://github.com/John-Butler3/Peeparr/commit/90283c27a0c6716adde77df7964bd404ccd1e18d))
+* **player:** a short swipe down on a paused scene no longer freezes it part-way ([a97d0d5](https://github.com/John-Butler3/Peeparr/commit/a97d0d503da7d58ea164ac8102fbdfdba4239dea))
+* **player:** a streamed scene's "watch the full scene" pop-up can be closed ([ebe5f1e](https://github.com/John-Butler3/Peeparr/commit/ebe5f1ee3202f973ab5cacbdda283e8d65ce6ff6))
+* **player:** a swipe across the playing video no longer leaves it frozen part-way ([545e539](https://github.com/John-Butler3/Peeparr/commit/545e53945fc94cd884bcbc53001564c52caeef9c))
+* **web:** a page left behind a scene no longer stays at the bottom of the next one ([f7fa017](https://github.com/John-Butler3/Peeparr/commit/f7fa0178f11a8901a3600619556c06b2272091ec))
+
+
+### Miscellaneous Chores
+
+* release 1.7.1 ([c37b8a0](https://github.com/John-Butler3/Peeparr/commit/c37b8a06063d9ae27f34e8eb79e1147be02afeb2))
+* release 1.8.0 ([d62bccc](https://github.com/John-Butler3/Peeparr/commit/d62bccccb675d9d602c0e35eb6f8ea7b79838ef9))
+
 ## [1.7.0](https://github.com/John-Butler3/Peeparr/compare/v1.6.0...v1.7.0) (2026-10-18)
 
 
