@@ -521,10 +521,12 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** "More from <her>", or "More from these performers" with more than one. */
+  /** "More from <her>", or "More from <her>, <her>, <her>": its women (the ones it's drawn from). */
   protected moreFromHeading(scene: SceneDetails): string {
     const women = scene.performers.filter((performer) => performer.gender === 'FEMALE');
-    return women.length === 1 ? `More from ${women[0].name}` : 'More from these performers';
+    return women.length > 0
+      ? `More from ${women.map((performer) => performer.name).join(', ')}`
+      : 'More from these performers';
   }
 
   protected tagNames(scene: SceneDetails): string[] {

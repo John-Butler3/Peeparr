@@ -196,6 +196,23 @@ describe('ScenePageComponent', () => {
     expect(requestButton?.getAttribute('aria-label')).toBe('Request in Whisparr');
   });
 
+  it('names every woman in the scene above More from, and only them', async () => {
+    const scene = buildScene({
+      performers: [
+        { id: 'p1', name: 'Anna', gender: 'FEMALE' },
+        { id: 'p2', name: 'Mark', gender: 'MALE' },
+        { id: 'p3', name: 'Bella', gender: 'FEMALE' },
+        { id: 'p4', name: 'Cara', gender: 'FEMALE' },
+      ] as SceneDetails['performers'],
+    });
+    const { fixture } = await renderScene(scene);
+    const page = fixture.componentInstance as unknown as {
+      moreFromHeading(scene: SceneDetails): string;
+    };
+
+    expect(page.moreFromHeading(scene)).toBe('More from Anna, Bella, Cara');
+  });
+
   it('plays the linked stash copy in place of the thumbnail', async () => {
     const scene = buildScene({
       stash: {
