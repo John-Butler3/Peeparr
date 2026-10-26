@@ -10,7 +10,10 @@ function page(component: string, props: Record<string, unknown>, url: string) {
   return `<html><body><script data-page="app" type="application/json">${json}</script></body></html>`;
 }
 
-function fakeSite(options: { password: string }) {
+function fakeSite(options: {
+  password: string;
+  home?: Record<string, unknown>;
+}) {
   const calls: string[] = [];
   const fetchMock = jest.fn(async (input: string, init: RequestInit = {}) => {
     const url = new URL(input);
@@ -105,7 +108,7 @@ function fakeSite(options: { password: string }) {
       200,
       page(
         'Home',
-        {
+        options.home ?? {
           latestPerformers: [{ id: 1, name: 'P' }],
           recentScenes: [1, 2, 3].map((n) => ({
             uuid: `recent-${n}`,
@@ -254,6 +257,44 @@ describe('TpdbWebService', () => {
     const status = await service.getStatus();
     expect(status.popularPerformerCount).toBe(3);
     expect(status.popularSiteCount).toBe(2);
+  });
+
+  it("takes a homepage's top performers, a site profile as its main performer", async () => {
+    const site = fakeSite({
+      password: 'secret',
+      home: {
+        topScenes: [1, 2, 3].map((n) => ({
+          uuid: `scene-${n}`,
+          title: `Scene ${n}`,
+        })),
+        topPerformers: [
+          { id: 11, name: 'Profile A', parent: { uuid: 'main-a', name: 'A' } },
+          { uuid: 'main-b', name: 'B' },
+          {
+            id: 12,
+            name: 'Profile A again',
+            parent: { uuid: 'main-a', name: 'A' },
+          },
+          { uuid: 'main-c', name: 'C' },
+        ],
+      },
+    });
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(site.fetchMock as unknown as typeof fetch);
+    await service.saveAccount('me@example.com', 'secret');
+
+    const performers = await service.getPopularPerformers({
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'k',
+    });
+
+    expect(performers.map((performer) => performer.id)).toEqual([
+      'main-a',
+      'main-b',
+      'main-c',
+    ]);
+    expect(row?.popularPerformerSourcePath).toBe('/ topPerformers');
   });
 
   it('records the error and returns nothing when the password is wrong', async () => {

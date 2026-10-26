@@ -375,8 +375,19 @@ export class TpdbWebService {
       );
     }
 
-    this.resolvedPerformers = { key, performers, at: Date.now() };
-    return performers;
+    // Two listings of one performer: once.
+    const unique = [
+      ...new Map(
+        performers.map((performer) => [performer.id, performer]),
+      ).values(),
+    ];
+    if (unique.length < ids.length) {
+      this.logger.warn(
+        `Popular performers: ${unique.length} of ${ids.length} found through the API.`,
+      );
+    }
+    this.resolvedPerformers = { key, performers: unique, at: Date.now() };
+    return unique;
   }
 
   private isDue(account: TpdbWebAccount): boolean {
@@ -661,9 +672,28 @@ export class TpdbWebService {
       return null;
     }
 
-    const ids = best.items
-      .map((item) => this.sceneId(item))
-      .filter((id): id is string => !!id);
+    // A performer listed as a site's profile: its main performer (the one
+    // the API can look up) is its parent.
+    const idOf = (item: Record<string, unknown>) => {
+      const parent = item['parent'];
+      return kind === 'performer' && parent && typeof parent === 'object'
+        ? (this.sceneId(parent as Record<string, unknown>) ??
+            this.sceneId(item))
+        : this.sceneId(item);
+    };
+    const ids = best.items.map(idOf).filter((id): id is string => !!id);
+    if (kind !== 'scene') {
+      // What its entries hold (field names only), for when it doesn't resolve.
+      const sample = best.items[0] ?? {};
+      const parent = sample['parent'];
+      this.logger.log(
+        `TPDB ${kind} list ${best.path}: entries have ${Object.keys(sample).join(', ')}${
+          parent && typeof parent === 'object'
+            ? `; parent has ${Object.keys(parent as Record<string, unknown>).join(', ')}`
+            : ''
+        }.`,
+      );
+    }
     return { path: best.path, ids: [...new Set(ids)] };
   }
 
