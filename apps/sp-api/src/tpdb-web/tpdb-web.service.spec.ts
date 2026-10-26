@@ -139,6 +139,8 @@ describe('TpdbWebService', () => {
     getFeedSceneById: jest.Mock;
     getFeedPerformerById: jest.Mock;
     getFeedStudioById: jest.Mock;
+    getPerformersFeed: jest.Mock;
+    getStudiosFeed: jest.Mock;
   };
 
   beforeEach(() => {
@@ -180,7 +182,12 @@ describe('TpdbWebService', () => {
           'popular-4': { performerIds: ['p-a'], studioId: 's-1' },
         }[id],
       })),
-      getFeedPerformerById: jest.fn(async (id: string) => ({ id, name: id })),
+      getFeedPerformerById: jest.fn(async (id: string) => ({
+        id,
+        name: { 'main-a': 'A', 'main-b': 'B', 'main-c': 'C' }[id] ?? id,
+      })),
+      getPerformersFeed: jest.fn(async () => ({ total: 0, performers: [] })),
+      getStudiosFeed: jest.fn(async () => ({ total: 0, studios: [] })),
       getFeedStudioById: jest.fn(async (id: string) => ({ id, name: id })),
     };
     service = new TpdbWebService(prisma, tpdbAdapter as unknown as TpdbAdapter);
@@ -295,6 +302,51 @@ describe('TpdbWebService', () => {
       'main-c',
     ]);
     expect(row?.popularPerformerSourcePath).toBe('/ topPerformers');
+  });
+
+  it('finds a popular performer by the name the homepage shows when its id is someone else', async () => {
+    const site = fakeSite({
+      password: 'secret',
+      home: {
+        topScenes: [1, 2, 3].map((n) => ({
+          uuid: `scene-${n}`,
+          title: `Scene ${n}`,
+        })),
+        topPerformers: [
+          { id: 7, name: 'Angela White' },
+          { uuid: 'main-b', name: 'B' },
+          { uuid: 'main-c', name: 'C' },
+        ],
+      },
+    });
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(site.fetchMock as unknown as typeof fetch);
+    // The website's id 7 is another performer through the API.
+    tpdbAdapter.getFeedPerformerById.mockImplementation(async (id: string) => ({
+      id,
+      name: { '7': 'Someone Else', 'main-b': 'B', 'main-c': 'C' }[id] ?? id,
+    }));
+    tpdbAdapter.getPerformersFeed.mockResolvedValue({
+      total: 2,
+      performers: [
+        { id: 'angela-site', name: 'Angela White', sceneCount: 3 },
+        { id: 'angela-main', name: 'Angela White', sceneCount: 900 },
+      ],
+    });
+    await service.saveAccount('me@example.com', 'secret');
+
+    const performers = await service.getPopularPerformers({
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'k',
+    });
+
+    expect(performers.map((performer) => performer.id)).toEqual([
+      'angela-main',
+      'main-b',
+      'main-c',
+    ]);
+    expect(tpdbAdapter.getPerformersFeed).toHaveBeenCalledTimes(1);
   });
 
   it('records the error and returns nothing when the password is wrong', async () => {

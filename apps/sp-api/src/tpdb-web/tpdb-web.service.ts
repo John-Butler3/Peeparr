@@ -228,14 +228,19 @@ export class TpdbWebService {
     const listed = account.popularPerformerSourcePath?.startsWith('/ ')
       ? (account.popularPerformerIds ?? [])
       : [];
-    const ids = listed.length
-      ? listed
-      : await this.rankFromPopularScenes(
-          account.popularSceneIds,
-          apiConfig,
-          'performer',
-        );
-    return this.resolvePerformers(ids, apiConfig);
+    if (listed.length) {
+      return this.resolvePerformers(
+        listed,
+        account.popularPerformerNames ?? [],
+        apiConfig,
+      );
+    }
+    const ranked = await this.rankFromPopularScenes(
+      account.popularSceneIds,
+      apiConfig,
+      'performer',
+    );
+    return this.resolvePerformers(ranked, [], apiConfig);
   }
 
   /**
@@ -316,8 +321,9 @@ export class TpdbWebService {
           apiConfig,
           'site',
         );
-    const key = ids.join(',');
-    if (!key) {
+    const names = listedSites.length ? (account.popularSiteNames ?? []) : [];
+    const key = `${ids.join(',')}|${names.join(',')}`;
+    if (!ids.length) {
       return [];
     }
     const cached = this.resolvedSites;
@@ -331,26 +337,44 @@ export class TpdbWebService {
     // A few at a time, to go easy on the API.
     for (let index = 0; index < ids.length; index += 6) {
       const batch = await Promise.all(
-        ids
-          .slice(index, index + 6)
-          .map((id) => this.tpdbAdapter.getFeedStudioById(id, apiConfig)),
+        ids.slice(index, index + 6).map((id, offset) =>
+          this.matchListed(
+            id,
+            names[index + offset],
+            (lookup) => this.tpdbAdapter.getFeedStudioById(lookup, apiConfig),
+            async (name) =>
+              (
+                await this.tpdbAdapter.getStudiosFeed({
+                  ...apiConfig,
+                  page: 1,
+                  perPage: 10,
+                  name,
+                })
+              ).studios,
+            'site',
+          ),
+        ),
       );
       sites.push(
         ...batch.filter((site): site is StashdbStudioFeedItem => site !== null),
       );
     }
-    this.resolvedSites = { key, sites, at: Date.now() };
-    return sites;
+    const uniqueSites = [
+      ...new Map(sites.map((site) => [site.id, site])).values(),
+    ];
+    this.resolvedSites = { key, sites: uniqueSites, at: Date.now() };
+    return uniqueSites;
   }
 
   private async resolvePerformers(
     ids: string[],
+    names: string[],
     apiConfig: { baseUrl: string; apiKey: string | null },
   ): Promise<StashdbPerformerFeedItem[]> {
-    const key = ids.join(',');
-    if (!key) {
+    if (!ids.length) {
       return [];
     }
+    const key = `${ids.join(',')}|${names.join(',')}`;
     const cached = this.resolvedPerformers;
     if (
       cached?.key === key &&
@@ -363,9 +387,24 @@ export class TpdbWebService {
     // A few at a time, to go easy on the API.
     for (let index = 0; index < ids.length; index += 6) {
       const batch = await Promise.all(
-        ids
-          .slice(index, index + 6)
-          .map((id) => this.tpdbAdapter.getFeedPerformerById(id, apiConfig)),
+        ids.slice(index, index + 6).map((id, offset) =>
+          this.matchListed(
+            id,
+            names[index + offset],
+            (lookup) =>
+              this.tpdbAdapter.getFeedPerformerById(lookup, apiConfig),
+            async (name) =>
+              (
+                await this.tpdbAdapter.getPerformersFeed({
+                  ...apiConfig,
+                  page: 1,
+                  perPage: 10,
+                  name,
+                })
+              ).performers,
+            'performer',
+          ),
+        ),
       );
       performers.push(
         ...batch.filter(
@@ -388,6 +427,56 @@ export class TpdbWebService {
     }
     this.resolvedPerformers = { key, performers: unique, at: Date.now() };
     return unique;
+  }
+
+  /**
+   * The API record for one entry of a homepage list: by its id when that's
+   * the one shown (same name), else the one with its name (the website's
+   * ids aren't always the API's). Without a name, just by id.
+   */
+  private async matchListed<T extends { id: string; name: string }>(
+    id: string,
+    name: string | undefined,
+    byId: (id: string) => Promise<T | null>,
+    byName: (name: string) => Promise<T[]>,
+    kind: 'performer' | 'site',
+  ): Promise<T | null> {
+    const found = await byId(id);
+    const wanted = name ? TpdbWebService.nameKey(name) : '';
+    if (!wanted || (found && TpdbWebService.nameKey(found.name) === wanted)) {
+      return found;
+    }
+    try {
+      const named = (await byName(name!)).filter(
+        (item) => TpdbWebService.nameKey(item.name) === wanted,
+      );
+      // Several of that name: the busiest (a performer's main profile).
+      const best =
+        named.sort(
+          (a, b) =>
+            ((b as { sceneCount?: number }).sceneCount ?? 0) -
+            ((a as { sceneCount?: number }).sceneCount ?? 0),
+        )[0] ?? null;
+      if (best) {
+        return best;
+      }
+    } catch {
+      // (Search failing: keep the id's.)
+    }
+    this.logger.warn(
+      `Popular ${kind} "${name}" (${id}): no API record of that name${
+        found ? `; the id gives "${found.name}", skipped` : ''
+      }.`,
+    );
+    return null;
+  }
+
+  private static nameKey(name: string): string {
+    return name
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '');
   }
 
   private isDue(account: TpdbWebAccount): boolean {
@@ -481,8 +570,12 @@ export class TpdbWebService {
           popularPerformerIds:
             performers?.ids.slice(0, TpdbWebService.MAX_PERFORMERS) ?? [],
           popularPerformerSourcePath: performers?.path ?? null,
+          popularPerformerNames:
+            performers?.names.slice(0, TpdbWebService.MAX_PERFORMERS) ?? [],
           popularSiteIds: sites?.ids.slice(0, TpdbWebService.MAX_SITES) ?? [],
           popularSiteSourcePath: sites?.path ?? null,
+          popularSiteNames:
+            sites?.names.slice(0, TpdbWebService.MAX_SITES) ?? [],
           popularFetchedAt: new Date(),
           lastAttemptAt: new Date(),
           lastError: null,
@@ -493,12 +586,12 @@ export class TpdbWebService {
       );
       this.logger.log(
         performers
-          ? `Read ${performers.ids.length} popular performers from the TPDB website (${performers.path}).`
+          ? `Read ${performers.ids.length} popular performers from the TPDB website (${performers.path}): ${performers.names.join(', ')}.`
           : 'No popular performers list on the TPDB homepage: ranked from the popular scenes.',
       );
       this.logger.log(
         sites
-          ? `Read ${sites.ids.length} popular sites from the TPDB website (${sites.path}).`
+          ? `Read ${sites.ids.length} popular sites from the TPDB website (${sites.path}): ${sites.names.join(', ')}.`
           : 'No popular sites list on the TPDB homepage: ranked from the popular scenes.',
       );
     } catch (error) {
@@ -568,8 +661,7 @@ export class TpdbWebService {
       // Back to the form: read its error message.
       const again = await this.getPage('/login', jar);
       const errors = again.props['errors'] as
-        | Record<string, string | string[]>
-        | undefined;
+        Record<string, string | string[]> | undefined;
       const message = errors ? Object.values(errors).flat()[0] : null;
       throw new Error(
         `TPDB sign-in failed: ${message ?? 'wrong email or password?'}`,
@@ -586,14 +678,14 @@ export class TpdbWebService {
   private findPopular(
     home: InertiaPage,
     kind: 'performer' | 'site',
-  ): { path: string; ids: string[] } | null {
+  ): { path: string; ids: string[]; names: string[] } | null {
     const named =
       kind === 'performer' ? /performer|model|star/i : /site|studio|channel/i;
     const onHome = this.findList(home.props, kind);
     return onHome &&
       named.test(onHome.path) &&
       /popular|trend|top|hot|most/i.test(onHome.path)
-      ? { path: `/ ${onHome.path}`, ids: onHome.ids }
+      ? { path: `/ ${onHome.path}`, ids: onHome.ids, names: onHome.names }
       : null;
   }
 
@@ -609,7 +701,7 @@ export class TpdbWebService {
   private findList(
     props: Record<string, unknown>,
     kind: 'scene' | 'performer' | 'site',
-  ): { path: string; ids: string[] } | null {
+  ): { path: string; ids: string[]; names: string[] } | null {
     const isItem = (item: Record<string, unknown>) =>
       kind === 'scene'
         ? typeof item['title'] === 'string'
@@ -681,7 +773,20 @@ export class TpdbWebService {
             this.sceneId(item))
         : this.sceneId(item);
     };
-    const ids = best.items.map(idOf).filter((id): id is string => !!id);
+    // Each entry's id and the name shown for it, in order, once each.
+    const entries = new Map<string, string>();
+    for (const item of best.items) {
+      const id = idOf(item);
+      if (id && !entries.has(id)) {
+        // (A site profile: its main performer's name, the one looked up.)
+        const parent = item['parent'] as Record<string, unknown> | undefined;
+        const label =
+          kind === 'performer' && typeof parent?.['name'] === 'string'
+            ? parent['name']
+            : item[kind === 'scene' ? 'title' : 'name'];
+        entries.set(id, typeof label === 'string' ? label.trim() : '');
+      }
+    }
     if (kind !== 'scene') {
       // What its entries hold (field names only), for when it doesn't resolve.
       const sample = best.items[0] ?? {};
@@ -694,7 +799,11 @@ export class TpdbWebService {
         }.`,
       );
     }
-    return { path: best.path, ids: [...new Set(ids)] };
+    return {
+      path: best.path,
+      ids: [...entries.keys()],
+      names: [...entries.values()],
+    };
   }
 
   // TPDB API ids (scenes', performers') are uuids; take the page's uuid, else whatever id it has.

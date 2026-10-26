@@ -25,9 +25,9 @@ export function setNextAppSplash(mode: AppSplashMode | null): void {
 })
 export class AppSplashComponent implements OnDestroy {
   /** The reveal itself; matches styles/_app-splash.scss. */
-  static readonly REVEAL_MS = 1700;
+  static readonly REVEAL_MS = 1000;
   /** Don't wait on a slow page for longer than this. */
-  static readonly MAX_WAIT_MS = 5000;
+  static readonly MAX_WAIT_MS = 2000;
   /** The almond shapes' width at scale 1 (see index.html). */
   private static readonly SHAPE_WIDTH = 120;
   /** The zoom point, below the middle of the screen. */

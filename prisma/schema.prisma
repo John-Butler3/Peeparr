@@ -354,10 +354,14 @@ model TpdbWebAccount {
   popularPerformerIds        String[] @default([])
   /// Where in the page data that list was found (diagnostics).
   popularPerformerSourcePath String?
+  /// Their names as the homepage shows them (same order), to match each one.
+  popularPerformerNames      String[] @default([])
   /// Popular site ids from the website (its homepage, else its sites page), in order.
   popularSiteIds             String[] @default([])
   /// Where in the page data that list was found (diagnostics).
   popularSiteSourcePath      String?
+  /// Their names as the homepage shows them (same order), to match each one.
+  popularSiteNames           String[] @default([])
   popularFetchedAt   DateTime?
   lastAttemptAt      DateTime?
   lastError          String?
