@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.9.0](https://github.com/John-Butler3/Peeparr/compare/v1.8.0...v1.9.0) (2026-10-30)
+
+
+### Features
+
+* GitHub-style almond ripple on the launch logo, a quicker reveal, and popular performers and sites matched by the names TPDB's homepage shows ([edeaa99](https://github.com/John-Butler3/Peeparr/commit/edeaa993c68c42ef790fed3d92f38c77eaa23976))
+* shuffle button on Home -- opens a random scene from the library ([260e0a9](https://github.com/John-Butler3/Peeparr/commit/260e0a932ebbc26ee14456978a3f92ea617ba5dd))
+* **web:** More from names every woman in the scene ([f21629e](https://github.com/John-Butler3/Peeparr/commit/f21629e2046b59d0d860c33a2608ed034589d85c))
+* **web:** signed out, the loading logo stays still and only the sign-in slide plays ([ce414b8](https://github.com/John-Butler3/Peeparr/commit/ce414b856d8f9d14b0d9091eeefd9c3ee4e3cc1a))
+* **web:** the loading logo shows straight away -- iOS launch images and a stylesheet that no longer holds up the first paint ([a697d35](https://github.com/John-Butler3/Peeparr/commit/a697d35a0e200eebcca75ba5b7f1d1161e754b1d))
+* **web:** the logo's almond rings pulse gently on the launch screen and sign-in page ([1e5ab87](https://github.com/John-Butler3/Peeparr/commit/1e5ab8700565f81b2c83d6f82375e24e92f4ff98))
+
+
+### Bug Fixes
+
+* **api:** popular performers from the homepage's top list, as the performers themselves ([a9663fd](https://github.com/John-Butler3/Peeparr/commit/a9663fdbfd325a48ec78834ef436122470ceea49))
+* **player:** the previous scene's picture no longer shows on the next one ([f447351](https://github.com/John-Butler3/Peeparr/commit/f4473516419aa9849da3f93d313b9f4ebcaa26a1))
+
 ## [1.8.0](https://github.com/John-Butler3/Peeparr/compare/v1.7.0...v1.8.0) (2026-10-26)
 
 
