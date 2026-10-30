@@ -11,38 +11,63 @@
           Continue watching, catch up on what's new in your library, and see the latest releases
           from the performers and studios you've favorited.
         </p>
-        <div class="hero-search">
-          <div class="hero-search-input-row">
-            <i class="pi pi-search hero-search-icon" aria-hidden="true"></i>
-            <input
-              #heroSearchInput
-              type="search"
-              inputmode="search"
-              class="hero-search-input"
-              placeholder="Search scenes, performers, sites"
-              aria-label="Search scenes, performers, or studios"
-              [ngModel]="searchTerm()"
-              (ngModelChange)="onSearchInput($event)"
-              (keydown.enter)="submitSearch()"
+        <div class="hero-search-bar">
+          <div class="hero-search">
+            <div class="hero-search-input-row">
+              <i class="pi pi-search hero-search-icon" aria-hidden="true"></i>
+              <input
+                #heroSearchInput
+                type="search"
+                inputmode="search"
+                class="hero-search-input"
+                placeholder="Search scenes, performers, sites"
+                aria-label="Search scenes, performers, or studios"
+                [ngModel]="searchTerm()"
+                (ngModelChange)="onSearchInput($event)"
+                (keydown.enter)="submitSearch()"
+              />
+              @if (searchTerm().trim().length > 0) {
+                <button
+                  type="button"
+                  class="hero-search-clear"
+                  aria-label="Clear search"
+                  (click)="clearSearch()"
+                >
+                  <i class="pi pi-times" aria-hidden="true"></i>
+                </button>
+              }
+            </div>
+
+            <!-- Live results, dropping down under the box while you type. -->
+            <app-search-suggest
+              [input]="heroSearchInput"
+              [query]="searchTerm()"
+              (navigated)="clearSearch()"
             />
-            @if (searchTerm().trim().length > 0) {
-              <button
-                type="button"
-                class="hero-search-clear"
-                aria-label="Clear search"
-                (click)="clearSearch()"
-              >
-                <i class="pi pi-times" aria-hidden="true"></i>
-              </button>
-            }
           </div>
 
-          <!-- Live results, dropping down under the box while you type. -->
-          <app-search-suggest
-            [input]="heroSearchInput"
-            [query]="searchTerm()"
-            (navigated)="clearSearch()"
-          />
+          <!-- Shuffle: a scene from the library at random. -->
+          <button
+            type="button"
+            class="hero-random"
+            data-testid="home-random-scene"
+            aria-label="Random scene from the library"
+            title="Random scene"
+            [disabled]="shuffling()"
+            [attr.aria-busy]="shuffling()"
+            (click)="openRandomScene()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

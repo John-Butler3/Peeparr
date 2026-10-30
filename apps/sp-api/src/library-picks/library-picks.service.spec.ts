@@ -45,4 +45,38 @@ describe('LibraryPicksService', () => {
       ['7', '9'],
     );
   });
+
+  it('picks any library scene at random, not the one just shown', async () => {
+    const ids = ['1', '2', '3'];
+    const findFirst = jest.fn(async ({ skip }: { skip: number }) => ({
+      stashSceneId: ids[skip],
+    }));
+    const prisma = {
+      librarySceneIndex: { count: jest.fn().mockResolvedValue(3), findFirst },
+    } as unknown as PrismaService;
+    const service = new LibraryPicksService(
+      prisma,
+      {} as StashAdapter,
+      {} as LibrarySceneQueryService,
+    );
+    jest.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    await expect(service.getRandomSceneId()).resolves.toBe('2');
+    // The same again: the next one instead.
+    await expect(service.getRandomSceneId('2')).resolves.toBe('3');
+    jest.restoreAllMocks();
+  });
+
+  it('has nothing to pick from an empty library', async () => {
+    const prisma = {
+      librarySceneIndex: { count: jest.fn().mockResolvedValue(0) },
+    } as unknown as PrismaService;
+    const service = new LibraryPicksService(
+      prisma,
+      {} as StashAdapter,
+      {} as LibrarySceneQueryService,
+    );
+
+    await expect(service.getRandomSceneId()).resolves.toBeNull();
+  });
 });

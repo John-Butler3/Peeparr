@@ -1,12 +1,13 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SceneExplorerItem, ScenesFeedResponse } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
+import { LibraryService } from '../../core/api/library.service';
 import { HomeRailContentResponse, HomeRailItem } from '../../core/api/home.types';
 import { PlayerService } from '../../core/player/player.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
@@ -191,6 +192,9 @@ describe('HomePageComponent', () => {
       openByLocalSceneId: vi.fn(),
       progressSaved: new Subject<string>(),
     };
+    const libraryService = {
+      getRandomSceneId: vi.fn().mockReturnValue(of({ id: '412' })),
+    };
 
     await TestBed.configureTestingModule({
       imports: [HomePageComponent],
@@ -201,6 +205,7 @@ describe('HomePageComponent', () => {
         { provide: RuntimeHealthService, useValue: runtimeHealthService },
         { provide: SetupStatusStore, useValue: setupStatusStore },
         { provide: PlayerService, useValue: playerService },
+        { provide: LibraryService, useValue: libraryService },
         {
           provide: AppNotificationsService,
           useValue: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -217,7 +222,14 @@ describe('HomePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, discoverService, homeService, runtimeHealthService, playerService };
+    return {
+      fixture,
+      discoverService,
+      homeService,
+      runtimeHealthService,
+      playerService,
+      libraryService,
+    };
   }
 
   function railSectionByTitle(
@@ -235,6 +247,23 @@ describe('HomePageComponent', () => {
     expect(section).toBeTruthy();
     return section as HTMLElement;
   }
+
+  it('opens a random library scene from the shuffle button, not the same one twice running', async () => {
+    const { fixture, libraryService } = await renderPage();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const button = fixture.nativeElement.querySelector(
+      '[data-testid="home-random-scene"]',
+    ) as HTMLButtonElement;
+
+    button.click();
+    expect(libraryService.getRandomSceneId).toHaveBeenCalledWith(undefined);
+    expect(navigate).toHaveBeenCalledWith(['/library/scene', '412'], {
+      queryParams: { returnTo: '/home' },
+    });
+
+    button.click();
+    expect(libraryService.getRandomSceneId).toHaveBeenLastCalledWith('412');
+  });
 
   it('loads Continue Watching, Recently Added and Popular, without the favourites row', async () => {
     const { fixture, discoverService, homeService, runtimeHealthService } = await renderPage();

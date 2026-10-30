@@ -12,6 +12,16 @@ import { LibraryPicksService } from './library-picks.service';
 export class LibraryPicksController {
   constructor(private readonly libraryPicksService: LibraryPicksService) {}
 
+  // One scene from the whole library, at random (Home's shuffle button).
+  @Get('random')
+  async getRandomScene(
+    @Query('exclude') exclude?: string,
+  ): Promise<{ id: string | null }> {
+    return {
+      id: await this.libraryPicksService.getRandomSceneId(exclude?.trim()),
+    };
+  }
+
   // A random handful of library scenes not played yet (Up next).
   @Get('unplayed')
   async getRandomUnplayed(

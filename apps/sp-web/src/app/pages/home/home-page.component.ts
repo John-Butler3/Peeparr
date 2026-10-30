@@ -14,6 +14,8 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Subscription, catchError, debounceTime, filter, finalize, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
+import { LibraryService } from '../../core/api/library.service';
+import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { SearchSuggestComponent } from '../../shared/search-suggest/search-suggest.component';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
@@ -68,6 +70,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private readonly runtimeHealthService = inject(RuntimeHealthService);
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly router = inject(Router);
+  private readonly libraryService = inject(LibraryService);
+  private readonly notifications = inject(AppNotificationsService);
+  // The last scene shuffled to (not picked again straight away).
+  private lastRandomSceneId: string | undefined;
 
   private continueWatchingSubscription: Subscription | null = null;
   private recentlyAddedSubscription: Subscription | null = null;
@@ -111,6 +117,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   // The phone's search box; live results drop down under it (SearchSuggest).
   protected readonly searchTerm = signal('');
+  protected readonly shuffling = signal(false);
 
   /** While Home is open, it re-checks your library this often. */
   static readonly REFRESH_MS = 60_000;
@@ -224,6 +231,30 @@ export class HomePageComponent implements OnInit, OnDestroy {
     }
 
     void this.router.navigate(['/search'], { queryParams: { q: query } });
+  }
+
+  /** Shuffle: opens a scene from the library at random. */
+  protected openRandomScene(): void {
+    if (this.shuffling()) {
+      return;
+    }
+    this.shuffling.set(true);
+    this.libraryService
+      .getRandomSceneId(this.lastRandomSceneId)
+      .pipe(
+        catchError(() => of({ id: null })),
+        finalize(() => this.shuffling.set(false)),
+      )
+      .subscribe(({ id }) => {
+        if (!id) {
+          this.notifications.info('No scenes in the library yet.');
+          return;
+        }
+        this.lastRandomSceneId = id;
+        void this.router.navigate(['/library/scene', id], {
+          queryParams: { returnTo: '/home' },
+        });
+      });
   }
 
   protected clearSearch(): void {

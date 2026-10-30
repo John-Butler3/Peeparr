@@ -6,7 +6,8 @@ import { StashAdapter } from '../providers/stash/stash.adapter';
 
 /**
  * Picks from the library: a random handful of scenes not played yet (no
- * plays, no resume point -- as Stash keeps them), for Up next.
+ * plays, no resume point -- as Stash keeps them), for Up next; and any one
+ * scene at random, for Home's shuffle button.
  */
 @Injectable()
 export class LibraryPicksService {
@@ -47,6 +48,28 @@ export class LibraryPicksService {
       .slice(0, limit);
     // As the library shows them (and only ones it has).
     return this.librarySceneQueryService.getScenesByIds(ids);
+  }
+
+  /**
+   * Any scene in the library index, at random (not `excludeId`, the one
+   * just shown, when there's another). Null with an empty library.
+   */
+  async getRandomSceneId(excludeId?: string): Promise<string | null> {
+    const count = await this.prisma.librarySceneIndex.count();
+    if (count === 0) {
+      return null;
+    }
+    const pick = async (skip: number) =>
+      (
+        await this.prisma.librarySceneIndex.findFirst({
+          orderBy: { stashSceneId: 'asc' },
+          skip,
+          select: { stashSceneId: true },
+        })
+      )?.stashSceneId ?? null;
+    const skip = Math.floor(Math.random() * count);
+    const id = await pick(skip);
+    return id === excludeId && count > 1 ? pick((skip + 1) % count) : id;
   }
 
   private async getStashConfig(): Promise<{

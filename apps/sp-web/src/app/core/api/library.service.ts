@@ -103,6 +103,12 @@ export class LibraryService {
   }
 
   /** A random handful of library scenes not played yet (Up next). */
+  /** Any one library scene at random (not `excludeId` when there's another). */
+  getRandomSceneId(excludeId?: string): Observable<{ id: string | null }> {
+    const params = excludeId ? new HttpParams().set('exclude', excludeId) : undefined;
+    return this.http.get<{ id: string | null }>('/api/library/random', { params });
+  }
+
   getRandomUnplayed(
     excludeIds: readonly string[] = [],
     limit = 12,
