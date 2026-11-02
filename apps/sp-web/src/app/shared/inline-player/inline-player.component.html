@@ -21,16 +21,18 @@
       [scenePreviewAutoplay]="false"
       [scenePreviewHover]="false"
       [scenePreviewFadeMs]="previewFadeMs"
+      [scenePreviewOnce]="true"
+      (scenePreviewFinished)="onPreviewFinished()"
       [class.is-showing-site]="siteLogoShowing()"
       (click)="start()"
     >
       @if (posterUrl) {
         <img class="poster-image" [src]="posterUrl" alt="" />
       }
-      <!-- The site's logo, while its preview gets ready. -->
-      @if (siteLogoUrl && !siteLogoFailed()) {
+      <!-- The site's logo, filling the thumbnail on the way into its preview. -->
+      @if (siteLogoUrl) {
         <span class="poster-site" aria-hidden="true">
-          <img appLogoContrast [src]="siteLogoUrl" alt="" (error)="siteLogoFailed.set(true)" />
+          <img appLogoContrast [src]="siteLogoUrl" alt="" (load)="siteLogoReady.set(true)" />
         </span>
       }
       @if (playable) {

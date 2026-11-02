@@ -44,12 +44,16 @@ import { ScenePreviewService, ScenePreviewSource } from '../scene-card/scene-pre
   styleUrl: './inline-player.component.scss',
 })
 export class InlinePlayerComponent implements OnChanges, OnDestroy {
-  /** How long the thumbnail is looked at before its preview starts. */
+  /** How long the thumbnail is looked at before its preview starts (no logo to show first). */
   static readonly PREVIEW_AFTER_MS = 3000;
-  /** The site's logo comes in this long into looking, and the preview starts loading. */
-  static readonly SITE_LOGO_AFTER_MS = 800;
+  /** The preview loads ahead (hidden) from here, to be ready on time. */
+  static readonly PREVIEW_LOAD_AFTER_MS = 1500;
+  /** With a logo: it comes in at this point, as the preview would have... */
+  static readonly SITE_LOGO_AFTER_MS = 3000;
+  /** ...and holds briefly until the preview starts here. */
+  static readonly PREVIEW_AFTER_LOGO_MS = 4300;
   /** Its limit, should the preview be slow or never come. */
-  static readonly SITE_LOGO_UNTIL_MS = 6500;
+  static readonly SITE_LOGO_UNTIL_MS = 7500;
   private static readonly LOOK_CHECK_MS = 200;
   /** Share of the thumbnail on screen to count as looking at it. */
   private static readonly PREVIEW_MIN_VISIBLE = 0.5;
@@ -85,6 +89,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private lookingSince: number | null = null;
   private previewing = false;
   private previewLoading = false;
+  private previewFinished = false;
   private holdingPreviews = false;
   // Outside Angular: nothing on screen changes unless the preview starts.
   private readonly lookWatch = inject(NgZone).runOutsideAngular(() =>
@@ -166,9 +171,12 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected readonly source = signal<ScenePlaybackSource | null>(null);
   protected readonly dragOffset = signal(0);
   protected readonly siteLogoShowing = signal(false);
-  protected readonly siteLogoFailed = signal(false);
-  /** The slow cross-fade from the thumbnail into its preview. */
-  protected readonly previewFadeMs = 1400;
+  /** Its logo has loaded (none shown otherwise: never an empty background). */
+  protected readonly siteLogoReady = signal(false);
+  /** Out of the logo, quicker: it's fading away on top. A slow cross-fade from a thumbnail. */
+  protected get previewFadeMs(): number {
+    return this.siteLogoReady() ? 500 : 1400;
+  }
   private drag: {
     x: number;
     y: number;
@@ -190,7 +198,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       this.endLook();
     }
     if (changes['siteLogoUrl']) {
-      this.siteLogoFailed.set(false);
+      this.siteLogoReady.set(false);
     }
 
     if ((sceneChanged || changes['autoplay']) && this.autoplay && this.status() === 'idle') {
@@ -493,21 +501,35 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
 
     this.lookingSince ??= Date.now();
     const lookedFor = Date.now() - this.lookingSince;
-    const logoDue = lookedFor >= InlinePlayerComponent.SITE_LOGO_AFTER_MS;
-    this.siteLogoShowing.set(logoDue && lookedFor < InlinePlayerComponent.SITE_LOGO_UNTIL_MS);
-    // Loaded ahead (hidden), so the fade starts from a real picture on time.
-    if (logoDue && !this.previewLoading) {
+    const hasLogo = this.siteLogoReady();
+    this.siteLogoShowing.set(
+      hasLogo &&
+        !this.previewFinished &&
+        lookedFor >= InlinePlayerComponent.SITE_LOGO_AFTER_MS &&
+        lookedFor < InlinePlayerComponent.SITE_LOGO_UNTIL_MS,
+    );
+    if (!this.previewLoading && lookedFor >= InlinePlayerComponent.PREVIEW_LOAD_AFTER_MS) {
       this.previewLoading = true;
       this.posterPreview?.prefetch();
     }
-    if (!this.previewing && lookedFor >= InlinePlayerComponent.PREVIEW_AFTER_MS) {
+    const previewAfter = hasLogo
+      ? InlinePlayerComponent.PREVIEW_AFTER_LOGO_MS
+      : InlinePlayerComponent.PREVIEW_AFTER_MS;
+    if (!this.previewing && lookedFor >= previewAfter) {
       this.previewing = true;
       this.posterPreview?.playNow();
     }
   }
 
+  /** Played through: back on the thumbnail, until it's looked at afresh. */
+  protected onPreviewFinished(): void {
+    this.previewFinished = true;
+    this.siteLogoShowing.set(false);
+  }
+
   private endLook(): void {
     this.lookingSince = null;
+    this.previewFinished = false;
     this.siteLogoShowing.set(false);
     if (this.previewing || this.previewLoading) {
       this.previewing = false;

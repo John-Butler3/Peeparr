@@ -1,10 +1,12 @@
 import {
   Directive,
   ElementRef,
+  EventEmitter,
   HostListener,
   Input,
   OnDestroy,
   OnInit,
+  Output,
   inject,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
@@ -42,6 +44,8 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   static readonly PREVIEW_LOOP_SECONDS = 20;
   /** Matches the .hover-preview opacity transition. */
   static readonly PREVIEW_FADE_MS = 450;
+  /** Back to the thumbnail once played through (scenePreviewOnce). */
+  static readonly FINISH_FADE_MS = 1200;
 
   /** Only one thumbnail previews at a time. */
   private static active: ScenePreviewDirective | null = null;
@@ -63,6 +67,10 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   @Input() scenePreviewHover = true;
   /** A slower cross-fade to and from the thumbnail (default: PREVIEW_FADE_MS). */
   @Input() scenePreviewFadeMs: number | null = null;
+  /** Play through once and fade back to the thumbnail, rather than looping. */
+  @Input() scenePreviewOnce = false;
+  /** Played through (scenePreviewOnce), and fading back to the thumbnail. */
+  @Output() scenePreviewFinished = new EventEmitter<void>();
 
   readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly autoplay = inject(ScenePreviewAutoplayService);
@@ -208,7 +216,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   }
 
   /** Stops the preview, fading back to the thumbnail if it was showing. */
-  stop(): void {
+  stop(fadeMs = this.scenePreviewFadeMs ?? ScenePreviewDirective.PREVIEW_FADE_MS): void {
     if (this.prefetchTimer) {
       clearTimeout(this.prefetchTimer);
       this.prefetchTimer = null;
@@ -228,12 +236,12 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
     if (this.visible && !this.teardownTimer) {
       // Fade back to the thumbnail, then drop the video.
+      if (this.video) {
+        this.video.style.transitionDuration = `${fadeMs}ms`;
+      }
       this.setVisible(false);
       this.video?.pause();
-      this.teardownTimer = setTimeout(
-        () => this.teardownVideo(),
-        this.scenePreviewFadeMs ?? ScenePreviewDirective.PREVIEW_FADE_MS,
-      );
+      this.teardownTimer = setTimeout(() => this.teardownVideo(), fadeMs);
       return;
     }
 
@@ -311,7 +319,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     video.playsInline = true;
     video.setAttribute('playsinline', '');
     video.preload = 'auto';
-    video.loop = this.clipMode;
+    video.loop = this.clipMode && !this.scenePreviewOnce;
     video.setAttribute('aria-hidden', 'true');
     if (this.scenePreviewFadeMs !== null) {
       video.style.transitionDuration = `${this.scenePreviewFadeMs}ms`;
@@ -320,6 +328,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     video.addEventListener('playing', () => this.onPlaying(video));
     video.addEventListener('timeupdate', () => this.onTimeUpdate(video));
     video.addEventListener('error', () => this.onVideoError());
+    video.addEventListener('ended', () => this.finishIfOnce());
     video.src = src;
     this.host.appendChild(video);
     this.video = video;
@@ -371,7 +380,18 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
       !this.clipMode &&
       video.currentTime > this.previewStart + ScenePreviewDirective.PREVIEW_LOOP_SECONDS
     ) {
-      video.currentTime = this.previewStart;
+      if (this.scenePreviewOnce) {
+        this.finishIfOnce();
+      } else {
+        video.currentTime = this.previewStart;
+      }
+    }
+  }
+
+  private finishIfOnce(): void {
+    if (this.scenePreviewOnce && this.isActive) {
+      this.stop(ScenePreviewDirective.FINISH_FADE_MS);
+      this.scenePreviewFinished.emit();
     }
   }
 

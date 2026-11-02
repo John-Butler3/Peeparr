@@ -62,24 +62,68 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     expect(play).toHaveBeenCalled();
   });
 
-  it("shows the site's logo before the preview, loading it hidden meanwhile, with a slow fade", () => {
+  it("fills the thumbnail with the site's logo a few seconds in, then starts the preview", () => {
     const { fixture, host } = render();
     fixture.componentRef.setInput('siteLogoUrl', '/logo.png');
     fixture.detectChanges();
     const poster = host.querySelector('.poster') as HTMLElement;
+    host.querySelector('.poster-site img')!.dispatchEvent(new Event('load'));
+    fixture.detectChanges();
+    const play = vi.mocked(HTMLMediaElement.prototype.play);
 
-    vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_AFTER_MS + 200);
+    vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_AFTER_MS - 500);
+    fixture.detectChanges();
+    expect(poster.classList).not.toContain('is-showing-site');
+
+    vi.advanceTimersByTime(700);
     fixture.detectChanges();
     expect(poster.classList).toContain('is-showing-site');
-    expect(host.querySelector('.poster-site img')?.getAttribute('src')).toBe('/logo.png');
-    const video = preview(host);
-    expect(video?.classList).not.toContain('is-playing');
-    expect(video?.style.transitionDuration).toBe('1400ms');
+    const video = preview(host)!;
+    expect(video.style.transitionDuration).toBe('500ms');
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(play).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(
+      InlinePlayerComponent.PREVIEW_AFTER_LOGO_MS - InlinePlayerComponent.SITE_LOGO_AFTER_MS + 200,
+    );
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(play).toHaveBeenCalled();
 
     // Never comes: the logo doesn't stay for good.
     vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_UNTIL_MS);
     fixture.detectChanges();
     expect(poster.classList).not.toContain('is-showing-site');
+  });
+
+  it('plays through once, fades back to the thumbnail and stays there', () => {
+    const { fixture, host } = render();
+    const play = vi.mocked(HTMLMediaElement.prototype.play);
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
+    const video = preview(host)!;
+    expect(video.loop).toBe(false);
+    video.dispatchEvent(new Event('playing'));
+    expect(video.classList).toContain('is-playing');
+
+    video.dispatchEvent(new Event('ended'));
+    fixture.detectChanges();
+    expect(video.classList).not.toContain('is-playing');
+    expect(video.style.transitionDuration).toBe('1200ms');
+
+    play.mockClear();
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS * 3);
+    expect(preview(host)).toBeNull();
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it("skips a site's logo that hasn't loaded, with a slow fade from the thumbnail", () => {
+    const { fixture, host } = render();
+    fixture.componentRef.setInput('siteLogoUrl', '/logo.png');
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_AFTER_MS + 500);
+    fixture.detectChanges();
+    expect(host.querySelector('.poster')?.classList).not.toContain('is-showing-site');
+    expect(preview(host)?.style.transitionDuration).toBe('1400ms');
   });
 
   it('waits while the thumbnail is off screen, and stops when it is scrolled away', () => {
