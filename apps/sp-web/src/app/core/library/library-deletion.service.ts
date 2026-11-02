@@ -20,12 +20,14 @@ interface DeleteLibrarySceneResponse {
  * again); playing, it stops; and its page is left (and not kept to come
  * back to).
  */
+import { WatchProgressService } from '../player/watch-progress.service';
 @Injectable({ providedIn: 'root' })
 export class LibraryDeletionService {
   private readonly http = inject(HttpClient);
   private readonly confirmation = inject(ConfirmationService);
   private readonly notifications = inject(AppNotificationsService);
   private readonly playerService = inject(PlayerService);
+  private readonly watchProgress = inject(WatchProgressService);
   private readonly sharedVideo = inject(SharedVideoService);
   private readonly history = inject(NavigationHistoryService);
   private readonly router = inject(Router);
@@ -73,6 +75,7 @@ export class LibraryDeletionService {
           scene.busy?.(false);
           // Not carried on into the miniplayer: it's gone.
           this.sharedVideo.stopScene(scene.stashSceneIds);
+          this.watchProgress.sceneDeleted(scene.stashSceneIds);
           this.playerService.close();
           this.notifications.success(
             result.removedFromWhisparr

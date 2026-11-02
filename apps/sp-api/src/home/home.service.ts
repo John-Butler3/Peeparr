@@ -147,6 +147,9 @@ const DEFAULT_HOME_RAILS: Array<{
   },
 ];
 
+/** Every scene part-watched has a place in the row. */
+const CONTINUE_WATCHING_LIMIT = 50;
+
 @Injectable()
 export class HomeService {
   private readonly logger = new Logger(HomeService.name);
@@ -182,7 +185,7 @@ export class HomeService {
     try {
       const items = await this.stashAdapter.getContinueWatchingScenes(
         config,
-        HOME_RAIL_SCENE_LIMIT_DEFAULT,
+        CONTINUE_WATCHING_LIMIT,
         activeCatalogProviderKey,
       );
 
@@ -194,7 +197,8 @@ export class HomeService {
       this.logger.warn(
         `Failed to load Continue Watching rail. ${(error as Error)?.message ?? 'Unknown error.'}`,
       );
-      return { items: [], message: null };
+      // Said so (not just empty): Home keeps the row it has.
+      return { items: [], message: 'Stash could not be reached.' };
     }
   }
 

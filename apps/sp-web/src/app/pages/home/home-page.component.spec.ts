@@ -323,6 +323,70 @@ describe('HomePageComponent', () => {
     );
   });
 
+  it('updates Continue Watching as soon as a place is saved, sliding open for the first', async () => {
+    const { fixture, homeService, playerService } = await renderPage();
+    const section = () =>
+      fixture.nativeElement.querySelector(
+        '[data-testid="continue-watching"]',
+      ) as HTMLElement | null;
+    document.body.appendChild(fixture.nativeElement);
+    expect(section()).toBeNull();
+
+    homeService.getContinueWatching.mockReturnValue(
+      of({ items: [buildRailItem({ id: 'in-progress-1' })], message: null }),
+    );
+    playerService.progressSaved.next('in-progress-1');
+    fixture.detectChanges();
+
+    expect(section()?.classList).toContain('is-arriving');
+  });
+
+  it('puts the scene just watched first, however the server orders them', async () => {
+    const { fixture, homeService, playerService } = await renderPage({
+      continueWatching: { items: [buildRailItem({ id: 'a' })], message: null },
+    });
+    document.body.appendChild(fixture.nativeElement);
+
+    homeService.getContinueWatching.mockReturnValue(
+      of({ items: [buildRailItem({ id: 'a' }), buildRailItem({ id: 'b' })], message: null }),
+    );
+    playerService.progressSaved.next('b');
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelector(
+      '[data-testid="continue-watching"] app-scene-card a[href*="library/scene"], [data-testid="continue-watching"] app-scene-card a[href]',
+    ) as HTMLAnchorElement;
+    expect(first.getAttribute('href')).toContain('b');
+  });
+
+  it("keeps the row when the server says it couldn't reach Stash", async () => {
+    const { fixture, homeService, playerService } = await renderPage({
+      continueWatching: { items: [buildRailItem({ id: 'a' })], message: null },
+    });
+    document.body.appendChild(fixture.nativeElement);
+
+    homeService.getContinueWatching.mockReturnValue(
+      of({ items: [], message: 'Stash could not be reached.' }),
+    );
+    playerService.progressSaved.next('a');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="continue-watching"]')).not.toBeNull();
+  });
+
+  it('keeps Continue Watching as it is when a reload fails', async () => {
+    const { fixture, homeService, playerService } = await renderPage({
+      continueWatching: { items: [buildRailItem({ id: 'in-progress-1' })], message: null },
+    });
+    document.body.appendChild(fixture.nativeElement);
+
+    homeService.getContinueWatching.mockReturnValue(throwError(() => new Error('down')));
+    playerService.progressSaved.next('in-progress-1');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="continue-watching"]')).not.toBeNull();
+  });
+
   it('marks a scene watched and removes it from Continue Watching', async () => {
     const { fixture, homeService } = await renderPage({
       continueWatching: {

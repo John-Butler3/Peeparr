@@ -1,10 +1,12 @@
 import {
   Component,
   ElementRef,
+  Injector,
   OnDestroy,
   OnInit,
   QueryList,
   ViewChildren,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -12,7 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Subscription, catchError, debounceTime, filter, finalize, of } from 'rxjs';
+import { EMPTY, Subscription, catchError, filter, finalize, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { LibraryService } from '../../core/api/library.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
@@ -72,7 +74,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly router = inject(Router);
   private readonly libraryService = inject(LibraryService);
-  private readonly watchProgress = inject(WatchProgressService);
+  protected readonly watchProgress = inject(WatchProgressService);
   private readonly notifications = inject(AppNotificationsService);
   // The last scene shuffled to (not picked again straight away).
   private lastRandomSceneId: string | undefined;
@@ -120,6 +122,15 @@ export class HomePageComponent implements OnInit, OnDestroy {
   // The phone's search box; live results drop down under it (SearchSuggest).
   protected readonly searchTerm = signal('');
   protected readonly shuffling = signal(false);
+  /** Continue Watching's arrival playing: the whole section, or a card at the front. */
+  protected readonly continueWatchingArriving = signal<'section' | 'card' | null>(null);
+  protected readonly continueWatchingFront = signal<string | null>(null);
+  private continueWatchingLoaded = false;
+  /** Scenes whose place was saved in this visit, latest first. */
+  private savedLately: string[] = [];
+  private arrivalTimer: ReturnType<typeof setTimeout> | null = null;
+  /** A little longer than the animations. */
+  private static readonly ARRIVAL_MS = 600;
 
   /** While Home is open, it re-checks your library this often. */
   static readonly REFRESH_MS = 60_000;
@@ -128,34 +139,31 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private lastRefreshAt = 0;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
   /** On screen: not asleep (left, kept alive) and the app not in the background. */
   private awake(): boolean {
     return document.visibilityState === 'visible' && onShowingPage(this.host);
   }
-  /** A place was saved while Home was away: Continue Watching is out of date. */
-  private continueWatchingStale = false;
   private readonly onVisibilityChange = (): void => {
     if (!this.awake()) {
       return;
     }
     if (Date.now() - this.lastRefreshAt > HomePageComponent.RESUME_REFRESH_AFTER_MS) {
       this.refreshLibraryRows();
-    } else if (this.continueWatchingStale) {
+    } else {
+      // Anything may have changed while away (scenes played, cleared, deleted).
       this.loadContinueWatching();
     }
-    this.continueWatchingStale = false;
   };
   // A scene's place saved (watching it, leaving it, closing the miniplayer):
-  // Continue Watching follows straight away, or as soon as Home is back.
-  private readonly progressWatch = inject(PlayerService)
-    .progressSaved.pipe(debounceTime(300))
-    .subscribe(() => {
-      if (this.awake()) {
-        this.loadContinueWatching();
-      } else {
-        this.continueWatchingStale = true;
-      }
-    });
+  // Continue Watching follows straight away. (Away, it's asked for on return.)
+  private readonly progressWatch = inject(PlayerService).progressSaved.subscribe((id) => {
+    this.savedLately = [id, ...this.savedLately.filter((other) => other !== id)];
+    this.loadContinueWatchingIfAwake();
+  });
+  private readonly clearingSettled = inject(WatchProgressService).settled.subscribe(() =>
+    this.loadContinueWatchingIfAwake(),
+  );
   // Marked unwatched (on a scene's page): out of Continue Watching at once,
   // which holds its own copy of everyone's progress.
   private readonly clearedWatch = inject(WatchProgressService).cleared.subscribe((ids) =>
@@ -218,6 +226,10 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.navigationWatch.unsubscribe();
     this.progressWatch.unsubscribe();
     this.clearedWatch.unsubscribe();
+    this.clearingSettled.unsubscribe();
+    if (this.arrivalTimer) {
+      clearTimeout(this.arrivalTimer);
+    }
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
@@ -269,12 +281,70 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
   }
 
+  private loadContinueWatchingIfAwake(): void {
+    if (this.awake()) {
+      this.loadContinueWatching();
+    }
+  }
+
   protected loadContinueWatching(): void {
     this.continueWatchingSubscription?.unsubscribe();
     this.continueWatchingSubscription = this.homeService
       .getContinueWatching()
-      .pipe(catchError(() => of<HomeRailContentResponse>({ items: [], message: null })))
-      .subscribe((response) => this.setIfChanged(this.continueWatchingItems, response.items));
+      // (A hiccup leaves the row as it is, rather than emptying it.)
+      .pipe(catchError(() => EMPTY))
+      .subscribe((response) => {
+        // Couldn't tell (Stash unreachable): the row stays as it is.
+        if (response.message && response.items.length === 0) {
+          return;
+        }
+        const before = this.continueWatchingItems();
+        const items = this.latestFirst(
+          response.items.filter((item) => !this.watchProgress.isClearing(item.id)),
+        );
+        this.setIfChanged(this.continueWatchingItems, items);
+        this.animateContinueWatching(before, items);
+        this.continueWatchingLoaded = true;
+      });
+  }
+
+  // What's been watched in this visit leads the row, however Stash orders it.
+  private latestFirst(items: HomeRailItem[]): HomeRailItem[] {
+    const lately = this.savedLately.flatMap((id) => items.filter((item) => item.id === id));
+    return [...lately, ...items.filter((item) => !this.savedLately.includes(item.id))];
+  }
+
+  // Not on first opening Home. The first scene in the row: the section slides
+  // open. Another at the front: the row slides over to make room.
+  private animateContinueWatching(before: HomeRailItem[], items: HomeRailItem[]): void {
+    if (!this.continueWatchingLoaded || items.length === 0) {
+      return;
+    }
+    const arriving = before.length === 0;
+    const front = items[0]?.id;
+    if (!arriving && front === before[0]?.id) {
+      return;
+    }
+    if (!arriving) {
+      // The new one's at the start: that's where to be.
+      // (Once it's in: scroll snapping otherwise stays with the old first card.)
+      afterNextRender(
+        () =>
+          this.railViewports
+            ?.find((viewport) => viewport.nativeElement.dataset['railId'] === 'continue-watching')
+            ?.nativeElement.scrollTo({ left: 0, behavior: 'instant' }),
+        { injector: this.injector },
+      );
+    }
+    this.continueWatchingArriving.set(arriving ? 'section' : 'card');
+    this.continueWatchingFront.set(front ?? null);
+    if (this.arrivalTimer) {
+      clearTimeout(this.arrivalTimer);
+    }
+    this.arrivalTimer = setTimeout(() => {
+      this.continueWatchingArriving.set(null);
+      this.continueWatchingFront.set(null);
+    }, HomePageComponent.ARRIVAL_MS);
   }
 
   protected loadRecentlyAdded(): void {

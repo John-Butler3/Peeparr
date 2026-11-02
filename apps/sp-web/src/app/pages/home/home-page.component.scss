@@ -525,10 +525,83 @@ p {
 }
 
 .rail-track {
+  --rail-column: clamp(250px, 23vw, 320px);
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: clamp(250px, 23vw, 320px);
+  grid-auto-columns: var(--rail-column);
   gap: 0.8rem;
+}
+
+// Continue Watching comes and goes as scenes are played: its section slides
+// open and shut, pushing what's below, and a scene joining the front has the
+// row slide over for it.
+.continue-watching {
+  display: grid;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+
+.continue-watching-body {
+  display: grid;
+  gap: 0.72rem;
+  min-height: 0;
+}
+
+.continue-watching.is-arriving,
+.continue-watching.is-leaving {
+  overflow: hidden;
+}
+
+.continue-watching.is-arriving {
+  animation: rail-open var(--motion-slow) var(--yt-ease-out) both;
+}
+
+.continue-watching.is-leaving {
+  animation: rail-close var(--motion-base) var(--yt-ease) both;
+}
+
+.continue-watching.is-arriving .continue-watching-body,
+.continue-watching.is-leaving .continue-watching-body {
+  overflow: hidden;
+}
+
+@keyframes rail-open {
+  from {
+    grid-template-rows: 0fr;
+    margin-top: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes rail-close {
+  to {
+    grid-template-rows: 0fr;
+    margin-top: 0;
+    opacity: 0;
+  }
+}
+
+// (Not kept in place by the browser when a card joins the front.)
+[data-rail-id='continue-watching'] {
+  overflow-anchor: none;
+}
+
+.rail-track.is-making-room {
+  animation: rail-make-room var(--motion-slow) var(--yt-ease-out);
+}
+
+.rail-card.is-arriving {
+  animation: yt-fade-in var(--motion-slow) ease-out;
+}
+
+.rail-card.is-leaving {
+  animation: yt-fade-out var(--motion-quick) var(--yt-ease) forwards;
+}
+
+@keyframes rail-make-room {
+  from {
+    transform: translateX(calc(-1 * (var(--rail-column) + 0.8rem)));
+  }
 }
 
 .rail-track > app-scene-card {
@@ -576,7 +649,7 @@ p {
   }
 
   .rail-track {
-    grid-auto-columns: minmax(78vw, 78vw);
+    --rail-column: 78vw;
   }
 
   .scroll-button {

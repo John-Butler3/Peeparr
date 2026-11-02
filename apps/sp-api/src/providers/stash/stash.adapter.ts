@@ -574,7 +574,10 @@ export class StashAdapter {
     limit: number,
     activeCatalogProviderKey: CatalogProviderKey | null,
   ): Promise<StashContinueWatchingItem[]> {
-    const perPage = this.normalizePositiveInteger(limit, 16);
+    const wanted = this.normalizePositiveInteger(limit, 16);
+    // More than wanted: some are left out below (finished), and they shouldn't
+    // push out ones that aren't.
+    const perPage = Math.max(wanted * 4, 200);
 
     const query = `
       query FindScenes($filter: FindFilterType, $sceneFilter: SceneFilterType) {
@@ -632,7 +635,8 @@ export class StashAdapter {
           activeCatalogProviderKey,
         ),
       )
-      .filter((scene): scene is StashContinueWatchingItem => scene !== null);
+      .filter((scene): scene is StashContinueWatchingItem => scene !== null)
+      .slice(0, wanted);
   }
 
   /** Random library scenes never played (and not started). */
@@ -1910,18 +1914,15 @@ export class StashAdapter {
       typeof scene.resume_time === 'number' && scene.resume_time > 0
         ? scene.resume_time
         : null;
-    if (
-      resumeSeconds === null ||
-      !feedItem.duration ||
-      feedItem.duration <= 0
-    ) {
+    if (resumeSeconds === null) {
       return null;
     }
 
-    const progressPercent = Math.min(
-      100,
-      Math.round((resumeSeconds / feedItem.duration) * 100),
-    );
+    // (A length not known: it's still in progress, just with no line to show.)
+    const progressPercent =
+      feedItem.duration && feedItem.duration > 0
+        ? Math.min(100, Math.round((resumeSeconds / feedItem.duration) * 100))
+        : 0;
 
     // A scene left within the last few percent of its runtime is effectively
     // finished — Stash doesn't always clear resume_time on completion.

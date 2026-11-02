@@ -1414,7 +1414,7 @@ describe('HomeService', () => {
       });
       expect(stashGetContinueWatchingScenesMock).toHaveBeenCalledWith(
         { baseUrl: 'http://stash.local', apiKey: 'stash-secret' },
-        16,
+        50,
         'STASHDB',
       );
     });
@@ -1429,7 +1429,7 @@ describe('HomeService', () => {
       expect(stashGetContinueWatchingScenesMock).not.toHaveBeenCalled();
     });
 
-    it('returns an empty rail when Stash fails to respond', async () => {
+    it('says so when Stash fails to respond, rather than just being empty', async () => {
       integrationFindUniqueMock.mockResolvedValue({
         type: 'STASH',
         enabled: true,
@@ -1443,7 +1443,7 @@ describe('HomeService', () => {
 
       await expect(service.getContinueWatching()).resolves.toEqual({
         items: [],
-        message: null,
+        message: 'Stash could not be reached.',
       });
     });
   });

@@ -536,7 +536,7 @@ describe('StashAdapter', () => {
     expect(body.variables).toMatchObject({
       filter: {
         page: 1,
-        per_page: 16,
+        per_page: 200,
         sort: 'last_played_at',
         direction: 'DESC',
       },

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, Subject, catchError, forkJoin, map, of, tap } from 'rxjs';
+import { Observable, Subject, catchError, finalize, forkJoin, map, of, tap } from 'rxjs';
 
 interface WatchProgressResponse {
   items: Array<{ id: string; activeCatalogSceneId: string | null; progressPercent: number }>;
@@ -39,6 +39,9 @@ export class WatchProgressService {
 
   /** Scenes just marked unwatched (Stash ids), for lists holding their own copies. */
   readonly cleared = new Subject<readonly string[]>();
+  /** The server has answered about a clearing, either way: its list is current again. */
+  readonly settled = new Subject<void>();
+  private readonly clearing = new Set<string>();
 
   /** Percent watched (1-100) for a Stash or catalog scene id, else null. */
   percentFor(sceneId: string | null | undefined): number | null {
@@ -68,6 +71,7 @@ export class WatchProgressService {
     }
 
     this.forget(stashSceneIds);
+    stashSceneIds.forEach((id) => this.clearing.add(id));
     this.cleared.next(stashSceneIds);
     return forkJoin(
       stashSceneIds.map((id) =>
@@ -79,8 +83,23 @@ export class WatchProgressService {
         next: () => this.refreshAfterChange(),
         error: () => this.refreshAfterChange(),
       }),
+      finalize(() => {
+        stashSceneIds.forEach((id) => this.clearing.delete(id));
+        this.settled.next();
+      }),
       map(() => undefined),
     );
+  }
+
+  /** Being marked unwatched: a list from the server may not know yet. */
+  isClearing(stashSceneId: string): boolean {
+    return this.clearing.has(stashSceneId);
+  }
+
+  /** These scenes were deleted from the library: gone, as if cleared. */
+  sceneDeleted(stashSceneIds: readonly string[]): void {
+    this.forget(stashSceneIds);
+    this.cleared.next(stashSceneIds);
   }
 
   /** Playback just saved a position for this Stash scene. */

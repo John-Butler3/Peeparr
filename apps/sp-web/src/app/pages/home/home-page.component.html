@@ -90,52 +90,63 @@
   }
 
   @if (continueWatchingItems().length > 0) {
-    <section class="rail-section">
-      <header class="rail-head">
-        <div class="rail-copy">
-          <p class="rail-kicker">Continue Watching</p>
-          <h2>Pick up where you left off</h2>
-        </div>
+    <section
+      class="rail-section continue-watching"
+      [class.is-arriving]="continueWatchingArriving() === 'section'"
+      animate.leave="is-leaving"
+      data-testid="continue-watching"
+    >
+      <div class="continue-watching-body">
+        <header class="rail-head">
+          <div class="rail-copy">
+            <p class="rail-kicker">Continue Watching</p>
+            <h2>Pick up where you left off</h2>
+          </div>
 
-        <div class="rail-actions app-action-row">
-          <button
-            type="button"
-            class="scroll-button"
-            (click)="scrollRail('continue-watching', 'prev')"
-            aria-label="Scroll Continue Watching left"
-          >
-            <i class="pi pi-angle-left" aria-hidden="true"></i>
-          </button>
-          <button
-            type="button"
-            class="scroll-button"
-            (click)="scrollRail('continue-watching', 'next')"
-            aria-label="Scroll Continue Watching right"
-          >
-            <i class="pi pi-angle-right" aria-hidden="true"></i>
-          </button>
-        </div>
-      </header>
+          <div class="rail-actions app-action-row">
+            <button
+              type="button"
+              class="scroll-button"
+              (click)="scrollRail('continue-watching', 'prev')"
+              aria-label="Scroll Continue Watching left"
+            >
+              <i class="pi pi-angle-left" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="scroll-button"
+              (click)="scrollRail('continue-watching', 'next')"
+              aria-label="Scroll Continue Watching right"
+            >
+              <i class="pi pi-angle-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </header>
 
-      <div class="rail-viewport" #railViewport data-rail-id="continue-watching">
-        <div class="rail-track">
-          @for (item of continueWatchingItems(); track item.id) {
-            <app-scene-card
-              class="rail-card"
-              [item]="item"
-              variant="rail"
-              [playable]="true"
-              previewKind="local"
-              playSize="large"
-              [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'local'"
-              [sceneRouteId]="item.activeCatalogSceneId"
-              [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
-              [progressPercent]="item.progressPercent"
-              [showMarkWatched]="true"
-              (play)="playScene($event)"
-              (markWatched)="markWatched($event)"
-            />
-          }
+        <div class="rail-viewport" #railViewport data-rail-id="continue-watching">
+          <div class="rail-track" [class.is-making-room]="continueWatchingArriving() === 'card'">
+            @for (item of continueWatchingItems(); track item.id) {
+              <app-scene-card
+                class="rail-card"
+                [class.is-arriving]="
+                  continueWatchingArriving() === 'card' && continueWatchingFront() === item.id
+                "
+                animate.leave="is-leaving"
+                [item]="item"
+                variant="rail"
+                [playable]="true"
+                previewKind="local"
+                playSize="large"
+                [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'local'"
+                [sceneRouteId]="item.activeCatalogSceneId"
+                [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+                [progressPercent]="watchProgress.percentFor(item.id) ?? item.progressPercent"
+                [showMarkWatched]="true"
+                (play)="playScene($event)"
+                (markWatched)="markWatched($event)"
+              />
+            }
+          </div>
         </div>
       </div>
     </section>
