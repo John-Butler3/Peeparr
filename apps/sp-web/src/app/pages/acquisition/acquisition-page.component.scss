@@ -54,9 +54,9 @@ a {
   cursor: pointer;
   background: var(--acquisition-overview-bg);
   transition:
-    transform 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease;
+    transform var(--motion-quick) var(--yt-ease),
+    border-color var(--motion-quick) var(--yt-ease),
+    box-shadow var(--motion-quick) var(--yt-ease);
 }
 
 .summary-card[data-tone='overview'] {
@@ -335,9 +335,9 @@ a {
   font-size: 0.86rem;
   font-weight: 700;
   transition:
-    transform 140ms ease,
-    border-color 140ms ease,
-    background 140ms ease;
+    transform var(--motion-quick) var(--yt-ease),
+    border-color var(--motion-quick) var(--yt-ease),
+    background var(--motion-quick) var(--yt-ease);
 }
 
 .primary-link:hover,

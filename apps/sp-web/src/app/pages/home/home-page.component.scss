@@ -137,7 +137,7 @@ p {
   background: var(--surface-hero-button-background);
   color: var(--text-primary);
   cursor: pointer;
-  transition: transform 160ms ease;
+  transition: transform var(--motion-quick) var(--yt-ease);
 
   svg {
     width: 1.1rem;
@@ -473,7 +473,7 @@ p {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1;
-  transition: background-color 120ms var(--yt-ease, ease);
+  transition: background-color var(--motion-quick) var(--yt-ease, ease);
 }
 
 .see-all-link {

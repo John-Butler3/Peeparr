@@ -9,6 +9,7 @@
   <!-- Swipe up: back to the scene's page (see onSwipeStart). -->
   <div
     class="miniplayer"
+    animate.leave="is-leaving"
     data-testid="miniplayer"
     (touchstart)="onSwipeStart($event)"
     (touchmove)="claimSwipe($event)"

@@ -248,7 +248,7 @@
   // Keeps the zoomed thumbnail and the preview video clipped to the rounded
   // corners (Safari otherwise lets transformed / video layers poke out).
   isolation: isolate;
-  transition: box-shadow 250ms var(--yt-ease);
+  transition: box-shadow var(--motion-base) var(--yt-ease);
 }
 
 // Slight shadow behind the thumbnail you point at (or are previewing).
@@ -263,7 +263,7 @@
 }
 
 .thumbnail {
-  transition: transform 200ms var(--yt-ease);
+  transition: transform var(--motion-base) var(--yt-ease);
 }
 
 // Slight zoom on the thumbnail you point at; corners stay rounded.

@@ -96,6 +96,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private previewLoading = false;
   private previewFinished = false;
   private dimmer: HTMLElement | null = null;
+  private readonly onDimmerScroll = () => this.syncDimmer();
   private holdingPreviews = false;
   // Outside Angular: nothing on screen changes unless the preview starts.
   private readonly lookWatch = inject(NgZone).runOutsideAngular(() =>
@@ -221,6 +222,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   ngOnDestroy(): void {
     clearInterval(this.lookWatch);
     this.dimmer?.remove();
+    window.removeEventListener('scroll', this.onDimmerScroll);
     this.autoplayPreviews.releaseHold(this.host);
     if (!this.handOffIfPlaying()) {
       this.saveProgress();
@@ -555,6 +557,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
         this.dimmer = document.createElement('div');
         this.dimmer.className = 'preview-dimmer';
         document.body.appendChild(this.dimmer);
+        // Undims the moment the page moves.
+        window.addEventListener('scroll', this.onDimmerScroll, { passive: true });
       }
       const rect = this.host.getBoundingClientRect();
       const box = this.dimmer.style;
@@ -568,17 +572,25 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     this.dimmer?.classList.toggle('is-on', on);
   }
 
+  // At once, with the preview stopping (it hides the logo while it shows):
+  // left to the next render, which doesn't come on a page that's been left,
+  // the logo would come back into view, and be there on returning.
+  private hideSiteLogo(): void {
+    this.siteLogoShowing.set(false);
+    this.posterPreview?.host.classList.remove('is-showing-site');
+  }
+
   /** Played through: back on the thumbnail, until it's looked at afresh. */
   protected onPreviewFinished(): void {
     this.previewFinished = true;
-    this.siteLogoShowing.set(false);
+    this.hideSiteLogo();
     this.syncPreviewHold();
   }
 
   private endLook(): void {
     this.lookingSince = null;
     this.previewFinished = false;
-    this.siteLogoShowing.set(false);
+    this.hideSiteLogo();
     if (this.previewing || this.previewLoading) {
       this.previewing = false;
       this.previewLoading = false;
@@ -679,6 +691,9 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     const signal = this.listeners.signal;
     video.addEventListener('loadedmetadata', () => this.onLoadedMetadata(), { signal });
     video.addEventListener('pause', () => this.onPause(), { signal });
+    // Card previews below stop while it plays, and carry on when it pauses.
+    video.addEventListener('play', () => this.autoplayPreviews.pick(), { signal });
+    video.addEventListener('pause', () => this.autoplayPreviews.pick(), { signal });
     video.addEventListener('ended', () => this.onEnded(), { signal });
     if (carriedOn) {
       // Back from the miniplayer with the same video: it just carries on.

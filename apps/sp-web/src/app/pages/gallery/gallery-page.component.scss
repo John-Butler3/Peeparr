@@ -238,7 +238,7 @@ p {
 
 .viewer-full {
   opacity: 0;
-  transition: opacity 180ms ease-out;
+  transition: opacity var(--motion-quick) ease-out;
 }
 
 .viewer-full.ready {

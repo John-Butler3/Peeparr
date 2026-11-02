@@ -130,6 +130,28 @@ p {
   }
 }
 
+// Seen before on this device: about a second, rather than over two.
+.auth-card.auth-intro.auth-intro-quick {
+  animation-duration: 300ms;
+  animation-delay: 800ms;
+}
+
+.auth-card.auth-intro-quick .auth-brand-name,
+.auth-card.auth-intro-quick .auth-brand-name > span {
+  animation-duration: 500ms;
+  animation-delay: 120ms;
+}
+
+.auth-card.auth-intro.auth-intro-quick .auth-brand {
+  animation-duration: 400ms;
+  animation-delay: 620ms;
+}
+
+.auth-card.auth-intro.auth-intro-quick > :not(.auth-brand) {
+  animation-duration: 300ms;
+  animation-delay: 820ms;
+}
+
 // Leaving (signed in): the form fades, the name slides back under the logo
 // and the logo glides back to the middle at the splash's size.
 .auth-card.auth-leaving {
@@ -271,7 +293,9 @@ form {
   color: var(--text-primary);
   font: inherit;
   font-size: 1rem;
-  transition: border-color 120ms var(--yt-ease, ease), box-shadow 120ms var(--yt-ease, ease);
+  transition:
+    border-color 120ms var(--yt-ease, ease),
+    box-shadow 120ms var(--yt-ease, ease);
 }
 
 .field input:focus {

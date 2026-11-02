@@ -187,7 +187,7 @@ textarea.app-control-input {
   color: #fff;
   background: rgb(0 0 0 / 28%);
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--motion-quick) var(--yt-ease);
 }
 
 .part-thumb:hover .part-thumb-play,

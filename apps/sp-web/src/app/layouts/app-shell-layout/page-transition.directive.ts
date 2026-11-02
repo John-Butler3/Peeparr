@@ -29,7 +29,8 @@ import { SharedVideoService } from '../../core/player/shared-video.service';
  *
  * When the playing video moves with the page change (down into the
  * miniplayer, or back up), the page being left has faded out first
- * (PageFadeService) and the new one fades in a touch more gently.
+ * (PageFadeService) and the new one fades in a touch more gently. A page
+ * come back to, already loaded and where it was left, just fades in.
  */
 @Directive({
   selector: '[appPageTransition]',
@@ -71,7 +72,7 @@ export class PageTransitionDirective {
           // Already showing (revealed behind a video swiped down): no page-in.
           if (this.pageFade.finishReveal()) {
             this.clearTimers();
-            this.host.classList.remove('is-pending', 'is-entering', 'is-soft');
+            this.host.classList.remove('is-pending', 'is-entering', 'is-soft', 'is-returning');
             return;
           }
           void this.enter();
@@ -113,8 +114,9 @@ export class PageTransitionDirective {
     this.host.classList.add('is-entering');
     const soft = this.pageFade.takeSoftEnter();
     this.host.classList.toggle('is-soft', soft);
+    this.host.classList.toggle('is-returning', !soft && this.pageFade.cameBack());
     this.enterTimer = setTimeout(
-      () => this.host.classList.remove('is-entering', 'is-soft'),
+      () => this.host.classList.remove('is-entering', 'is-soft', 'is-returning'),
       soft ? PageTransitionDirective.SOFT_ENTER_MS : PageTransitionDirective.ENTER_MS,
     );
   }

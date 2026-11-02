@@ -167,7 +167,7 @@ app-settings-page .section-row {
   padding: 14px 16px;
   color: var(--text-primary);
   text-decoration: none;
-  transition: background-color 120ms var(--yt-ease, ease);
+  transition: background-color var(--motion-quick) var(--yt-ease, ease);
 }
 
 app-settings-page .section-row + .section-row {

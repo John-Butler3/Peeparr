@@ -10,9 +10,22 @@ import {
   signal,
 } from '@angular/core';
 import { NavigationStart, Router, RouterLink } from '@angular/router';
-import { Subject, catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, switchMap } from 'rxjs';
+import {
+  Subject,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+} from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
-import { PerformerFeedItem, SceneExplorerItem, StudioFeedItem } from '../../core/api/discover.types';
+import {
+  PerformerFeedItem,
+  SceneExplorerItem,
+  StudioFeedItem,
+} from '../../core/api/discover.types';
 
 interface SuggestResults {
   performers: PerformerFeedItem[];
@@ -125,13 +138,32 @@ export class SearchSuggestComponent {
           return forkJoin({
             performers: this.discoverService
               .getPerformersFeed(1, SearchSuggestComponent.PERFORMERS, { name: term })
-              .pipe(map((r) => r.items), catchError(() => of([]))),
+              .pipe(
+                map((r) => r.items),
+                catchError(() => of([])),
+              ),
             studios: this.discoverService
               .getStudiosFeed(1, SearchSuggestComponent.STUDIOS, { name: term })
-              .pipe(map((r) => r.items), catchError(() => of([]))),
+              .pipe(
+                map((r) => r.items),
+                catchError(() => of([])),
+              ),
             scenes: this.discoverService
-              .getScenesFeed(1, SearchSuggestComponent.SCENES, 'TITLE', 'ASC', [], undefined, undefined, [], term)
-              .pipe(map((r) => r.items), catchError(() => of([]))),
+              .getScenesFeed(
+                1,
+                SearchSuggestComponent.SCENES,
+                'TITLE',
+                'ASC',
+                [],
+                undefined,
+                undefined,
+                [],
+                term,
+              )
+              .pipe(
+                map((r) => r.items),
+                catchError(() => of([])),
+              ),
           });
         }),
       )

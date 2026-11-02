@@ -17,6 +17,7 @@ import { rememberSignedIn } from '../../shared/app-splash/boot-splash';
 export class AuthIntroDirective {
   /** Matches the .auth-leaving animations. */
   static readonly LEAVE_MS = 600;
+  private static readonly SEEN_KEY = 'peeparr.authIntroSeen';
 
   private readonly card = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
@@ -30,11 +31,25 @@ export class AuthIntroDirective {
       return;
     }
 
+    // In full the first time on this device, quicker after that.
+    if (AuthIntroDirective.seenBefore()) {
+      this.card.classList.add('auth-intro-quick');
+    }
     this.card.classList.add('auth-intro-pending');
     afterNextRender(() => {
       this.measureOffsetToCentre();
       this.card.classList.replace('auth-intro-pending', 'auth-intro');
     });
+  }
+
+  private static seenBefore(): boolean {
+    try {
+      const seen = localStorage.getItem(AuthIntroDirective.SEEN_KEY) === '1';
+      localStorage.setItem(AuthIntroDirective.SEEN_KEY, '1');
+      return seen;
+    } catch {
+      return false;
+    }
   }
 
   /** Plays the logo back to the middle of the screen (then resolves). */

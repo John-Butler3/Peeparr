@@ -79,7 +79,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   protected readonly dragX = signal(0);
   protected readonly dragging = signal(false);
   /** The bar along the bottom filling up until the next scene (restarts per run). */
-  protected readonly progress = signal<{ run: number; ms: number } | null>(null);
+  protected readonly progress = signal<{ run: number; ms: number; elapsed: number } | null>(null);
 
   private advanceTimer: ReturnType<typeof setTimeout> | null = null;
   /** The fade-out or slide step of moving on. */
@@ -92,6 +92,10 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   private onScreen = true;
   private holdStarted = false;
   private progressRuns = 0;
+  /** The current preview's time until moving on, and its whole length. */
+  private hold: { dueAt: number; total: number } | null = null;
+  /** Paused part way through a preview: picked up from here. */
+  private pausedWith: { index: number; remaining: number; total: number } | null = null;
   private touchStart: { x: number; y: number; sideways: boolean | null } | null = null;
   private readonly wideScreen =
     typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1000px)') : null;
@@ -108,7 +112,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     if (document.hidden) {
       this.pause();
     } else {
-      this.loadPreview();
+      this.resumeOrLoad();
     }
   };
 
@@ -297,13 +301,35 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     }
     this.onScreen = onScreen;
     if (onScreen) {
-      this.loadPreview();
+      this.resumeOrLoad();
     } else {
       this.pause();
     }
   }
 
+  // Scrolled back to (or back in the app): carries on where it was, rather
+  // than starting the preview and its bar over.
+  private resumeOrLoad(): void {
+    const paused = this.pausedWith;
+    const video = this.videoRef?.nativeElement;
+    if (!paused || paused.index !== this.index() || !video?.getAttribute('src')) {
+      this.loadPreview();
+      return;
+    }
+    this.pausedWith = null;
+    this.scheduleAdvance(paused.remaining, true, paused.total);
+    void video.play().catch(() => this.loadPreview());
+  }
+
   private pause(): void {
+    this.pausedWith =
+      this.hold && this.holdStarted
+        ? {
+            index: this.index(),
+            remaining: Math.max(0, this.hold.dueAt - Date.now()),
+            total: this.hold.total,
+          }
+        : this.pausedWith;
     this.clearTimer();
     this.clearStep();
     this.sourceSubscription?.unsubscribe();
@@ -336,6 +362,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       this.loadPreview();
       return;
     }
+    this.pausedWith = null;
     this.dropVideo();
     this.index.set(index);
     this.stepTimer = setTimeout(() => {
@@ -352,6 +379,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   }
 
   private loadPreview(): void {
+    this.pausedWith = null;
     this.clearTimer();
     this.clearStep();
     this.sourceSubscription?.unsubscribe();
@@ -412,16 +440,18 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     }
   }
 
-  private scheduleAdvance(ms: number, showProgress = false): void {
+  private scheduleAdvance(ms: number, showProgress = false, total = ms): void {
     this.clearTimer();
     this.advanceTimer = setTimeout(() => this.next(), ms);
     if (showProgress) {
-      this.progress.set({ run: ++this.progressRuns, ms });
+      this.hold = { dueAt: Date.now() + ms, total };
+      this.progress.set({ run: ++this.progressRuns, ms: total, elapsed: total - ms });
     }
   }
 
   private clearTimer(): void {
     this.progress.set(null);
+    this.hold = null;
     if (this.advanceTimer) {
       clearTimeout(this.advanceTimer);
       this.advanceTimer = null;

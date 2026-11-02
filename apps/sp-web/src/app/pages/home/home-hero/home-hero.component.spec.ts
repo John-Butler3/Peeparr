@@ -128,6 +128,36 @@ describe('HomeHeroComponent', () => {
     expect(title(fixture)).toBe('Recent Scene 2');
   });
 
+  it('carries on where it was when scrolled back to, rather than starting over', async () => {
+    const fixture = await render([1, 2].map(buildItem));
+    const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');
+    const hero = fixture.componentInstance as unknown as { setOnScreen(on: boolean): void };
+    const src = video.getAttribute('src');
+    const fill = () =>
+      fixture.nativeElement.querySelector('.hero-progress-fill') as HTMLElement | null;
+    video.dispatchEvent(new Event('playing'));
+    vi.advanceTimersByTime(5000);
+
+    hero.setOnScreen(false);
+    fixture.detectChanges();
+    expect(fill()).toBeNull();
+    // However long it's away, it doesn't move on.
+    vi.advanceTimersByTime(60000);
+    fixture.detectChanges();
+    expect(title(fixture)).toBe('Recent Scene 1');
+
+    hero.setOnScreen(true);
+    fixture.detectChanges();
+    expect(video.getAttribute('src')).toBe(src);
+    expect(fill()?.style.animationDuration).toBe('8000ms');
+    expect(fill()?.style.animationDelay).toBe('-5000ms');
+
+    // The rest of its time, not all of it again.
+    vi.advanceTimersByTime(3000 + HomeHeroComponent.FADE_OUT_MS);
+    fixture.detectChanges();
+    expect(title(fixture)).toBe('Recent Scene 2');
+  });
+
   it("moves on when Stash's preview clip has played through once", async () => {
     const fixture = await render([1, 2].map(buildItem));
     const video: HTMLVideoElement = fixture.nativeElement.querySelector('.hero-video');

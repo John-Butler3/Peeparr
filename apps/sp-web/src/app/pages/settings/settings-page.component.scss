@@ -63,9 +63,9 @@ p {
   text-decoration: none;
   font-weight: 700;
   transition:
-    border-color 140ms ease,
-    background-color 140ms ease,
-    transform 140ms ease;
+    border-color var(--motion-quick) var(--yt-ease),
+    background-color var(--motion-quick) var(--yt-ease),
+    transform var(--motion-quick) var(--yt-ease);
 }
 
 .settings-nav-link:hover {

@@ -138,7 +138,7 @@
   background: color-mix(in srgb, var(--app-bg, #0f0f0f) 92%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: top var(--bars-duration, var(--motion-slow)) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 :host-context(.shell-bars-hidden) .calendar {
@@ -211,8 +211,8 @@
   cursor: pointer;
   scroll-snap-align: start;
   transition:
-    background-color 160ms ease,
-    color 160ms ease;
+    background-color var(--motion-quick) var(--yt-ease),
+    color var(--motion-quick) var(--yt-ease);
 }
 
 .day:hover {

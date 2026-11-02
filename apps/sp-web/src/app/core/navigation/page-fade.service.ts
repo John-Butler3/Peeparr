@@ -250,6 +250,16 @@ export class PageFadeService {
     return soft;
   }
 
+  /** The page now showing is a kept one, brought back as it was left. */
+  cameBack(): boolean {
+    const page = this.currentPage();
+    return (
+      !!page &&
+      this.reuseStrategy instanceof KeepAliveRouteStrategy &&
+      this.reuseStrategy.wasJustRetrieved(page)
+    );
+  }
+
   private putBehindAway(): void {
     const behind = this.behind;
     this.behind = null;

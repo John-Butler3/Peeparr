@@ -19,10 +19,9 @@ export interface ScenePreviewAutoplayItem {
  * one starts. While scrolling with nothing playing, the thumbnail heading for
  * the top third is loaded ahead (paused, hidden), so when scrolling stops it
  * usually just starts. Nothing autoplays while a real video fills most of
- * the screen (the full player), while something that plays its own preview
- * (Home's hero) is on screen, or on devices with a mouse (they use hover
- * instead). The pinned player on a scene page and the miniplayer don't
- * stop previews of what's below them.
+ * the screen or is playing in a scene page's player, while something that
+ * plays its own preview (Home's hero) is on screen, or on devices with a mouse
+ * (they use hover instead). The miniplayer doesn't stop previews.
  */
 @Injectable({
   providedIn: 'root',
@@ -260,8 +259,9 @@ const AIRPLAY_SWITCH_EVENT = 'webkitcurrentplaybacktargetiswirelesschanged';
 /** Share of the screen a playing video must cover to hold previews off. */
 const FULL_PLAYER_SHARE = 0.45;
 
-// A real video (not a preview) is playing on AirPlay, or fills most of the
-// screen. (Another video starting can take the AirPlay route on iOS.)
+// A real video (not a preview) is playing on AirPlay, in a scene page's player,
+// or filling most of the screen. (Another video starting can take the AirPlay
+// route on iOS.)
 function realVideoPlaying(): boolean {
   const screenArea = window.innerWidth * window.innerHeight;
   return Array.from(document.querySelectorAll('video')).some((video) => {
@@ -272,6 +272,9 @@ function realVideoPlaying(): boolean {
       (video as HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
         .webkitCurrentPlaybackTargetIsWireless
     ) {
+      return true;
+    }
+    if (video.closest('.watch-media')) {
       return true;
     }
     const rect = video.getBoundingClientRect();

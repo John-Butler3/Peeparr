@@ -65,7 +65,12 @@
 
       <div class="masthead-end">
         @if (mobileShell()) {
-          <a class="masthead-icon" href="/search" aria-label="Search" (click)="startSearchTyping($event)">
+          <a
+            class="masthead-icon"
+            href="/search"
+            aria-label="Search"
+            (click)="startSearchTyping($event)"
+          >
             <i class="pi pi-search" aria-hidden="true"></i>
           </a>
         }
@@ -86,12 +91,22 @@
             aria-label="Close account menu"
             (click)="closeAccountMenu()"
           ></button>
-          <div class="account-menu" role="menu" data-testid="account-menu">
+          <div
+            class="account-menu"
+            animate.leave="is-leaving"
+            role="menu"
+            data-testid="account-menu"
+          >
             <div class="account-head">
               <span class="avatar large">{{ userInitial() }}</span>
               <span class="account-name">{{ authStatus()?.username ?? 'Signed in' }}</span>
             </div>
-            <a class="menu-item" role="menuitem" routerLink="/settings" (click)="closeAccountMenu()">
+            <a
+              class="menu-item"
+              role="menuitem"
+              routerLink="/settings"
+              (click)="closeAccountMenu()"
+            >
               <i class="pi pi-cog" aria-hidden="true"></i> Settings
             </a>
             <button type="button" class="menu-item" role="menuitem" (click)="toggleTheme()">
@@ -170,7 +185,11 @@
 
     <!-- Page changes: the new page shows once it's ready, rising into place
          (page-transition.directive), with a progress bar while it loads. -->
-    <div class="page-progress" [class.is-active]="pageTransition.loading()" aria-hidden="true"></div>
+    <div
+      class="page-progress"
+      [class.is-active]="pageTransition.loading()"
+      aria-hidden="true"
+    ></div>
     <div class="route-view" appPageTransition #pageTransition="pageTransition">
       <router-outlet />
     </div>
@@ -183,6 +202,7 @@
       #moreBackdrop
       type="button"
       class="mobile-more-backdrop"
+      animate.leave="is-leaving"
       aria-label="Close more navigation"
       (click)="closeMoreMenu()"
     ></button>
@@ -193,6 +213,7 @@
       (swipeClose)="closeMoreMenu()"
       id="mobile-more-sheet"
       class="mobile-more-sheet"
+      animate.leave="is-leaving"
       aria-label="More navigation"
       data-testid="mobile-more-sheet"
     >
@@ -226,7 +247,9 @@
           <span class="icon" aria-hidden="true">
             <i [class]="theme() === 'dark' ? 'pi pi-moon' : 'pi pi-sun'"></i>
           </span>
-          <span class="mobile-more-label">Appearance: {{ theme() === 'dark' ? 'Dark' : 'Light' }}</span>
+          <span class="mobile-more-label"
+            >Appearance: {{ theme() === 'dark' ? 'Dark' : 'Light' }}</span
+          >
         </button>
       </nav>
 

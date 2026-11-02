@@ -102,7 +102,11 @@
       @if (slides().length > 1) {
         <div class="hero-progress" aria-hidden="true">
           @for (run of progress() ? [progress()!] : []; track run.run) {
-            <div class="hero-progress-fill" [style.animation-duration.ms]="run.ms"></div>
+            <div
+              class="hero-progress-fill"
+              [style.animation-duration.ms]="run.ms"
+              [style.animation-delay.ms]="-run.elapsed"
+            ></div>
           }
         </div>
       }

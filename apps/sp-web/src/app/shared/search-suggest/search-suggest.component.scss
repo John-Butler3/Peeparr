@@ -19,7 +19,7 @@
   border-radius: var(--yt-radius, 12px);
   background: var(--yt-menu-bg, var(--surface-elevated));
   box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
-  animation: suggest-in 160ms var(--yt-ease-out, ease-out);
+  animation: suggest-in var(--motion-quick) var(--yt-ease-out, ease-out);
 }
 
 // Phones: stop above the bottom bar (the panel scrolls).
@@ -155,4 +155,8 @@
 .status.in-library {
   background: color-mix(in srgb, #2ea043 22%, transparent);
   color: #56d364;
+}
+
+.suggest.is-leaving {
+  animation: yt-lift-out var(--motion-quick) var(--yt-ease) forwards;
 }

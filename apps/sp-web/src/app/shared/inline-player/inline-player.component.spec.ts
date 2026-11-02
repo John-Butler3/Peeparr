@@ -129,6 +129,24 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     expect(play).not.toHaveBeenCalled();
   });
 
+  it('hides the logo with the preview stopping, without waiting for a render', () => {
+    const { fixture, host, place } = render();
+    fixture.componentRef.setInput('siteLogoUrl', '/logo.png');
+    fixture.detectChanges();
+    host.querySelector('.poster-site img')!.dispatchEvent(new Event('load'));
+    fixture.detectChanges();
+    vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_AFTER_MS + 500);
+    fixture.detectChanges();
+    const poster = host.querySelector('.poster') as HTMLElement;
+    expect(poster.classList).toContain('is-showing-site');
+
+    // Off screen (as on a page that's been left: no render comes).
+    place(5000);
+    vi.advanceTimersByTime(400);
+
+    expect(poster.classList).not.toContain('is-showing-site');
+  });
+
   it("skips a site's logo that hasn't loaded, with a slow fade from the thumbnail", () => {
     const { fixture, host } = render();
     fixture.componentRef.setInput('siteLogoUrl', '/logo.png');

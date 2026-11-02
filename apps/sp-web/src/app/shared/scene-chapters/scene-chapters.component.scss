@@ -35,8 +35,8 @@
   cursor: pointer;
   scroll-snap-align: start;
   transition:
-    background-color 150ms ease,
-    border-color 150ms ease;
+    background-color var(--motion-quick) var(--yt-ease),
+    border-color var(--motion-quick) var(--yt-ease);
 }
 
 .chapter:hover {

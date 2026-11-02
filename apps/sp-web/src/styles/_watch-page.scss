@@ -112,7 +112,7 @@ app-scene-chapters {
   background: var(--button-bg);
   color: var(--text-primary);
   cursor: pointer;
-  transition: background-color 120ms var(--yt-ease, ease);
+  transition: background-color var(--motion-quick) var(--yt-ease, ease);
 }
 
 .watch-title-action:hover {
@@ -266,7 +266,7 @@ app-scene-chapters {
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 120ms var(--yt-ease, ease);
+  transition: background-color var(--motion-quick) var(--yt-ease, ease);
 }
 
 .pill:not(:disabled):hover {
@@ -655,7 +655,7 @@ app-scene-chapters {
 .watch-media {
   // Played while part docked: back to full size, from that corner.
   transform-origin: top right;
-  transition: transform 250ms var(--yt-ease-out, ease-out);
+  transition: transform var(--motion-base) var(--yt-ease-out, ease-out);
 }
 
 .is-docking {
@@ -691,7 +691,8 @@ app-scene-chapters {
   border-radius: calc(12px / (1 - (1 - var(--dock-scale)) * var(--dock)));
   transform-origin: top right;
   transform: scale(calc(1 - (1 - var(--dock-scale)) * var(--dock)));
-  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: top var(--bars-duration, var(--motion-slow))
+    var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .is-docking.is-docked .watch-media {
@@ -741,7 +742,8 @@ app-scene-chapters {
   margin-bottom: calc(-1 * var(--dock-bar-h));
   padding: 0 calc(var(--dock-thumb-w) + 12px + var(--dock-inset)) 0 var(--dock-inset);
   pointer-events: none;
-  transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: top var(--bars-duration, var(--motion-slow))
+    var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .is-catalog-only .watch-dock {
@@ -753,7 +755,7 @@ app-scene-chapters {
   position: absolute;
   inset: 0 -24px;
   z-index: -1;
-  background: color-mix(in srgb, var(--app-bg) 95%, transparent);
+  background: color-mix(in srgb, var(--app-bg) 98%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--border-subtle) 70%, transparent);
@@ -793,14 +795,24 @@ app-scene-chapters {
     --dock-inset: 16px;
   }
 
-  // Edge to edge and square-cornered at first, as when it's played; it takes
-  // on the corners and the inset as it shrinks. (Its padding clears the notch,
-  // so it needn't stick below it.)
+  // Exactly as when it's played at first: edge to edge, at the very top, square
+  // cornered. It takes on the corners and insets only as it shrinks. (Its
+  // padding clears the notch: scaled down, the rest of that is made up here.)
   .is-docking:not(.is-catalog-only) .watch-media {
-    top: calc(var(--dock-top) + var(--dock-gap) - env(safe-area-inset-top, 0px));
+    top: 0;
     border-radius: calc(12px * var(--dock) / (1 - (1 - var(--dock-scale)) * var(--dock)));
-    transform: translateX(calc(var(--dock) * var(--dock-inset) * -1))
+    transform: translate(
+        calc(var(--dock) * var(--dock-inset) * -1),
+        calc(
+          var(--dock) * (var(--dock-gap) + env(safe-area-inset-top, 0px) * (1 - var(--dock-scale)))
+        )
+      )
       scale(calc(1 - (1 - var(--dock-scale)) * var(--dock)));
+  }
+
+  // It sticks from the very start: it starts shrinking with the first scroll.
+  .is-docking:not(.is-catalog-only) .watch-dock-probe {
+    height: 0;
   }
 
   .is-catalog-only .watch-media {

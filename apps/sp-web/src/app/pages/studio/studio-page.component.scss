@@ -89,7 +89,7 @@ ul {
   border-radius: var(--yt-radius, 12px);
   background: var(--surface-elevated);
   object-fit: contain;
-  transition: background-color 120ms var(--yt-ease, ease);
+  transition: background-color var(--motion-quick) var(--yt-ease, ease);
 }
 
 .child-card:hover .child-image {

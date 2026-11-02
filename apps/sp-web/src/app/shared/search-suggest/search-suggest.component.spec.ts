@@ -34,13 +34,32 @@ describe('SearchSuggestComponent', () => {
       getPerformersFeed: vi.fn().mockReturnValue(
         of({
           items: [
-            { id: 'p1', name: 'Anna Example', sceneCount: 9, isFavorite: true, imageUrl: null, cardImageUrl: null },
+            {
+              id: 'p1',
+              name: 'Anna Example',
+              sceneCount: 9,
+              isFavorite: true,
+              imageUrl: null,
+              cardImageUrl: null,
+            },
           ],
         }),
       ),
-      getStudiosFeed: vi.fn().mockReturnValue(
-        of({ items: [{ id: 's1', name: 'Anchor Studios', isFavorite: false, imageUrl: null, parentStudio: null }] }),
-      ),
+      getStudiosFeed: vi
+        .fn()
+        .mockReturnValue(
+          of({
+            items: [
+              {
+                id: 's1',
+                name: 'Anchor Studios',
+                isFavorite: false,
+                imageUrl: null,
+                parentStudio: null,
+              },
+            ],
+          }),
+        ),
       getScenesFeed: vi.fn().mockReturnValue(
         of({
           items: [
@@ -104,10 +123,12 @@ describe('SearchSuggestComponent', () => {
     expect(panel.textContent).toContain('See all results for "an"');
     expect(panel.textContent).toContain('Anna Example');
     expect(panel.textContent).toContain('In library');
-    expect(discover.getPerformersFeed).toHaveBeenCalledWith(1, SearchSuggestComponent.PERFORMERS, { name: 'an' });
+    expect(discover.getPerformersFeed).toHaveBeenCalledWith(1, SearchSuggestComponent.PERFORMERS, {
+      name: 'an',
+    });
   });
 
-  it('opens the highlighted result with the arrow keys and Enter, instead of the box\'s own search', async () => {
+  it("opens the highlighted result with the arrow keys and Enter, instead of the box's own search", async () => {
     const { fixture, type, key } = render();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
