@@ -1,7 +1,20 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { ScenePreviewAutoplayService } from '../scene-preview/scene-preview-autoplay.service';
+import { ScenePreviewDirective } from '../scene-preview/scene-preview.directive';
 import { PlayerService } from '../../core/player/player.service';
 import { InlinePlayerComponent } from './inline-player.component';
+
+@Component({
+  imports: [ScenePreviewDirective],
+  template: '<div [appScenePreview]="loader"></div>',
+})
+class CardThumbnail {
+  readonly loader = () => of({ clipUrl: '/card-clip', streamUrl: '/card-stream', duration: 100 });
+}
 
 describe('InlinePlayerComponent thumbnail preview', () => {
   function render(onScreen = true) {
@@ -40,6 +53,7 @@ describe('InlinePlayerComponent thumbnail preview', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     document.body.innerHTML = '';
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -139,6 +153,54 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     place(5000);
     vi.advanceTimersByTime(1000);
     expect(preview(host)).toBeNull();
+  });
+
+  it('lets the rows below preview once the page is scrolled, though the player stays pinned', () => {
+    const { host } = render();
+    const release = vi.spyOn(TestBed.inject(ScenePreviewAutoplayService), 'releaseHold');
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
+    expect(preview(host)).not.toBeNull();
+
+    // Pinned: still on screen (getBoundingClientRect unchanged).
+    Object.defineProperty(window, 'scrollY', { value: 600, configurable: true });
+    vi.advanceTimersByTime(400);
+
+    expect(release).toHaveBeenCalledWith(host);
+    expect(preview(host)).toBeNull();
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS * 2);
+    expect(preview(host)).toBeNull();
+  });
+
+  it('lets the rows below preview once its own has played through', () => {
+    const { host } = render();
+    const release = vi.spyOn(TestBed.inject(ScenePreviewAutoplayService), 'releaseHold');
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
+
+    preview(host)!.dispatchEvent(new Event('ended'));
+
+    expect(release).toHaveBeenCalledWith(host);
+  });
+
+  it("doesn't cut off a card's preview that's already playing", () => {
+    const { host } = render();
+    const card = TestBed.createComponent(CardThumbnail);
+    card.detectChanges();
+    // (TestBed clears earlier fixtures out of the page when creating another.)
+    document.body.appendChild(host);
+    const cardPreview = card.debugElement
+      .query(By.directive(ScenePreviewDirective))
+      .injector.get(ScenePreviewDirective);
+
+    cardPreview.playNow();
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS * 2);
+
+    expect(cardPreview.isActive).toBe(true);
+    expect(preview(host)).toBeNull();
+
+    // Done: the thumbnail's turn, after its wait.
+    cardPreview.stop();
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
+    expect(preview(host)).not.toBeNull();
   });
 
   it('previews nothing for a scene that cannot be played', () => {

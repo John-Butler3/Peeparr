@@ -499,6 +499,16 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       return;
     }
 
+    // A card's preview playing (hovered, or autoplaying): it's left alone,
+    // and the wait starts over once it's done.
+    if (this.posterPreview?.anotherIsActive) {
+      this.lookingSince = null;
+      this.previewing = false;
+      this.previewLoading = false;
+      this.siteLogoShowing.set(false);
+      return;
+    }
+
     this.lookingSince ??= Date.now();
     const lookedFor = Date.now() - this.lookingSince;
     const hasLogo = this.siteLogoReady();
@@ -525,6 +535,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected onPreviewFinished(): void {
     this.previewFinished = true;
     this.siteLogoShowing.set(false);
+    this.syncPreviewHold();
   }
 
   private endLook(): void {
@@ -545,9 +556,16 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       !document.hidden &&
       onShowingPage(this.host) &&
       visibleShare(this.host) >= InlinePlayerComponent.PREVIEW_MIN_VISIBLE &&
+      !this.scrolledPast() &&
       // (The miniplayer carrying on with something else.)
       (shared.paused || shared.ended)
     );
+  }
+
+  // Scrolled on down the page. On phones the player stays pinned on screen
+  // meanwhile, but it's what's below that's being looked at.
+  private scrolledPast(): boolean {
+    return window.scrollY > this.host.offsetHeight * InlinePlayerComponent.PREVIEW_MIN_VISIBLE;
   }
 
   private previewable(): boolean {
@@ -563,9 +581,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   }
 
   // On touch screens, thumbnails further down don't autoplay while this one
-  // is on screen waiting to preview: one preview at a time.
+  // is waiting to preview or previewing: one preview at a time. Once it has
+  // played through, or the page is scrolled on, they do.
   private syncPreviewHold(): void {
-    const hold = this.previewable();
+    const hold = this.previewable() && !this.previewFinished && !this.scrolledPast();
     if (hold === this.holdingPreviews) {
       return;
     }

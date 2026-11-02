@@ -120,6 +120,11 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     return this.scenePreviewAutoplay && !!this.loader;
   }
 
+  /** A different thumbnail is previewing (it would be cut off by this one starting). */
+  get anotherIsActive(): boolean {
+    return !!ScenePreviewDirective.active && !this.isActive;
+  }
+
   /** Previewing (loading or showing). */
   get isActive(): boolean {
     return ScenePreviewDirective.active === this;
