@@ -802,6 +802,12 @@ p {
   gap: 0.72rem;
 }
 
+// Laid out at once, always: its height is measured as it appears, and until
+// then a row skipped for being off screen counts as its placeholder height.
+.continue-watching {
+  content-visibility: visible;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .continue-watching.is-arriving ~ section,
   .continue-watching.is-arriving .continue-watching-body,
