@@ -13,9 +13,11 @@ import { TpdbWebModule } from '../tpdb-web/tpdb-web.module';
 import { ScenesController } from './scenes.controller';
 import { ScenesService } from './scenes.service';
 
+import { LibraryModule } from '../library/library.module';
 @Module({
   imports: [
     AuthModule,
+    LibraryModule,
     IntegrationsModule,
     StashdbModule,
     SceneStatusModule,

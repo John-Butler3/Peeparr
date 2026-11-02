@@ -37,6 +37,35 @@ describe('LibrarySceneQueryService similar scenes (by tags)', () => {
     ).toEqual(['all-three', 'gangbang', 'anal-hd']);
   });
 
+  it('finds linked scenes by performer name, in the order the index gives', async () => {
+    const queryRaw = jest
+      .fn()
+      .mockResolvedValue([{ stashSceneId: '9' }, { stashSceneId: '4' }]);
+    const service = new LibrarySceneQueryService({
+      $queryRaw: queryRaw,
+    } as unknown as PrismaService);
+    const byIds = jest
+      .spyOn(service, 'getScenesByIds')
+      .mockImplementation(async (ids) => ids.map((id) => ({ id }) as never));
+
+    await service.getLinkedByPerformerNames([' Anna ', 'anna', 'Bella'], 12);
+
+    expect(queryRaw.mock.calls[0]).toContainEqual(['anna', 'bella']);
+    expect(queryRaw.mock.calls[0]).toContain(24);
+    expect(byIds).toHaveBeenCalledWith(['9', '4']);
+  });
+
+  it('asks nothing without performer names', async () => {
+    const queryRaw = jest.fn();
+    const service = new LibrarySceneQueryService({
+      $queryRaw: queryRaw,
+    } as unknown as PrismaService);
+    await expect(
+      service.getLinkedByPerformerNames(['  '], 12),
+    ).resolves.toEqual([]);
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
   it('asks nothing without tags', async () => {
     const queryRaw = jest.fn();
     const service = new LibrarySceneQueryService({

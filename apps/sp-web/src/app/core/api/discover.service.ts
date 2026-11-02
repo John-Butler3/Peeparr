@@ -86,10 +86,17 @@ export class DiscoverService {
     return this.http.get<SceneDetails>(`/api/scenes/${encodeURIComponent(stashId)}`);
   }
 
-  getSimilarScenes(stashId: string, limit?: number): Observable<SimilarScenesResponse> {
+  getSimilarScenes(
+    stashId: string,
+    performerNames: readonly string[] = [],
+    limit?: number,
+  ): Observable<SimilarScenesResponse> {
     let params = new HttpParams();
     if (limit) {
       params = params.set('limit', limit.toString());
+    }
+    for (const name of performerNames) {
+      params = params.append('performers', name);
     }
 
     return this.http.get<SimilarScenesResponse>(

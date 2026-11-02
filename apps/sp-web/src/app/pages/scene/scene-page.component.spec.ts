@@ -205,12 +205,17 @@ describe('ScenePageComponent', () => {
         { id: 'p4', name: 'Cara', gender: 'FEMALE' },
       ] as SceneDetails['performers'],
     });
-    const { fixture } = await renderScene(scene);
+    const { fixture, discoverService } = await renderScene(scene);
     const page = fixture.componentInstance as unknown as {
       moreFromHeading(scene: SceneDetails): string;
     };
 
     expect(page.moreFromHeading(scene)).toBe('More from Anna, Bella, Cara');
+    expect(discoverService.getSimilarScenes).toHaveBeenCalledWith(scene.id, [
+      'Anna',
+      'Bella',
+      'Cara',
+    ]);
   });
 
   it('shrinks away on scrolling until the scene is loaded in the player, then stays pinned', async () => {

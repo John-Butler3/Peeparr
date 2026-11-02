@@ -56,6 +56,7 @@ interface FilteredFeedState {
   expiresAt: number;
 }
 
+import { LibrarySceneQueryService } from '../library/library-scene-query.service';
 @Injectable()
 export class ScenesService {
   /** How long a filtered feed's read-ahead is reused while scrolling. */
@@ -90,6 +91,7 @@ export class ScenesService {
     private readonly performerImagePreferenceService: PerformerImagePreferenceService,
     private readonly tpdbWebService: TpdbWebService,
     private readonly studioFavoritesService: StudioFavoritesService,
+    private readonly librarySceneQueryService: LibrarySceneQueryService,
   ) {}
 
   async getScenesFeed(
@@ -681,10 +683,25 @@ export class ScenesService {
   // used to seed the search -- a scene's male/other performers tend to
   // recur across a much wider, less genre-consistent swath of the
   // catalog, so keying off them made results feel unrelated.
+  //
+  // Given the performers' names (the scene page has them), the library's own
+  // index answers straight away. The provider route below is many calls, so
+  // it's only for when that finds nothing (a performer named differently in
+  // Stash).
   async getSimilarScenes(
     stashId: string,
     limit = ScenesService.SIMILAR_SCENES_DEFAULT_LIMIT,
+    performerNames: string[] = [],
   ): Promise<SimilarScenesResponseDto> {
+    const fromIndex = await this.similarFromLibraryIndex(
+      stashId,
+      performerNames,
+      limit,
+    );
+    if (fromIndex.length > 0) {
+      return { items: fromIndex };
+    }
+
     const scene = await this.getSceneById(stashId);
     const performerIds = scene.performers
       .filter((performer) => performer.gender === 'FEMALE')
@@ -749,6 +766,49 @@ export class ScenesService {
         );
       }),
     };
+  }
+
+  private async similarFromLibraryIndex(
+    stashId: string,
+    performerNames: string[],
+    limit: number,
+  ): Promise<SimilarScenesResponseDto['items']> {
+    const rows = await this.librarySceneQueryService.getLinkedByPerformerNames(
+      performerNames,
+      limit,
+    );
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    // Once per catalog scene (several copies are one), and not this one.
+    const byCatalogId = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) {
+      const id = row.activeCatalogSceneId;
+      if (id && id !== stashId && !byCatalogId.has(id)) {
+        byCatalogId.set(id, row);
+      }
+    }
+    return [...byCatalogId.entries()].slice(0, limit).map(([id, row]) => ({
+      id,
+      title: row.title,
+      description: row.description,
+      imageUrl: row.imageUrl,
+      cardImageUrl: row.cardImageUrl,
+      // (The index's site id is Stash's, not the catalog's.)
+      studioId: null,
+      studio: row.studio,
+      studioImageUrl: row.studioImageUrl,
+      releaseDate: row.releaseDate,
+      duration: row.duration,
+      type: 'SCENE' as const,
+      source: catalogProvider.integrationType,
+      status: { state: 'AVAILABLE' as const },
+      requestable: false,
+      streamable: false,
+    }));
   }
 
   async getSceneStreamUrl(

@@ -70,7 +70,11 @@ export class ScenesController {
     @Param('stashId') stashId: string,
     @Query() query: SimilarScenesQueryDto,
   ): Promise<SimilarScenesResponseDto> {
-    return this.scenesService.getSimilarScenes(stashId, query.limit);
+    return this.scenesService.getSimilarScenes(
+      stashId,
+      query.limit,
+      query.performers,
+    );
   }
 
   // The URL carries a stream token so AirPlay receivers can fetch it too.

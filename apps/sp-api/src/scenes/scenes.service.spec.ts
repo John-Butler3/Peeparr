@@ -11,6 +11,7 @@ import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { AppSettingsService } from '../settings/app-settings.service';
 import { TpdbWebService } from '../tpdb-web/tpdb-web.service';
+import { LibrarySceneQueryService } from '../library/library-scene-query.service';
 import { ScenesService } from './scenes.service';
 
 describe('ScenesService', () => {
@@ -103,10 +104,16 @@ describe('ScenesService', () => {
   };
 
   let service: ScenesService;
+  let librarySceneQueryService: { getLinkedByPerformerNames: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    tpdbWebService = { getPopularScenes: jest.fn().mockResolvedValue([]) } as unknown as TpdbWebService;
+    tpdbWebService = {
+      getPopularScenes: jest.fn().mockResolvedValue([]),
+    } as unknown as TpdbWebService;
+    librarySceneQueryService = {
+      getLinkedByPerformerNames: jest.fn().mockResolvedValue([]),
+    };
     service = new ScenesService(
       integrationsService,
       catalogProviderService,
@@ -118,9 +125,12 @@ describe('ScenesService', () => {
       performerImagePreferenceService,
       tpdbWebService,
       studioFavoritesService,
+      librarySceneQueryService as unknown as LibrarySceneQueryService,
     );
 
-    performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
+    performerImagePreferenceService.getMainImageUrls = jest
+      .fn()
+      .mockResolvedValue(new Map());
 
     integrationsService.findOne = jest
       .fn()
@@ -183,9 +193,15 @@ describe('ScenesService', () => {
     appSettingsService.get = jest
       .fn()
       .mockResolvedValue({ hideAmateurNetworkResults: false });
-    performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
-    performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
-    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+    performerFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue([]);
+    performerFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set());
+    studioFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set());
     studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
     stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([]);
     whisparrAdapter.findMovieByStashId = jest.fn().mockResolvedValue(null);
@@ -347,14 +363,12 @@ describe('ScenesService', () => {
         },
       ],
     });
-    sceneStatusService.resolveForScenes = jest
-      .fn()
-      .mockResolvedValue(
-        new Map([
-          ['stashdb-scene-1', { state: 'AVAILABLE' }],
-          ['amateur-scene-1', { state: 'NOT_REQUESTED' }],
-        ]),
-      );
+    sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(
+      new Map([
+        ['stashdb-scene-1', { state: 'AVAILABLE' }],
+        ['amateur-scene-1', { state: 'NOT_REQUESTED' }],
+      ]),
+    );
 
     const result = await service.getScenesFeed();
 
@@ -366,7 +380,9 @@ describe('ScenesService', () => {
   });
 
   it('reads ahead past a flood of hidden amateur scenes to fill the page, and carries on from there', async () => {
-    appSettingsService.get = jest.fn().mockResolvedValue({ hideAmateurNetworkResults: true });
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: true });
     // 10 scenes per provider page; only every 5th one is not amateur.
     const providerScene = (n: number) => ({
       id: `scene-${n}`,
@@ -385,21 +401,32 @@ describe('ScenesService', () => {
     catalogAdapter.getScenesBySort = jest.fn(({ page }: { page: number }) =>
       Promise.resolve({
         total: 1000,
-        scenes: Array.from({ length: 10 }, (_, i) => providerScene((page - 1) * 10 + i + 1)),
+        scenes: Array.from({ length: 10 }, (_, i) =>
+          providerScene((page - 1) * 10 + i + 1),
+        ),
       }),
     );
-    sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+    sceneStatusService.resolveForScenes = jest
+      .fn()
+      .mockResolvedValue(new Map());
 
     const first = await service.getScenesFeed(1, 10);
     expect(first.items).toHaveLength(10);
-    expect(first.items.map((item) => item.id).slice(0, 3)).toEqual(['scene-5', 'scene-10', 'scene-15']);
+    expect(first.items.map((item) => item.id).slice(0, 3)).toEqual([
+      'scene-5',
+      'scene-10',
+      'scene-15',
+    ]);
     expect(first.hasMore).toBe(true);
-    const providerCalls = (catalogAdapter.getScenesBySort as jest.Mock).mock.calls.length;
+    const providerCalls = (catalogAdapter.getScenesBySort as jest.Mock).mock
+      .calls.length;
 
     // Page 2 continues from the read-ahead rather than starting over.
     const second = await service.getScenesFeed(2, 10);
     expect(second.items[0].id).toBe('scene-55');
-    const pagesForSecond = (catalogAdapter.getScenesBySort as jest.Mock).mock.calls
+    const pagesForSecond = (
+      catalogAdapter.getScenesBySort as jest.Mock
+    ).mock.calls
       .slice(providerCalls)
       .map(([args]: [{ page: number }]) => args.page);
     expect(Math.min(...pagesForSecond)).toBeGreaterThan(5);
@@ -470,9 +497,19 @@ describe('ScenesService', () => {
             scenes: [buildScene({ id: `${config.performerId}-scene` })],
           }),
         );
-      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map());
 
-      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TRENDING',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
       expect(catalogAdapter.getScenesBySort).not.toHaveBeenCalled();
       expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledTimes(2);
@@ -484,12 +521,28 @@ describe('ScenesService', () => {
     });
 
     it('returns an empty feed without calling the provider when nothing is favorited', async () => {
-      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue([]);
 
-      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TRENDING',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
       expect(catalogAdapter.getScenesForPerformer).not.toHaveBeenCalled();
-      expect(result).toEqual({ total: 0, page: 1, perPage: 24, hasMore: false, items: [] });
+      expect(result).toEqual({
+        total: 0,
+        page: 1,
+        perPage: 24,
+        hasMore: false,
+        items: [],
+      });
     });
 
     it('dedupes a scene shared by two favorited performers', async () => {
@@ -500,9 +553,19 @@ describe('ScenesService', () => {
         total: 1,
         scenes: [buildScene({ id: 'shared-scene' })],
       });
-      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map());
 
-      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TRENDING',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
       expect(result.items.map((item) => item.id)).toEqual(['shared-scene']);
       expect(result.total).toBe(1);
@@ -523,23 +586,47 @@ describe('ScenesService', () => {
             scenes: [buildScene({ id: 'performer-1-scene' })],
           });
         });
-      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map());
 
-      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TRENDING',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
-      expect(result.items.map((item) => item.id)).toEqual(['performer-1-scene']);
+      expect(result.items.map((item) => item.id)).toEqual([
+        'performer-1-scene',
+      ]);
     });
 
     it('filters the aggregated scenes by studio and title query locally', async () => {
-      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1']);
       catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
         total: 2,
         scenes: [
-          buildScene({ id: 'scene-a', title: 'Beach Day', studioId: 'studio-1' }),
-          buildScene({ id: 'scene-b', title: 'Night Out', studioId: 'studio-2' }),
+          buildScene({
+            id: 'scene-a',
+            title: 'Beach Day',
+            studioId: 'studio-1',
+          }),
+          buildScene({
+            id: 'scene-b',
+            title: 'Night Out',
+            studioId: 'studio-2',
+          }),
         ],
       });
-      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map());
 
       const result = await service.getScenesFeed(
         1,
@@ -557,7 +644,9 @@ describe('ScenesService', () => {
     });
 
     it('sorts the aggregated scenes by title when requested', async () => {
-      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1']);
       catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
         total: 2,
         scenes: [
@@ -565,15 +654,30 @@ describe('ScenesService', () => {
           buildScene({ id: 'scene-a', title: 'Antelope' }),
         ],
       });
-      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map());
 
-      const result = await service.getScenesFeed(1, 24, 'TITLE', 'ASC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TITLE',
+        'ASC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
-      expect(result.items.map((item) => item.id)).toEqual(['scene-a', 'scene-z']);
+      expect(result.items.map((item) => item.id)).toEqual([
+        'scene-a',
+        'scene-z',
+      ]);
     });
 
     it('paginates the locally-aggregated feed', async () => {
-      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1']);
       catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
         total: 3,
         scenes: [
@@ -582,11 +686,24 @@ describe('ScenesService', () => {
           buildScene({ id: 'scene-3', releaseDate: '2026-01-03' }),
         ],
       });
-      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map());
 
-      const result = await service.getScenesFeed(1, 2, 'DATE', 'DESC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        2,
+        'DATE',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
-      expect(result.items.map((item) => item.id)).toEqual(['scene-3', 'scene-2']);
+      expect(result.items.map((item) => item.id)).toEqual([
+        'scene-3',
+        'scene-2',
+      ]);
       expect(result.total).toBe(3);
       expect(result.hasMore).toBe(true);
     });
@@ -595,16 +712,30 @@ describe('ScenesService', () => {
       appSettingsService.get = jest
         .fn()
         .mockResolvedValue({ hideAmateurNetworkResults: true });
-      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1']);
       catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
         total: 1,
-        scenes: [buildScene({ id: 'amateur-scene', isFromExcludedNetwork: true })],
+        scenes: [
+          buildScene({ id: 'amateur-scene', isFromExcludedNetwork: true }),
+        ],
       });
       sceneStatusService.resolveForScenes = jest
         .fn()
-        .mockResolvedValue(new Map([['amateur-scene', { state: 'NOT_REQUESTED' }]]));
+        .mockResolvedValue(
+          new Map([['amateur-scene', { state: 'NOT_REQUESTED' }]]),
+        );
 
-      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TRENDING',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+      );
 
       expect(result.items).toEqual([]);
     });
@@ -624,7 +755,9 @@ describe('ScenesService', () => {
     await expect(service.getScenesFeed()).resolves.toMatchObject({
       items: [expect.objectContaining({ source: 'FANSDB' })],
     });
-    await expect(service.getSceneById('stashdb-scene-1')).resolves.toMatchObject({
+    await expect(
+      service.getSceneById('stashdb-scene-1'),
+    ).resolves.toMatchObject({
       source: 'FANSDB',
     });
 
@@ -651,12 +784,17 @@ describe('ScenesService', () => {
   });
 
   it('asks for favorited studios by id when they are kept in Peeparr', async () => {
-    studioFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['studio-9', 'studio-3']);
+    studioFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['studio-9', 'studio-3']);
 
     await service.getScenesFeed(1, 25, 'DATE', undefined, [], 'OR', 'STUDIO');
 
     expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith(
-      expect.objectContaining({ favorites: undefined, studioIds: ['studio-9', 'studio-3'] }),
+      expect.objectContaining({
+        favorites: undefined,
+        studioIds: ['studio-9', 'studio-3'],
+      }),
     );
   });
 
@@ -667,7 +805,9 @@ describe('ScenesService', () => {
       studioIsFavorite: false,
       performers: [],
     });
-    studioFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set(['studio-1']));
+    studioFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set(['studio-1']));
 
     const result = await service.getSceneById('stashdb-scene-1');
 
@@ -678,29 +818,55 @@ describe('ScenesService', () => {
     studioFavoritesService.setFavorite = jest
       .fn()
       .mockResolvedValue({ favorited: true, alreadyFavorited: false });
-    catalogAdapter.favoriteStudio = jest.fn().mockRejectedValue(new Error('not supported'));
+    catalogAdapter.favoriteStudio = jest
+      .fn()
+      .mockRejectedValue(new Error('not supported'));
 
     await expect(service.favoriteStudio('studio-1', true)).resolves.toEqual({
       favorited: true,
       alreadyFavorited: false,
     });
-    expect(studioFavoritesService.setFavorite).toHaveBeenCalledWith('studio-1', true);
+    expect(studioFavoritesService.setFavorite).toHaveBeenCalledWith(
+      'studio-1',
+      true,
+    );
   });
 
-  it("marks scene cast members favorited in Peeparr as favorites (TPDB never reports it)", async () => {
+  it('marks scene cast members favorited in Peeparr as favorites (TPDB never reports it)', async () => {
     catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
       ...sceneDetails,
       performers: [
-        { id: 'performer-1', name: 'One', gender: 'FEMALE', isFavorite: false, imageUrl: null },
-        { id: 'performer-2', name: 'Two', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+        {
+          id: 'performer-1',
+          name: 'One',
+          gender: 'FEMALE',
+          isFavorite: false,
+          imageUrl: null,
+        },
+        {
+          id: 'performer-2',
+          name: 'Two',
+          gender: 'FEMALE',
+          isFavorite: false,
+          imageUrl: null,
+        },
       ],
     });
-    performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
-    performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set(['performer-2']));
+    performerImagePreferenceService.getMainImageUrls = jest
+      .fn()
+      .mockResolvedValue(new Map());
+    performerFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set(['performer-2']));
 
     const result = await service.getSceneById('stashdb-scene-1');
 
-    expect(result.performers.map((performer) => [performer.id, performer.isFavorite])).toEqual([
+    expect(
+      result.performers.map((performer) => [
+        performer.id,
+        performer.isFavorite,
+      ]),
+    ).toEqual([
       ['performer-1', false],
       ['performer-2', true],
     ]);
@@ -728,14 +894,15 @@ describe('ScenesService', () => {
     });
     performerImagePreferenceService.getMainImageUrls = jest
       .fn()
-      .mockResolvedValue(new Map([['performer-1', 'http://cdn.local/chosen.jpg']]));
+      .mockResolvedValue(
+        new Map([['performer-1', 'http://cdn.local/chosen.jpg']]),
+      );
 
     const result = await service.getSceneById('stashdb-scene-1');
 
-    expect(performerImagePreferenceService.getMainImageUrls).toHaveBeenCalledWith([
-      'performer-1',
-      'performer-2',
-    ]);
+    expect(
+      performerImagePreferenceService.getMainImageUrls,
+    ).toHaveBeenCalledWith(['performer-1', 'performer-2']);
     expect(result.performers).toEqual([
       expect.objectContaining({
         id: 'performer-1',
@@ -1091,6 +1258,61 @@ describe('ScenesService', () => {
   });
 
   describe('getSimilarScenes', () => {
+    it('answers from the library index, without the provider, given the performers', async () => {
+      const row = (id: string, catalogId: string | null) => ({
+        id,
+        activeCatalogSceneId: catalogId,
+        title: `Scene ${id}`,
+        description: null,
+        imageUrl: `/api/media/stash/scenes/${id}/screenshot`,
+        cardImageUrl: `/api/media/stash/scenes/${id}/screenshot`,
+        studioId: '3',
+        studio: 'Archive',
+        studioImageUrl: null,
+        performerNames: ['A'],
+        releaseDate: '2026-01-01',
+        duration: 300,
+        localCreatedAt: null,
+        type: 'SCENE',
+        source: 'STASH',
+        viewUrl: '',
+      });
+      librarySceneQueryService.getLinkedByPerformerNames.mockResolvedValue([
+        row('1', 'stashdb-scene-1'), // This scene: left out.
+        row('2', 'other'),
+        row('3', 'other'), // A second copy: once.
+        row('4', 'another'),
+      ]);
+      catalogAdapter.getSceneById = jest.fn();
+      catalogAdapter.getScenesForPerformer = jest.fn();
+
+      const result = await service.getSimilarScenes('stashdb-scene-1', 12, [
+        'A',
+      ]);
+
+      expect(result.items.map((item) => item.id)).toEqual(['other', 'another']);
+      expect(result.items[0]).toMatchObject({
+        title: 'Scene 2',
+        status: { state: 'AVAILABLE' },
+        studioId: null,
+        requestable: false,
+      });
+      expect(catalogAdapter.getSceneById).not.toHaveBeenCalled();
+      expect(catalogAdapter.getScenesForPerformer).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the provider when the index finds nothing', async () => {
+      catalogAdapter.getSceneById = jest
+        .fn()
+        .mockResolvedValue({ ...sceneDetails, performers: [] });
+
+      await service.getSimilarScenes('stashdb-scene-1', 12, [
+        'Named Otherwise',
+      ]);
+
+      expect(catalogAdapter.getSceneById).toHaveBeenCalled();
+    });
+
     function buildCandidate(overrides: Partial<Record<string, unknown>> = {}) {
       return {
         id: 'candidate-1',
@@ -1124,9 +1346,27 @@ describe('ScenesService', () => {
       catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
         ...sceneDetails,
         performers: [
-          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
-          { id: 'performer-2', name: 'B', gender: 'MALE', isFavorite: false, imageUrl: null },
-          { id: 'performer-3', name: 'C', gender: null, isFavorite: false, imageUrl: null },
+          {
+            id: 'performer-1',
+            name: 'A',
+            gender: 'FEMALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
+          {
+            id: 'performer-2',
+            name: 'B',
+            gender: 'MALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
+          {
+            id: 'performer-3',
+            name: 'C',
+            gender: null,
+            isFavorite: false,
+            imageUrl: null,
+          },
         ],
       });
       catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
@@ -1135,7 +1375,9 @@ describe('ScenesService', () => {
       });
       sceneStatusService.resolveForScenes = jest
         .fn()
-        .mockResolvedValue(new Map([['female-cast-scene', { state: 'AVAILABLE' }]]));
+        .mockResolvedValue(
+          new Map([['female-cast-scene', { state: 'AVAILABLE' }]]),
+        );
 
       const result = await service.getSimilarScenes('stashdb-scene-1');
 
@@ -1143,7 +1385,9 @@ describe('ScenesService', () => {
       expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith(
         expect.objectContaining({ performerId: 'performer-1' }),
       );
-      expect(result.items.map((item) => item.id)).toEqual(['female-cast-scene']);
+      expect(result.items.map((item) => item.id)).toEqual([
+        'female-cast-scene',
+      ]);
     });
 
     it('aggregates each cast member scenes, dedupes, excludes the current scene, and keeps only library scenes', async () => {
@@ -1151,8 +1395,20 @@ describe('ScenesService', () => {
         ...sceneDetails,
         id: 'current-scene',
         performers: [
-          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
-          { id: 'performer-2', name: 'B', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+          {
+            id: 'performer-1',
+            name: 'A',
+            gender: 'FEMALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
+          {
+            id: 'performer-2',
+            name: 'B',
+            gender: 'FEMALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
         ],
       });
       catalogAdapter.getScenesForPerformer = jest
@@ -1194,8 +1450,20 @@ describe('ScenesService', () => {
       catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
         ...sceneDetails,
         performers: [
-          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
-          { id: 'performer-2', name: 'B', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+          {
+            id: 'performer-1',
+            name: 'A',
+            gender: 'FEMALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
+          {
+            id: 'performer-2',
+            name: 'B',
+            gender: 'FEMALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
         ],
       });
       catalogAdapter.getScenesForPerformer = jest
@@ -1211,7 +1479,9 @@ describe('ScenesService', () => {
         });
       sceneStatusService.resolveForScenes = jest
         .fn()
-        .mockResolvedValue(new Map([['surviving-scene', { state: 'AVAILABLE' }]]));
+        .mockResolvedValue(
+          new Map([['surviving-scene', { state: 'AVAILABLE' }]]),
+        );
 
       const result = await service.getSimilarScenes('stashdb-scene-1');
 
@@ -1222,11 +1492,20 @@ describe('ScenesService', () => {
       catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
         ...sceneDetails,
         performers: [
-          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+          {
+            id: 'performer-1',
+            name: 'A',
+            gender: 'FEMALE',
+            isFavorite: false,
+            imageUrl: null,
+          },
         ],
       });
       const scenes = Array.from({ length: 5 }, (_, index) =>
-        buildCandidate({ id: `scene-${index}`, releaseDate: `2026-01-0${index + 1}` }),
+        buildCandidate({
+          id: `scene-${index}`,
+          releaseDate: `2026-01-0${index + 1}`,
+        }),
       );
       catalogAdapter.getScenesForPerformer = jest
         .fn()
@@ -1241,7 +1520,10 @@ describe('ScenesService', () => {
 
       expect(result.items).toHaveLength(2);
       // Newest first.
-      expect(result.items.map((item) => item.id)).toEqual(['scene-4', 'scene-3']);
+      expect(result.items.map((item) => item.id)).toEqual([
+        'scene-4',
+        'scene-3',
+      ]);
     });
   });
 
@@ -1281,10 +1563,13 @@ describe('ScenesService', () => {
         duration: 600,
       });
 
-      expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith('stashdb-scene-1', {
-        baseUrl: stashIntegration.baseUrl,
-        apiKey: stashIntegration.apiKey,
-      });
+      expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith(
+        'stashdb-scene-1',
+        {
+          baseUrl: stashIntegration.baseUrl,
+          apiKey: stashIntegration.apiKey,
+        },
+      );
     });
 
     it('resolves a specific copy when copyId is given', async () => {
@@ -1340,37 +1625,64 @@ describe('ScenesService', () => {
       duration: null,
       isFromExcludedNetwork: false,
     });
-    appSettingsService.get = jest.fn().mockResolvedValue({ hideAmateurNetworkResults: false });
-    catalogProviderService.getConfiguredCatalogProvider = jest.fn().mockResolvedValue({
-      integrationType: 'TPDB',
-      providerKey: 'TPDB',
-      label: 'ThePornDB',
-      baseUrl: 'https://api.theporndb.net',
-      apiKey: 'tpdb-token',
-    });
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: false });
+    catalogProviderService.getConfiguredCatalogProvider = jest
+      .fn()
+      .mockResolvedValue({
+        integrationType: 'TPDB',
+        providerKey: 'TPDB',
+        label: 'ThePornDB',
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      });
     const getScenesBySort = jest.fn().mockResolvedValue({
       total: 2,
       scenes: [scene('latest-1'), scene('latest-2')],
     });
-    catalogProviderService.getConfiguredCatalogAdapter = jest.fn().mockResolvedValue({ getScenesBySort });
-    sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+    catalogProviderService.getConfiguredCatalogAdapter = jest
+      .fn()
+      .mockResolvedValue({ getScenesBySort });
+    sceneStatusService.resolveForScenes = jest
+      .fn()
+      .mockResolvedValue(new Map());
 
-    (tpdbWebService.getPopularScenes as jest.Mock).mockResolvedValue([scene('popular-1'), scene('popular-2')]);
+    (tpdbWebService.getPopularScenes as jest.Mock).mockResolvedValue([
+      scene('popular-1'),
+      scene('popular-2'),
+    ]);
     const popular = await service.getScenesFeed(1, 10, 'TRENDING');
-    expect(popular.items.map((item) => item.id)).toEqual(['popular-1', 'popular-2']);
+    expect(popular.items.map((item) => item.id)).toEqual([
+      'popular-1',
+      'popular-2',
+    ]);
     expect(popular.hasMore).toBe(false);
     expect(popular.popularUnavailable).toBeUndefined();
     expect(getScenesBySort).not.toHaveBeenCalled();
 
     (tpdbWebService.getPopularScenes as jest.Mock).mockResolvedValue([]);
     const fallback = await service.getScenesFeed(1, 10, 'TRENDING');
-    expect(fallback.items.map((item) => item.id)).toEqual(['latest-1', 'latest-2']);
+    expect(fallback.items.map((item) => item.id)).toEqual([
+      'latest-1',
+      'latest-2',
+    ]);
     expect(fallback.popularUnavailable).toBe(true);
 
     // Latest / searched feeds don't use the popular list.
     (tpdbWebService.getPopularScenes as jest.Mock).mockClear();
     await service.getScenesFeed(1, 10, 'DATE');
-    await service.getScenesFeed(1, 10, 'TRENDING', 'DESC', [], 'OR', undefined, [], 'anal');
+    await service.getScenesFeed(
+      1,
+      10,
+      'TRENDING',
+      'DESC',
+      [],
+      'OR',
+      undefined,
+      [],
+      'anal',
+    );
     expect(tpdbWebService.getPopularScenes).not.toHaveBeenCalled();
   });
 });

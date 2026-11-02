@@ -121,6 +121,33 @@ export class LibrarySceneQueryService {
    * tags they share with it, a rarer tag counting for more than a common one
    * (#gangbang says more than #hd).
    */
+  /**
+   * Library scenes linked to a catalog scene and featuring any of these
+   * performers (by name), newest first. From the index alone: no provider
+   * calls, so it's quick. (Twice the limit: a scene can have several copies.)
+   */
+  async getLinkedByPerformerNames(
+    performerNames: string[],
+    limit: number,
+  ): Promise<LibrarySceneFeedItemDto[]> {
+    const wanted = [
+      ...new Set(
+        performerNames.map((name) => name.trim().toLowerCase()).filter(Boolean),
+      ),
+    ];
+    if (wanted.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.$queryRaw<Array<{ stashSceneId: string }>>`
+      SELECT "stashSceneId"
+      FROM "LibrarySceneIndex"
+      WHERE "linkedStashId" IS NOT NULL
+        AND EXISTS (SELECT 1 FROM unnest("performerNames") AS p WHERE lower(p) = ANY(${wanted}::text[]))
+      ORDER BY "releaseDate" DESC NULLS LAST, "stashSceneId" DESC
+      LIMIT ${limit * 2}`;
+    return this.getScenesByIds(rows.map((row) => row.stashSceneId));
+  }
+
   async getSimilarByTags(
     tagNames: string[],
     excludeIds: string[] = [],

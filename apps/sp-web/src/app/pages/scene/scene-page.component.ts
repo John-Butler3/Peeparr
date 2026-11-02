@@ -773,7 +773,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
             title: scene.title,
             imageUrl: scene.imageUrl,
           });
-          this.loadSimilarScenes(scene.id);
+          this.loadSimilarScenes(scene);
           this.loadChapters(scene);
         },
         error: () => {
@@ -875,9 +875,15 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     this.player?.playFrom(seconds);
   }
 
-  private loadSimilarScenes(stashId: string): void {
+  private loadSimilarScenes(scene: SceneDetails): void {
+    const women = scene.performers
+      .filter((performer) => performer.gender === 'FEMALE')
+      .map((performer) => performer.name);
+    if (women.length === 0) {
+      return;
+    }
     this.discoverService
-      .getSimilarScenes(stashId)
+      .getSimilarScenes(scene.id, women)
       .pipe(catchError(() => of({ items: [] as SceneExplorerItem[] })))
       .subscribe((response) => {
         this.similarScenes.set(response.items);
