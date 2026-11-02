@@ -17,6 +17,9 @@
       [disabled]="!playable || status() === 'loading'"
       [attr.aria-label]="playable ? 'Play ' + title : title"
       data-testid="inline-player-poster"
+      [appScenePreview]="playable ? loadPreview : null"
+      [scenePreviewAutoplay]="false"
+      [scenePreviewHover]="false"
       (click)="start()"
     >
       @if (posterUrl) {

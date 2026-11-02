@@ -3,6 +3,7 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   Output,
@@ -13,7 +14,7 @@ import {
 } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subscription, of } from 'rxjs';
 import { SceneMarker, ScenePlaybackSource } from '../../core/api/discover.types';
 import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
@@ -29,13 +30,25 @@ import { VideoQualityService } from '../../core/player/video-quality.service';
 // Pages are kept alive when left (KeepAliveRouteStrategy): asleep, this
 // player has handed its video on; woken (back on the page), it takes it
 // back from the miniplayer if that's still playing it.
+import { ScenePreviewDirective } from '../scene-preview/scene-preview.directive';
+import {
+  ScenePreviewAutoplayService,
+  visibleShare,
+} from '../scene-preview/scene-preview-autoplay.service';
+import { ScenePreviewService, ScenePreviewSource } from '../scene-card/scene-preview.service';
 @Component({
   selector: 'app-inline-player',
-  imports: [ProgressSpinner],
+  imports: [ProgressSpinner, ScenePreviewDirective],
   templateUrl: './inline-player.component.html',
   styleUrl: './inline-player.component.scss',
 })
 export class InlinePlayerComponent implements OnChanges, OnDestroy {
+  /** How long the thumbnail is looked at before its preview starts. */
+  static readonly PREVIEW_AFTER_MS = 3000;
+  private static readonly LOOK_CHECK_MS = 250;
+  /** Share of the thumbnail on screen to count as looking at it. */
+  private static readonly PREVIEW_MIN_VISIBLE = 0.5;
+
   private static readonly PROGRESS_SAVE_INTERVAL_MS = 20_000;
   // A saved position this close to the end counts as finished: start over.
   private static readonly RESUME_END_MARGIN_S = 10;
@@ -61,6 +74,16 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly sharedVideo = inject(SharedVideoService);
   private readonly pageFade = inject(PageFadeService);
+  private readonly previewSources = inject(ScenePreviewService);
+  private readonly autoplayPreviews = inject(ScenePreviewAutoplayService);
+  @ViewChild(ScenePreviewDirective) private posterPreview?: ScenePreviewDirective;
+  private lookingSince: number | null = null;
+  private previewing = false;
+  private holdingPreviews = false;
+  // Outside Angular: nothing on screen changes unless the preview starts.
+  private readonly lookWatch = inject(NgZone).runOutsideAngular(() =>
+    setInterval(() => this.watchLook(), InlinePlayerComponent.LOOK_CHECK_MS),
+  );
   /** Its page was left (kept alive, out of the document). */
   private asleep = false;
   /** Asleep, its video went on to the miniplayer. */
@@ -152,14 +175,18 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     const sceneChanged = changes['localSceneId'] || changes['catalogStashId'] || changes['copyId'];
     if (sceneChanged && !sceneChanged.firstChange) {
       this.stop();
+      this.endLook();
     }
 
     if ((sceneChanged || changes['autoplay']) && this.autoplay && this.status() === 'idle') {
       this.start();
     }
+    this.syncPreviewHold();
   }
 
   ngOnDestroy(): void {
+    clearInterval(this.lookWatch);
+    this.autoplayPreviews.releaseHold(this.host);
     if (!this.handOffIfPlaying()) {
       this.saveProgress();
       this.sharedVideo.release(this);
@@ -428,6 +455,82 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
         });
       }
     });
+  }
+
+  /** The scene's preview, for the thumbnail (none without a scene to preview). */
+  protected readonly loadPreview = (): Observable<ScenePreviewSource | null> => {
+    if (this.localSceneId) {
+      return this.previewSources.local(this.localSceneId, this.durationSeconds);
+    }
+    return this.catalogStashId ? this.previewSources.catalog(this.catalogStashId) : of(null);
+  };
+
+  /**
+   * The thumbnail on screen for PREVIEW_AFTER_MS, nothing else playing: its
+   * muted preview fades in, until it's played, scrolled away or left.
+   */
+  private watchLook(): void {
+    this.syncPreviewHold();
+    if (!this.lookingAtThumbnail()) {
+      this.endLook();
+      return;
+    }
+
+    this.lookingSince ??= Date.now();
+    if (
+      !this.previewing &&
+      Date.now() - this.lookingSince >= InlinePlayerComponent.PREVIEW_AFTER_MS
+    ) {
+      this.previewing = true;
+      this.posterPreview?.playNow();
+    }
+  }
+
+  private endLook(): void {
+    this.lookingSince = null;
+    if (this.previewing) {
+      this.previewing = false;
+      this.posterPreview?.stop();
+    }
+  }
+
+  private lookingAtThumbnail(): boolean {
+    const shared = this.sharedVideo.video;
+    return (
+      this.previewable() &&
+      !document.hidden &&
+      onShowingPage(this.host) &&
+      visibleShare(this.host) >= InlinePlayerComponent.PREVIEW_MIN_VISIBLE &&
+      // (The miniplayer carrying on with something else.)
+      (shared.paused || shared.ended)
+    );
+  }
+
+  private previewable(): boolean {
+    return (
+      this.status() === 'idle' &&
+      this.playable &&
+      !!(this.localSceneId || this.catalogStashId) &&
+      !(
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      )
+    );
+  }
+
+  // On touch screens, thumbnails further down don't autoplay while this one
+  // is on screen waiting to preview: one preview at a time.
+  private syncPreviewHold(): void {
+    const hold = this.previewable();
+    if (hold === this.holdingPreviews) {
+      return;
+    }
+    this.holdingPreviews = hold;
+    if (hold) {
+      this.autoplayPreviews.holdWhileOnScreen(this.host, InlinePlayerComponent.PREVIEW_MIN_VISIBLE);
+    } else {
+      this.autoplayPreviews.releaseHold(this.host);
+    }
   }
 
   protected start(): void {

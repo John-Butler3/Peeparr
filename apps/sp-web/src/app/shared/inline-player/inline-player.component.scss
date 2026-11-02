@@ -56,6 +56,8 @@
 
 .poster-center {
   position: absolute;
+  // (Above the preview, ScenePreviewDirective's video.)
+  z-index: 2;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -81,6 +83,7 @@
 
 .poster-duration {
   position: absolute;
+  z-index: 2;
   right: 8px;
   bottom: 8px;
   padding: 1px 4px;

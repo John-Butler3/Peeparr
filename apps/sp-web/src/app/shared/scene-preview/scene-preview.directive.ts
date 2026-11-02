@@ -59,6 +59,8 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
    * next to a playing video (Up next, series parts).
    */
   @Input() scenePreviewAutoplay = true;
+  /** Start when a mouse rests on it. Off when the page decides (a scene page's player). */
+  @Input() scenePreviewHover = true;
 
   readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly autoplay = inject(ScenePreviewAutoplayService);
@@ -115,7 +117,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
   @HostListener('pointerenter', ['$event'])
   protected onPointerEnter(event: PointerEvent): void {
-    if (event.pointerType !== 'mouse' || !this.loader) {
+    if (event.pointerType !== 'mouse' || !this.loader || !this.scenePreviewHover) {
       return;
     }
 
@@ -166,7 +168,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
   @HostListener('pointerleave', ['$event'])
   protected onPointerLeave(event: PointerEvent): void {
-    if (event.pointerType === 'mouse') {
+    if (event.pointerType === 'mouse' && this.scenePreviewHover) {
       this.hovered = false;
       this.stop();
     }

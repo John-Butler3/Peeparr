@@ -244,7 +244,7 @@ export class ScenePreviewAutoplayService {
   }
 }
 
-function visibleShare(element: HTMLElement, rect = element.getBoundingClientRect()): number {
+export function visibleShare(element: HTMLElement, rect = element.getBoundingClientRect()): number {
   const area = rect.width * rect.height;
   if (area <= 0) {
     return 0;
