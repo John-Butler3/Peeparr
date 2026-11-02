@@ -86,6 +86,7 @@
               [playable]="hasStashCopy(scene)"
               [autoplay]="autoplay()"
               [markers]="chapterMarkers()"
+              [siteLogoUrl]="scene.studioImageUrl"
               (ended)="playNextUp()"
               (minimize)="leaveToMiniplayer()"
             />

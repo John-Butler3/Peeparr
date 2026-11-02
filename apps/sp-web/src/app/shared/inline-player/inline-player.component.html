@@ -20,10 +20,18 @@
       [appScenePreview]="playable ? loadPreview : null"
       [scenePreviewAutoplay]="false"
       [scenePreviewHover]="false"
+      [scenePreviewFadeMs]="previewFadeMs"
+      [class.is-showing-site]="siteLogoShowing()"
       (click)="start()"
     >
       @if (posterUrl) {
         <img class="poster-image" [src]="posterUrl" alt="" />
+      }
+      <!-- The site's logo, while its preview gets ready. -->
+      @if (siteLogoUrl && !siteLogoFailed()) {
+        <span class="poster-site" aria-hidden="true">
+          <img appLogoContrast [src]="siteLogoUrl" alt="" (error)="siteLogoFailed.set(true)" />
+        </span>
       }
       @if (playable) {
         @if (status() === 'loading') {

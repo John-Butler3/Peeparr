@@ -61,6 +61,8 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   @Input() scenePreviewAutoplay = true;
   /** Start when a mouse rests on it. Off when the page decides (a scene page's player). */
   @Input() scenePreviewHover = true;
+  /** A slower cross-fade to and from the thumbnail (default: PREVIEW_FADE_MS). */
+  @Input() scenePreviewFadeMs: number | null = null;
 
   readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly autoplay = inject(ScenePreviewAutoplayService);
@@ -230,7 +232,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
       this.video?.pause();
       this.teardownTimer = setTimeout(
         () => this.teardownVideo(),
-        ScenePreviewDirective.PREVIEW_FADE_MS,
+        this.scenePreviewFadeMs ?? ScenePreviewDirective.PREVIEW_FADE_MS,
       );
       return;
     }
@@ -311,6 +313,9 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     video.preload = 'auto';
     video.loop = this.clipMode;
     video.setAttribute('aria-hidden', 'true');
+    if (this.scenePreviewFadeMs !== null) {
+      video.style.transitionDuration = `${this.scenePreviewFadeMs}ms`;
+    }
     video.addEventListener('loadedmetadata', () => this.onMetadata(video));
     video.addEventListener('playing', () => this.onPlaying(video));
     video.addEventListener('timeupdate', () => this.onTimeUpdate(video));

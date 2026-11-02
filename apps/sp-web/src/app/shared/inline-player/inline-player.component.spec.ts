@@ -47,14 +47,39 @@ describe('InlinePlayerComponent thumbnail preview', () => {
   const preview = (host: HTMLElement) =>
     host.querySelector<HTMLVideoElement>('video.hover-preview');
 
-  it('starts the preview once the thumbnail has been on screen a few seconds', () => {
+  it('loads the preview ahead, and only plays it once the thumbnail has been on screen a few seconds', () => {
     const { host } = render();
+    const play = vi.mocked(HTMLMediaElement.prototype.play);
 
     vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS - 500);
-    expect(preview(host)).toBeNull();
+    const video = preview(host)!;
+    expect(video.getAttribute('src')).toBe('/api/media/stash/scenes/412/preview');
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(play).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(1000);
-    expect(preview(host)?.getAttribute('src')).toBe('/api/media/stash/scenes/412/preview');
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(play).toHaveBeenCalled();
+  });
+
+  it("shows the site's logo before the preview, loading it hidden meanwhile, with a slow fade", () => {
+    const { fixture, host } = render();
+    fixture.componentRef.setInput('siteLogoUrl', '/logo.png');
+    fixture.detectChanges();
+    const poster = host.querySelector('.poster') as HTMLElement;
+
+    vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_AFTER_MS + 200);
+    fixture.detectChanges();
+    expect(poster.classList).toContain('is-showing-site');
+    expect(host.querySelector('.poster-site img')?.getAttribute('src')).toBe('/logo.png');
+    const video = preview(host);
+    expect(video?.classList).not.toContain('is-playing');
+    expect(video?.style.transitionDuration).toBe('1400ms');
+
+    // Never comes: the logo doesn't stay for good.
+    vi.advanceTimersByTime(InlinePlayerComponent.SITE_LOGO_UNTIL_MS);
+    fixture.detectChanges();
+    expect(poster.classList).not.toContain('is-showing-site');
   });
 
   it('waits while the thumbnail is off screen, and stops when it is scrolled away', () => {
