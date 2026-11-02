@@ -1,7 +1,9 @@
 @import '../../../styles/auth-card';
 
 button.auth-link {
-  padding: 0;
+  // A comfortable tap, without moving the line.
+  margin-block: -8px;
+  padding: 8px 0;
   border: 0;
   background: none;
   font: inherit;

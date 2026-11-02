@@ -138,7 +138,8 @@
   background: color-mix(in srgb, var(--app-bg, #0f0f0f) 92%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  transition: top var(--bars-duration, var(--motion-slow)) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: top var(--bars-duration, var(--motion-slow))
+    var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 :host-context(.shell-bars-hidden) .calendar {
@@ -157,7 +158,10 @@
 }
 
 .today-link {
-  padding: 3px 12px;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 12px;
   font-size: 0.8125rem;
 }
 

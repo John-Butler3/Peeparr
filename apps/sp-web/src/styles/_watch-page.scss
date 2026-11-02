@@ -103,9 +103,8 @@ app-scene-chapters {
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
-  margin-top: -2px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -208,8 +207,8 @@ app-scene-chapters {
   display: grid;
   place-items: center;
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   margin-left: 2px;
   padding: 0;
   border: 0;
@@ -497,9 +496,9 @@ app-scene-chapters {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 0;
+  border: 1px solid rgb(188 213 238 / 52%);
   border-radius: 50%;
-  background: rgb(0 0 0 / 65%);
+  background: rgb(13 27 41 / 70%);
   color: #fff;
   cursor: pointer;
 }
@@ -509,7 +508,7 @@ app-scene-chapters {
 }
 
 .performer-favorite i {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 // ---- Similar shelf ------------------------------------------------------------------
@@ -540,7 +539,7 @@ app-scene-chapters {
   height: 32px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   background: var(--button-bg);
   color: var(--text-primary);
   cursor: pointer;

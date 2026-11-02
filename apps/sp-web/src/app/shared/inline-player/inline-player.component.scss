@@ -132,6 +132,12 @@
     opacity 600ms ease;
 }
 
+.play-glyph {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+}
+
 .poster:not(:disabled):hover .play-badge,
 .poster:focus-visible .play-badge {
   background: var(--yt-red, #f00);

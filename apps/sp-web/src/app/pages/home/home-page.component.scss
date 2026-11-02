@@ -124,6 +124,26 @@ p {
   max-width: 30rem;
 }
 
+.hero-random-label {
+  display: none;
+}
+
+// Wide screens have no search box here: on its own, it says what it is.
+@media (min-width: 721px) {
+  .hero-random {
+    gap: 0.5rem;
+    width: auto !important;
+    height: 36px !important;
+    padding: 0 16px 0 12px !important;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .hero-random-label {
+    display: inline;
+  }
+}
+
 .hero-random {
   display: inline-flex;
   flex: none;
@@ -484,6 +504,7 @@ p {
   width: 32px;
   min-width: 32px;
   padding: 0;
+  border-radius: 50%;
 }
 
 .scroll-button i {

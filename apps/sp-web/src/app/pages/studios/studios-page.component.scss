@@ -170,8 +170,8 @@ header p {
   top: 0.45rem;
   right: 0.5rem;
   z-index: 1;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -183,7 +183,7 @@ header p {
 }
 
 .favorite-star i {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .favorite-star.is-favorite {

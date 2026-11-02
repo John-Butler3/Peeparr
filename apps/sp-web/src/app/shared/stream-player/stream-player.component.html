@@ -18,7 +18,11 @@
         ><i class="pi pi-globe" aria-hidden="true"></i> Streams from Pornhub</span
       >
       <span class="poster-center play-badge" aria-hidden="true">
-        <i class="pi pi-play"></i>
+        <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z"
+          />
+        </svg>
       </span>
       @if (durationLabel(); as duration) {
         <span class="poster-duration">{{ duration }}</span>

@@ -914,3 +914,95 @@ app-home-page .rail-actions {
   margin-left: 8%;
   fill: currentColor;
 }
+
+// ---- Button sizes -----------------------------------------------------------
+// The same few sizes everywhere: 36px for buttons that do something, 32px for
+// the chips and filters beside them. Tiny icon buttons keep their looks, but
+// take a fair-sized tap on touch screens.
+
+.app-sort-toggle-option,
+.filter-toggle,
+.app-filters-toggle-button,
+.reset-filters-button {
+  display: inline-flex !important;
+  box-sizing: border-box;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.75rem !important;
+  border: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1;
+  // Chips, with the sort options beside them.
+  border-radius: var(--yt-radius-sm) !important;
+}
+
+.app-filters-toggle-button i {
+  font-size: 0.7rem !important;
+}
+
+.retry-button,
+.primary-button,
+.text-button,
+.primary-link,
+.secondary-link,
+.secondary-action,
+.load-more-images,
+.create-button,
+.p-button {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 16px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1;
+}
+
+.primary-link.small,
+.secondary-link.small,
+.secondary-action.compact {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 0.8125rem !important;
+}
+
+// Icon-only ones stay square.
+.p-button.p-button-icon-only {
+  padding: 0 !important;
+}
+
+@media (pointer: coarse) {
+  .mark-watched-button,
+  .site-favorite,
+  .hero-dot {
+    position: relative;
+  }
+
+  .title-action::after,
+  .favorite-star::after,
+  .performer-favorite::after,
+  .mark-watched-button::after,
+  .site-favorite::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+  }
+
+  .title-action::after {
+    inset: -6px;
+  }
+
+  .hero-dot::after {
+    content: '';
+    position: absolute;
+    inset: -12px -3px;
+  }
+}

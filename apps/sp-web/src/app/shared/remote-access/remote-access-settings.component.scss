@@ -106,13 +106,15 @@ h3 {
 
 .save {
   justify-self: start;
-  padding: 8px 18px;
+  min-height: 36px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 18px;
   background: var(--yt-chip-active-bg, #f1f1f1);
   color: var(--yt-chip-active-text, #0f0f0f);
   font: inherit;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
 }
 
