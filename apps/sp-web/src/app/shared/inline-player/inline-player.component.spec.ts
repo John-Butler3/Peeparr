@@ -155,20 +155,57 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     expect(preview(host)).toBeNull();
   });
 
-  it('lets the rows below preview once the page is scrolled, though the player stays pinned', () => {
+  it('keeps previewing in the banner while the rows below get their turn', () => {
     const { host } = render();
     const release = vi.spyOn(TestBed.inject(ScenePreviewAutoplayService), 'releaseHold');
     vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
-    expect(preview(host)).not.toBeNull();
+    const video = preview(host);
+    expect(video).not.toBeNull();
 
     // Pinned: still on screen (getBoundingClientRect unchanged).
     Object.defineProperty(window, 'scrollY', { value: 600, configurable: true });
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(1000);
 
     expect(release).toHaveBeenCalledWith(host);
-    expect(preview(host)).toBeNull();
+    expect(preview(host)).toBe(video);
+
+    // And back up: the same preview, still going.
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+    vi.advanceTimersByTime(1000);
+    expect(preview(host)).toBe(video);
+  });
+
+  it("doesn't start a preview once scrolled down the page", () => {
+    const { host } = render();
+    Object.defineProperty(window, 'scrollY', { value: 600, configurable: true });
+
     vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS * 2);
+
     expect(preview(host)).toBeNull();
+  });
+
+  it('dims the page around the playing preview, undimming on scrolling down', () => {
+    const { host } = render();
+    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
+    const dimmer = () => document.querySelector('.preview-dimmer');
+    expect(dimmer()).toBeNull();
+
+    preview(host)!.dispatchEvent(new Event('playing'));
+    vi.advanceTimersByTime(400);
+    expect(dimmer()?.classList).toContain('is-on');
+
+    Object.defineProperty(window, 'scrollY', { value: 300, configurable: true });
+    vi.advanceTimersByTime(400);
+    expect(dimmer()?.classList).not.toContain('is-on');
+
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+    vi.advanceTimersByTime(400);
+    expect(dimmer()?.classList).toContain('is-on');
+
+    // Played through: undimmed.
+    preview(host)!.dispatchEvent(new Event('ended'));
+    vi.advanceTimersByTime(400);
+    expect(dimmer()?.classList).not.toContain('is-on');
   });
 
   it('lets the rows below preview once its own has played through', () => {
@@ -181,7 +218,7 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     expect(release).toHaveBeenCalledWith(host);
   });
 
-  it("doesn't cut off a card's preview that's already playing", () => {
+  it("plays alongside a card's preview, neither cutting the other off", () => {
     const { host } = render();
     const card = TestBed.createComponent(CardThumbnail);
     card.detectChanges();
@@ -192,15 +229,15 @@ describe('InlinePlayerComponent thumbnail preview', () => {
       .injector.get(ScenePreviewDirective);
 
     cardPreview.playNow();
-    vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS * 2);
-
-    expect(cardPreview.isActive).toBe(true);
-    expect(preview(host)).toBeNull();
-
-    // Done: the thumbnail's turn, after its wait.
-    cardPreview.stop();
     vi.advanceTimersByTime(InlinePlayerComponent.PREVIEW_AFTER_MS + 500);
-    expect(preview(host)).not.toBeNull();
+    expect(cardPreview.isActive).toBe(true);
+    const video = preview(host);
+    expect(video).not.toBeNull();
+
+    cardPreview.stop();
+    cardPreview.playNow();
+    expect(preview(host)).toBe(video);
+    cardPreview.stop();
   });
 
   it('previews nothing for a scene that cannot be played', () => {

@@ -69,6 +69,11 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   @Input() scenePreviewFadeMs: number | null = null;
   /** Play through once and fade back to the thumbnail, rather than looping. */
   @Input() scenePreviewOnce = false;
+  /**
+   * Plays regardless of other thumbnails' previews, neither stopping them nor
+   * being stopped by them (a scene page's own picture, pinned above its rows).
+   */
+  @Input() scenePreviewIndependent = false;
   /** Played through (scenePreviewOnce), and fading back to the thumbnail. */
   @Output() scenePreviewFinished = new EventEmitter<void>();
 
@@ -76,6 +81,8 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   private readonly autoplay = inject(ScenePreviewAutoplayService);
   private video: HTMLVideoElement | null = null;
   private visible = false;
+  /** Previewing, for an independent one (others share `active`). */
+  private running = false;
   private previewStart = 0;
   private source: ScenePreviewSource | null = null;
   /** Playing Stash's preview clip (looped whole) rather than the full file. */
@@ -120,14 +127,9 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     return this.scenePreviewAutoplay && !!this.loader;
   }
 
-  /** A different thumbnail is previewing (it would be cut off by this one starting). */
-  get anotherIsActive(): boolean {
-    return !!ScenePreviewDirective.active && !this.isActive;
-  }
-
   /** Previewing (loading or showing). */
   get isActive(): boolean {
-    return ScenePreviewDirective.active === this;
+    return this.scenePreviewIndependent ? this.running : ScenePreviewDirective.active === this;
   }
 
   @HostListener('pointerenter', ['$event'])
@@ -234,6 +236,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     this.frameReady = false;
     this.subscription?.unsubscribe();
     this.subscription = null;
+    this.running = false;
     if (ScenePreviewDirective.active === this) {
       ScenePreviewDirective.active = null;
     }
@@ -261,11 +264,15 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
       return;
     }
 
-    const previous = ScenePreviewDirective.active;
-    if (previous && previous !== this) {
-      previous.stop();
+    if (this.scenePreviewIndependent) {
+      this.running = true;
+    } else {
+      const previous = ScenePreviewDirective.active;
+      if (previous && previous !== this) {
+        previous.stop();
+      }
+      ScenePreviewDirective.active = this;
     }
-    ScenePreviewDirective.active = this;
     // Still fading out from a moment ago: start over cleanly.
     if (this.teardownTimer) {
       this.teardownVideo();

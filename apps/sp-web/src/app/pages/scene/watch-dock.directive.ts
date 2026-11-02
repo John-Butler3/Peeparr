@@ -14,7 +14,7 @@ import { DestroyRef, Directive, ElementRef, Input, NgZone, OnChanges, inject } f
  *   as a share of its full width.
  * - `--dock-title` 0..1: how far the page's title has gone under the bar,
  *   so the bar's own copy of it fades in as the original disappears.
- * - `.is-docked` once it's fully docked.
+ * - `.is-docked` once it's fully docked; `.is-dock-started` once it has begun.
  */
 @Directive({
   selector: '[appWatchDock]',
@@ -76,7 +76,7 @@ export class WatchDockDirective implements OnChanges {
     this.host.style.removeProperty('--dock');
     this.host.style.removeProperty('--dock-scale');
     this.host.style.removeProperty('--dock-title');
-    this.host.classList.remove('is-docked');
+    this.host.classList.remove('is-docked', 'is-dock-started');
   }
 
   // Pins where the picture sticks with the masthead showing (.watch-dock-probe:
@@ -108,6 +108,7 @@ export class WatchDockDirective implements OnChanges {
     this.host.style.setProperty('--dock', dock.toFixed(4));
     this.host.style.setProperty('--dock-title', this.titleUnderBar().toFixed(4));
     this.host.classList.toggle('is-docked', dock >= 1);
+    this.host.classList.toggle('is-dock-started', dock > 0);
   }
 
   private titleUnderBar(): number {

@@ -58,6 +58,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private static readonly LOOK_CHECK_MS = 200;
   /** Share of the thumbnail on screen to count as looking at it. */
   private static readonly PREVIEW_MIN_VISIBLE = 0.5;
+  /** ...and below which a preview under way stops. */
+  private static readonly PREVIEW_KEEP_VISIBLE = 0.2;
+  /** Scrolled this far: the page undims. */
+  private static readonly DIM_SCROLL_PX = 24;
 
   private static readonly PROGRESS_SAVE_INTERVAL_MS = 20_000;
   // A saved position this close to the end counts as finished: start over.
@@ -91,6 +95,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private previewing = false;
   private previewLoading = false;
   private previewFinished = false;
+  private dimmer: HTMLElement | null = null;
   private holdingPreviews = false;
   // Outside Angular: nothing on screen changes unless the preview starts.
   private readonly lookWatch = inject(NgZone).runOutsideAngular(() =>
@@ -215,6 +220,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.lookWatch);
+    this.dimmer?.remove();
     this.autoplayPreviews.releaseHold(this.host);
     if (!this.handOffIfPlaying()) {
       this.saveProgress();
@@ -496,22 +502,21 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
 
   /**
    * The thumbnail on screen for PREVIEW_AFTER_MS, nothing else playing: its
-   * muted preview fades in, until it's played, scrolled away or left.
+   * muted preview fades in, until it has played through, the scene is played
+   * or the page is left.
    */
   private watchLook(): void {
     this.syncPreviewHold();
-    if (!this.lookingAtThumbnail()) {
-      this.endLook();
-      return;
-    }
+    this.advanceLook();
+    this.syncDimmer();
+  }
 
-    // A card's preview playing (hovered, or autoplaying): it's left alone,
-    // and the wait starts over once it's done.
-    if (this.posterPreview?.anotherIsActive) {
-      this.lookingSince = null;
-      this.previewing = false;
-      this.previewLoading = false;
-      this.siteLogoShowing.set(false);
+  private advanceLook(): void {
+    // Only starts at the top of the page; once it has, it carries on while
+    // the picture shrinks into the banner and back.
+    const underway = !this.previewFinished && (this.previewing || this.siteLogoShowing());
+    if (!this.previewAllowed() || (!this.atTopOfPage() && !underway)) {
+      this.endLook();
       return;
     }
 
@@ -537,6 +542,32 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
   }
 
+  // While the preview plays at the top of the page, the rest of the page dims
+  // to draw the eye. Over everything (the masthead too), with a hole for the
+  // picture: a shadow around a box laid on it, added to the body as a fixed
+  // box inside the page would go with the picture's transform.
+  private syncDimmer(): void {
+    const on =
+      !!this.posterPreview?.host.classList.contains('is-previewing') &&
+      window.scrollY <= InlinePlayerComponent.DIM_SCROLL_PX;
+    if (on) {
+      if (!this.dimmer) {
+        this.dimmer = document.createElement('div');
+        this.dimmer.className = 'preview-dimmer';
+        document.body.appendChild(this.dimmer);
+      }
+      const rect = this.host.getBoundingClientRect();
+      const box = this.dimmer.style;
+      box.top = `${rect.top}px`;
+      box.left = `${rect.left}px`;
+      box.width = `${rect.width}px`;
+      box.height = `${rect.height}px`;
+      const media = this.host.closest('.watch-media');
+      box.borderRadius = media ? getComputedStyle(media).borderRadius : '';
+    }
+    this.dimmer?.classList.toggle('is-on', on);
+  }
+
   /** Played through: back on the thumbnail, until it's looked at afresh. */
   protected onPreviewFinished(): void {
     this.previewFinished = true;
@@ -555,16 +586,22 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
   }
 
-  private lookingAtThumbnail(): boolean {
+  // The page is up, nothing else playing: its preview can carry on.
+  private previewAllowed(): boolean {
     const shared = this.sharedVideo.video;
     return (
       this.previewable() &&
       !document.hidden &&
       onShowingPage(this.host) &&
-      visibleShare(this.host) >= InlinePlayerComponent.PREVIEW_MIN_VISIBLE &&
-      !this.scrolledPast() &&
+      visibleShare(this.host) >= InlinePlayerComponent.PREVIEW_KEEP_VISIBLE &&
       // (The miniplayer carrying on with something else.)
       (shared.paused || shared.ended)
+    );
+  }
+
+  private atTopOfPage(): boolean {
+    return (
+      visibleShare(this.host) >= InlinePlayerComponent.PREVIEW_MIN_VISIBLE && !this.scrolledPast()
     );
   }
 
@@ -602,7 +639,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     }
   }
 
-  protected start(): void {
+  start(): void {
     if (!this.playable || this.status() === 'loading') {
       return;
     }

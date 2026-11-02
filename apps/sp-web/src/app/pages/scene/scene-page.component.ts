@@ -146,6 +146,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   /** Its markers: from Stash (its copy), else from the catalog. */
   protected readonly chapterMarkers = signal<SceneMarker[]>([]);
   @ViewChild('player') private player?: InlinePlayerComponent;
+  @ViewChild(StreamPlayerComponent) private streamPlayer?: StreamPlayerComponent;
 
   ngOnInit(): void {
     this.routeSubscription = combineLatest([
@@ -207,9 +208,11 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Tapping the docked picture goes back to the top.
-  protected scrollToTop(): void {
+  // Tapping the shrunken picture: back to the top, playing (if it can).
+  protected openFromDock(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.player?.start();
+    this.streamPlayer?.start();
   }
 
   protected playNextUp(): void {

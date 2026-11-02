@@ -145,7 +145,7 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
     this.start();
   }
 
-  protected start(): void {
+  start(): void {
     if (this.status() === 'ready' || !this.embedUrl) {
       return;
     }

@@ -712,12 +712,12 @@ app-scene-chapters {
   pointer-events: none;
 }
 
-// Over the docked picture: back to the top.
+// Over the shrinking picture: back to the top, and play.
 .watch-dock-hit {
   display: none;
 }
 
-.is-docking.is-docked .watch-dock-hit {
+.is-docking.is-dock-started .watch-dock-hit {
   position: absolute;
   inset: 0;
   z-index: 5;

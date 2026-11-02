@@ -50,8 +50,25 @@
   transition-duration: 150ms;
 }
 
+// The page dimmed around a scene page's preview: a box laid over the picture,
+// its shadow covering the rest (InlinePlayerComponent).
+.preview-dimmer {
+  position: fixed;
+  z-index: 900;
+  box-shadow: 0 0 0 200vmax rgb(0 0 0 / 45%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+
+.preview-dimmer.is-on {
+  opacity: 1;
+  transition-duration: 900ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hover-preview {
+  .hover-preview,
+  .preview-dimmer {
     transition: none;
   }
 }

@@ -140,9 +140,10 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Tapping the docked picture goes back to the top.
-  protected scrollToTop(): void {
+  // Tapping the shrunken picture: back to the top, playing.
+  protected openFromDock(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.player?.start();
   }
 
   protected goBack(event: MouseEvent): void {
