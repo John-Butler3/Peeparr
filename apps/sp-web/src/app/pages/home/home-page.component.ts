@@ -13,7 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { EMPTY, Subscription, catchError, filter, finalize, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
@@ -48,7 +48,7 @@ import {
 
 import { HomeHeroComponent } from './home-hero/home-hero.component';
 
-import { onShowingPage } from '../../core/navigation/page-fade.service';
+import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
 import { WatchProgressService } from '../../core/player/watch-progress.service';
 @Component({
@@ -126,13 +126,17 @@ export class HomePageComponent implements OnInit, OnDestroy {
   /** Continue Watching's arrival playing: the whole section, or a card at the front. */
   protected readonly continueWatchingArriving = signal<'section' | 'card' | null>(null);
   protected readonly continueWatchingFront = signal<string | null>(null);
+  /** A scene watched to the end while it's listed is gone at once. */
+  protected readonly visibleContinueWatching = computed(() =>
+    this.continueWatchingItems().filter((item) => this.watchProgress.percentFor(item.id) !== 100),
+  );
   private continueWatchingLoaded = false;
   /** The latest reload (one that's still getting ready gives way to it). */
   private continueWatchingRun = 0;
   // Its height, for the rows below to slide by: taken as soon as it changes,
   // before anything's drawn. (Going, it's still there, on its way out.)
   private readonly continueWatchingHeight = effect(() => {
-    this.continueWatchingItems();
+    this.visibleContinueWatching();
     afterNextRender(
       () => {
         const section = this.continueWatchingSection();
@@ -152,6 +156,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
   /** Longest to wait for its pictures, before showing it anyway. */
   private static readonly PRELOAD_MAX_MS = 800;
   private static readonly SETTLE_MAX_MS = 500;
+  /** Longest Home's return is held for an up-to-date Continue Watching. */
+  private static readonly RETURN_HOLD_MAX_MS = 400;
 
   /** While Home is open, it re-checks your library this often. */
   static readonly REFRESH_MS = 60_000;
@@ -161,6 +167,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private lastRefreshAt = 0;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  private readonly pageFade = inject(PageFadeService);
   /** On screen: not asleep (left, kept alive) and the app not in the background. */
   private awake(): boolean {
     return document.visibilityState === 'visible' && onShowingPage(this.host);
@@ -173,17 +180,18 @@ export class HomePageComponent implements OnInit, OnDestroy {
       this.refreshLibraryRows();
     } else {
       // Anything may have changed while away (scenes played, cleared, deleted).
-      this.loadContinueWatching();
+      void this.loadContinueWatching();
     }
   };
   // A scene's place saved (watching it, leaving it, closing the miniplayer):
-  // Continue Watching follows straight away. (Away, it's asked for on return.)
+  // Continue Watching follows straight away, even while away (so it's right
+  // the moment Home is back).
   private readonly progressWatch = inject(PlayerService).progressSaved.subscribe((id) => {
     this.savedLately = [id, ...this.savedLately.filter((other) => other !== id)];
-    this.loadContinueWatchingIfAwake();
+    void this.loadContinueWatching();
   });
-  private readonly clearingSettled = inject(WatchProgressService).settled.subscribe(() =>
-    this.loadContinueWatchingIfAwake(),
+  private readonly clearingSettled = inject(WatchProgressService).settled.subscribe(
+    () => void this.loadContinueWatching(),
   );
   // Marked unwatched (on a scene's page): out of Continue Watching at once,
   // which holds its own copy of everyone's progress.
@@ -191,9 +199,13 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.continueWatchingItems.update((items) => items.filter((item) => !ids.includes(item.id))),
   );
   // Back on Home after a while away (the page was kept, asleep): catch up.
-  private readonly navigationWatch = inject(Router)
-    .events.pipe(filter((event) => event instanceof NavigationEnd))
-    .subscribe(() => this.onVisibilityChange());
+  private readonly navigationWatch = inject(Router).events.subscribe((event) => {
+    if (event instanceof NavigationStart) {
+      this.host.classList.remove('cw-live');
+    } else if (event instanceof NavigationEnd && this.awake()) {
+      this.onReturn();
+    }
+  });
 
   ngOnInit(): void {
     this.runtimeHealthService.ensureStarted();
@@ -206,6 +218,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
       }
     }, HomePageComponent.REFRESH_MS);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+    void this.pageSettled().then(() => {
+      if (this.awake()) {
+        this.host.classList.add('cw-live');
+      }
+    });
   }
 
   private refreshLibraryRows(): void {
@@ -302,25 +319,45 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
   }
 
-  private loadContinueWatchingIfAwake(): void {
-    if (this.awake()) {
-      this.loadContinueWatching();
+  // Home's back on screen. Held back a moment for an up-to-date Continue
+  // Watching, so that what's left it while away isn't seen going. Its leaving
+  // animations are only for what goes once Home is settled.
+  private onReturn(): void {
+    const fresh = this.loadContinueWatching();
+    if (Date.now() - this.lastRefreshAt > HomePageComponent.RESUME_REFRESH_AFTER_MS) {
+      this.refreshLibraryRows();
     }
+    this.pageFade.holdReveal(
+      Promise.race([
+        fresh,
+        new Promise((resolve) => setTimeout(resolve, HomePageComponent.RETURN_HOLD_MAX_MS)),
+      ]),
+    );
+    void this.pageSettled().then(() => {
+      if (this.awake()) {
+        this.host.classList.add('cw-live');
+      }
+    });
   }
 
-  protected loadContinueWatching(): void {
+  protected loadContinueWatching(): Promise<void> {
     this.continueWatchingSubscription?.unsubscribe();
-    this.continueWatchingSubscription = this.homeService
-      .getContinueWatching()
-      // (A hiccup leaves the row as it is, rather than emptying it.)
-      .pipe(catchError(() => EMPTY))
-      .subscribe((response) => {
-        // Couldn't tell (Stash unreachable): the row stays as it is.
-        if (response.message && response.items.length === 0) {
-          return;
-        }
-        void this.showContinueWatching(response.items);
-      });
+    return new Promise((resolve) => {
+      this.continueWatchingSubscription = this.homeService
+        .getContinueWatching()
+        // (A hiccup leaves the row as it is, rather than emptying it.)
+        .pipe(
+          catchError(() => EMPTY),
+          finalize(resolve),
+        )
+        .subscribe((response) => {
+          // Couldn't tell (Stash unreachable): the row stays as it is.
+          if (response.message && response.items.length === 0) {
+            return;
+          }
+          void this.showContinueWatching(response.items);
+        });
+    });
   }
 
   private async showContinueWatching(fetched: HomeRailItem[]): Promise<void> {
@@ -328,6 +365,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
     const visible = () =>
       this.latestFirst(fetched.filter((item) => !this.watchProgress.isClearing(item.id)));
     const before = this.continueWatchingItems();
+    // Away: what's gone goes, ready for coming back. What's new waits, to
+    // arrive where it's seen.
+    if (this.continueWatchingLoaded && !this.awake()) {
+      const shown = new Set(before.map((item) => item.id));
+      this.setIfChanged(
+        this.continueWatchingItems,
+        visible().filter((item) => shown.has(item.id)),
+      );
+      return;
+    }
     const arrival = this.arrivalFor(before, visible());
     if (arrival) {
       // Ready first: its pictures there, the page done coming in.
@@ -558,11 +605,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   protected markWatched(localSceneId: string): void {
+    // At once, not waiting for the server (it's back if that fails).
+    this.continueWatchingItems.update((items) => items.filter((item) => item.id !== localSceneId));
     this.homeService.resetContinueWatchingProgress(localSceneId).subscribe({
+      error: () => void this.loadContinueWatching(),
       next: () => {
-        this.continueWatchingItems.update((items) =>
-          items.filter((item) => item.id !== localSceneId),
-        );
         // Its other cards, on Home and elsewhere.
         this.watchProgress.refresh();
       },

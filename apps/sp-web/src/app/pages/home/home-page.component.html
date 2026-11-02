@@ -89,7 +89,7 @@
     </section>
   }
 
-  @if (continueWatchingItems().length > 0) {
+  @if (visibleContinueWatching().length > 0) {
     <section
       class="rail-section continue-watching"
       [class.is-arriving]="continueWatchingArriving() === 'section'"
@@ -125,7 +125,7 @@
 
         <div class="rail-viewport" #railViewport data-rail-id="continue-watching">
           <div class="rail-track" [class.is-making-room]="continueWatchingArriving() === 'card'">
-            @for (item of continueWatchingItems(); track item.id) {
+            @for (item of visibleContinueWatching(); track item.id) {
               <app-scene-card
                 class="rail-card"
                 [class.is-arriving]="

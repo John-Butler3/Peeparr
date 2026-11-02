@@ -542,7 +542,7 @@ p {
   --cw-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.continue-watching.is-arriving ~ section {
+.continue-watching.is-arriving ~ :not(app-scene-request-modal) {
   animation: cw-push-down 450ms var(--cw-ease) both;
 }
 
@@ -564,16 +564,24 @@ p {
 }
 
 // (Its own animation does nothing but keep it there until the rows have moved.)
-.continue-watching.is-leaving {
-  animation: cw-hold 440ms linear both;
+// Only with Home settled (.cw-live): what's left while away is simply gone.
+:host(.cw-live) .continue-watching.is-leaving {
+  animation: cw-hold 520ms linear both;
 }
 
-.continue-watching.is-leaving .continue-watching-body {
-  animation: yt-fade-out var(--motion-quick) var(--yt-ease) both;
+:host(.cw-live) .continue-watching.is-leaving .continue-watching-body {
+  animation: cw-go-out 220ms var(--cw-ease) both;
 }
 
-.continue-watching.is-leaving ~ section {
-  animation: cw-pull-up 320ms var(--cw-ease) 120ms both;
+:host(.cw-live) .continue-watching.is-leaving ~ :not(app-scene-request-modal) {
+  animation: cw-pull-up 400ms var(--cw-ease) 120ms both;
+}
+
+@keyframes cw-go-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes cw-hold {
@@ -602,7 +610,7 @@ p {
   animation: yt-fade-in 300ms ease-out 240ms both;
 }
 
-.rail-card.is-leaving {
+:host(.cw-live) .rail-card.is-leaving {
   animation: yt-fade-out var(--motion-quick) var(--yt-ease) forwards;
 }
 
@@ -809,9 +817,11 @@ p {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .continue-watching.is-arriving ~ section,
+  .continue-watching.is-arriving ~ :not(app-scene-request-modal),
   .continue-watching.is-arriving .continue-watching-body,
-  .continue-watching.is-leaving ~ section,
+  :host(.cw-live) .continue-watching.is-leaving,
+  :host(.cw-live) .continue-watching.is-leaving .continue-watching-body,
+  :host(.cw-live) .continue-watching.is-leaving ~ :not(app-scene-request-modal),
   .rail-card.is-arriving {
     animation: none;
   }

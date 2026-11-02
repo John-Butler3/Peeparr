@@ -129,6 +129,7 @@ export class PageTransitionDirective {
     );
     await this.appRef.whenStable();
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await Promise.all(this.pageFade.takeHolds());
     await Promise.all(this.picturesOnScreen().map((image) => this.loaded(image)));
   }
 

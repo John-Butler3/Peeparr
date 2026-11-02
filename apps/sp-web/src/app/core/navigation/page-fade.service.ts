@@ -42,6 +42,7 @@ export class PageFadeService {
   private behindPath: string | null = null;
   private fading: Animation | null = null;
   private soft = false;
+  private readonly holds: Promise<unknown>[] = [];
   /** The page behind was readied ahead of time: a cancelled swipe hides it again. */
   private warm = false;
   /**
@@ -248,6 +249,19 @@ export class PageFadeService {
     this.soft = false;
     this.reset();
     return soft;
+  }
+
+  /**
+   * Something the page coming in wants done before it's shown (its list
+   * brought up to date, say). The page transition waits for these, within
+   * its usual limit.
+   */
+  holdReveal(work: Promise<unknown>): void {
+    this.holds.push(work);
+  }
+
+  takeHolds(): Promise<unknown>[] {
+    return this.holds.splice(0);
   }
 
   /** The page now showing is a kept one, brought back as it was left. */
