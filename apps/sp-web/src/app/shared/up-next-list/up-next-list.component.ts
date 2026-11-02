@@ -27,9 +27,10 @@ export interface UpNextItem {
 }
 
 // YouTube's compact "Up next" rows (thumbnail left, text right).
+import { ProgressLineComponent } from '../progress-line/progress-line.component';
 @Component({
   selector: 'app-up-next-list',
-  imports: [RouterLink, ScenePreviewDirective],
+  imports: [ProgressLineComponent, RouterLink, ScenePreviewDirective],
   templateUrl: './up-next-list.component.html',
   styleUrl: './up-next-list.component.scss',
 })

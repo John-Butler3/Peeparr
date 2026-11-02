@@ -265,6 +265,7 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
       return;
     }
     this.markingUnwatched.set(true);
+    this.player?.forgetProgress();
     this.watchProgress.markUnwatched([stashSceneId]).subscribe({
       next: () => {
         this.markingUnwatched.set(false);

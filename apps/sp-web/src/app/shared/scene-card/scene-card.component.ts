@@ -282,7 +282,9 @@ export class SceneCardComponent {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const rest = String(Math.floor(seconds % 60)).padStart(2, '0');
-    return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
+    return hours > 0
+      ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}`
+      : `${minutes}:${rest}`;
   }
 
   protected studioInitial(): string {

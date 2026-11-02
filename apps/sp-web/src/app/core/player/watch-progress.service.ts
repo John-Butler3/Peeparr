@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
+import { Observable, Subject, catchError, forkJoin, map, of, tap } from 'rxjs';
 
 interface WatchProgressResponse {
   items: Array<{ id: string; activeCatalogSceneId: string | null; progressPercent: number }>;
@@ -34,6 +34,11 @@ export class WatchProgressService {
   private readonly index = signal<WatchProgressIndex>(EMPTY_INDEX);
   private loading = false;
   private loadedAt = 0;
+  /** Counts clearings, so that a list asked for before one doesn't undo it. */
+  private changes = 0;
+
+  /** Scenes just marked unwatched (Stash ids), for lists holding their own copies. */
+  readonly cleared = new Subject<readonly string[]>();
 
   /** Percent watched (1-100) for a Stash or catalog scene id, else null. */
   percentFor(sceneId: string | null | undefined): number | null {
@@ -52,8 +57,9 @@ export class WatchProgressService {
   }
 
   /**
-   * Clears these Stash scenes' watch history (resume point and play count)
-   * and drops their progress lines straight away.
+   * Clears these Stash scenes' watch history (resume point and play count).
+   * Their progress lines go at once, not waiting for the server; if it fails,
+   * they come back.
    */
   markUnwatched(stashSceneIds: readonly string[]): Observable<void> {
     const http = this.http;
@@ -61,12 +67,18 @@ export class WatchProgressService {
       return of(undefined);
     }
 
+    this.forget(stashSceneIds);
+    this.cleared.next(stashSceneIds);
     return forkJoin(
       stashSceneIds.map((id) =>
         http.post<void>(`/api/home/watch-progress/${encodeURIComponent(id)}/unwatched`, {}),
       ),
     ).pipe(
-      tap(() => this.forget(stashSceneIds)),
+      tap({
+        // What the server now says, from after the change.
+        next: () => this.refreshAfterChange(),
+        error: () => this.refreshAfterChange(),
+      }),
       map(() => undefined),
     );
   }
@@ -99,11 +111,17 @@ export class WatchProgressService {
     }
 
     this.loading = true;
+    const changes = this.changes;
     http
       .get<WatchProgressResponse>('/api/home/watch-progress')
       .pipe(catchError(() => of<WatchProgressResponse>({ items: [] })))
       .subscribe((response) => {
         this.loading = false;
+        if (changes !== this.changes) {
+          // Out of date before it arrived: asked for again on the next look.
+          this.loadedAt = 0;
+          return;
+        }
         this.loadedAt = Date.now();
         const local = new Map<string, number>();
         const catalog = new Map<string, number>();
@@ -119,7 +137,13 @@ export class WatchProgressService {
       });
   }
 
+  private refreshAfterChange(): void {
+    this.loadedAt = 0;
+    this.refresh();
+  }
+
   private forget(stashSceneIds: readonly string[]): void {
+    this.changes += 1;
     const current = this.index();
     const local = new Map(current.local);
     const catalog = new Map(current.catalog);

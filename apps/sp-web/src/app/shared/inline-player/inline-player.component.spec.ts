@@ -258,6 +258,25 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     cardPreview.stop();
   });
 
+  it('marked unwatched: back to the thumbnail, without saving its place', () => {
+    const { fixture, host } = render();
+    const player = TestBed.inject(PlayerService) as unknown as {
+      saveProgress: ReturnType<typeof vi.fn>;
+      resolveLocalSource: ReturnType<typeof vi.fn>;
+    };
+    const component = fixture.componentInstance as unknown as {
+      status: { set(value: string): void };
+    };
+    component.status.set('loading');
+    fixture.detectChanges();
+
+    fixture.componentInstance.forgetProgress();
+    fixture.detectChanges();
+
+    expect(player.saveProgress).not.toHaveBeenCalled();
+    expect(host.querySelector('.poster')?.hasAttribute('disabled')).toBe(false);
+  });
+
   it('previews nothing for a scene that cannot be played', () => {
     const { fixture, host } = render();
     fixture.componentRef.setInput('playable', false);

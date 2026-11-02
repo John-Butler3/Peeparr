@@ -98,7 +98,11 @@
             [queryParams]="titleQueryParams()"
             (click)="$event.stopPropagation()"
           >
-            <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z" /></svg>
+            <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z"
+              />
+            </svg>
           </a>
         } @else if (requestable) {
           <button
@@ -128,7 +132,11 @@
             title="Play"
             (click)="playScene($event)"
           >
-            <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z" /></svg>
+            <svg class="play-glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z"
+              />
+            </svg>
           </button>
         }
       </div>

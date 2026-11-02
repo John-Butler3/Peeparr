@@ -33,9 +33,7 @@
           @if (durationLabel(item.duration); as duration) {
             <span class="duration">{{ duration }}</span>
           }
-          @if (watchedPercent(item.id); as watched) {
-            <span class="watched" aria-hidden="true"><span [style.width.%]="watched"></span></span>
-          }
+          <app-progress-line [percent]="watchedPercent(item.id)" />
         </span>
         <span class="text">
           <span class="title">{{ item.title }}</span>

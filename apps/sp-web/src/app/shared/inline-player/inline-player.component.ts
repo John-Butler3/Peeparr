@@ -38,9 +38,11 @@ import {
   visibleShare,
 } from '../scene-preview/scene-preview-autoplay.service';
 import { ScenePreviewService, ScenePreviewSource } from '../scene-card/scene-preview.service';
+import { WatchProgressService } from '../../core/player/watch-progress.service';
+import { ProgressLineComponent } from '../progress-line/progress-line.component';
 @Component({
   selector: 'app-inline-player',
-  imports: [ProgressSpinner, ScenePreviewDirective, LogoContrastDirective],
+  imports: [ProgressLineComponent, ProgressSpinner, ScenePreviewDirective, LogoContrastDirective],
   templateUrl: './inline-player.component.html',
   styleUrl: './inline-player.component.scss',
 })
@@ -89,6 +91,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private readonly sharedVideo = inject(SharedVideoService);
   private readonly pageFade = inject(PageFadeService);
   private readonly previewSources = inject(ScenePreviewService);
+  private readonly watchProgress = inject(WatchProgressService);
   private readonly autoplayPreviews = inject(ScenePreviewAutoplayService);
   @ViewChild(ScenePreviewDirective) private posterPreview?: ScenePreviewDirective;
   private lookingSince: number | null = null;
@@ -494,6 +497,20 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     });
   }
 
+  /**
+   * The scene's just been marked unwatched: back to its thumbnail, from the
+   * start, without saving the place it was at (which would undo that).
+   */
+  forgetProgress(): void {
+    if (this.status() !== 'idle') {
+      this.stop(false);
+    }
+  }
+
+  protected watchedPercent(): number | null {
+    return this.watchProgress.percentFor(this.localSceneId ?? this.catalogStashId);
+  }
+
   /** The scene's preview, for the thumbnail (none without a scene to preview). */
   protected readonly loadPreview = (): Observable<ScenePreviewSource | null> => {
     if (this.localSceneId) {
@@ -792,8 +809,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     return null;
   }
 
-  private stop(): void {
-    this.saveProgress();
+  private stop(save = true): void {
+    if (save) {
+      this.saveProgress();
+    }
     this.sharedVideo.release(this);
     this.cleanup();
     this.source.set(null);

@@ -281,6 +281,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       return;
     }
     this.markingUnwatched.set(true);
+    this.player?.forgetProgress();
     this.watchProgress.markUnwatched(stashSceneIds).subscribe({
       next: () => {
         this.markingUnwatched.set(false);

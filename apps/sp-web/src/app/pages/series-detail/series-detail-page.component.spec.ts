@@ -89,7 +89,9 @@ describe('SeriesDetailPageComponent', () => {
     ).toEqual(['Part 1', 'Part 2', 'Part 3']);
     expect(element.querySelector('.series-meta')?.textContent).toContain('3 parts');
     expect(element.querySelector('.series-meta')?.textContent).toContain('1 h 0 min');
-    expect(element.querySelector('a.part-title')?.getAttribute('href')).toContain('/scene/catalog-11');
+    expect(element.querySelector('a.part-title')?.getAttribute('href')).toContain(
+      '/scene/catalog-11',
+    );
   });
 
   it('plays every part in order with "Play all", or from a chosen part', async () => {
@@ -99,9 +101,21 @@ describe('SeriesDetailPageComponent', () => {
     expect(playerService.playQueue).toHaveBeenCalledWith(
       'Trilogy',
       [
-        expect.objectContaining({ localSceneId: '11', title: 'Part 11', imageUrl: '/api/media/stash/scenes/11/screenshot' }),
-        expect.objectContaining({ localSceneId: '12', title: 'Part 12', imageUrl: '/api/media/stash/scenes/12/screenshot' }),
-        expect.objectContaining({ localSceneId: '13', title: 'Part 13', imageUrl: '/api/media/stash/scenes/13/screenshot' }),
+        expect.objectContaining({
+          localSceneId: '11',
+          title: 'Part 11',
+          imageUrl: '/api/media/stash/scenes/11/screenshot',
+        }),
+        expect.objectContaining({
+          localSceneId: '12',
+          title: 'Part 12',
+          imageUrl: '/api/media/stash/scenes/12/screenshot',
+        }),
+        expect.objectContaining({
+          localSceneId: '13',
+          title: 'Part 13',
+          imageUrl: '/api/media/stash/scenes/13/screenshot',
+        }),
       ],
       0,
     );
@@ -116,13 +130,17 @@ describe('SeriesDetailPageComponent', () => {
     (element.querySelector('[aria-label="Move Part 12 down"]') as HTMLButtonElement).click();
 
     expect(groupsService.reorderScenes).toHaveBeenCalledWith('5', ['11', '13', '12']);
-    expect((element.querySelector('[aria-label="Move Part 11 up"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (element.querySelector('[aria-label="Move Part 11 up"]') as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 
   it('removes a part and shows the updated list', async () => {
     const { fixture, element, groupsService } = await render();
 
-    (element.querySelector('[aria-label="Remove Part 12 from series"]') as HTMLButtonElement).click();
+    (
+      element.querySelector('[aria-label="Remove Part 12 from series"]') as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
     expect(groupsService.removeScene).toHaveBeenCalledWith('5', '12');

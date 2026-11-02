@@ -197,20 +197,6 @@
   pointer-events: auto;
 }
 
-.progress-track {
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 4;
-  height: 3px;
-  background: rgb(0 0 0 / 45%);
-  pointer-events: none;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--focus-ring);
-}
-
 @media (max-width: 560px) {
   .media {
     aspect-ratio: 16 / 10;
@@ -288,15 +274,6 @@
     height: 1.6rem;
     max-width: 6rem;
   }
-}
-
-.progress-track {
-  height: 4px;
-  background: rgb(255 255 255 / 30%);
-}
-
-.progress-fill {
-  background: var(--yt-red);
 }
 
 @media (max-width: 560px) {

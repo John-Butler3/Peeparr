@@ -84,7 +84,12 @@
             <button type="button" class="text-button" [disabled]="saving()" (click)="startEdit()">
               <i class="pi pi-pencil" aria-hidden="true"></i> Edit
             </button>
-            <a class="text-button" [href]="series.viewUrl" target="_blank" rel="noopener noreferrer">
+            <a
+              class="text-button"
+              [href]="series.viewUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i class="pi pi-external-link" aria-hidden="true"></i> Stash
             </a>
             <button
@@ -106,7 +111,13 @@
       </p>
     } @else {
       <ol class="parts" aria-label="Parts">
-        @for (scene of series.scenes; track scene.id; let i = $index; let first = $first; let last = $last) {
+        @for (
+          scene of series.scenes;
+          track scene.id;
+          let i = $index;
+          let first = $first;
+          let last = $last
+        ) {
           <li class="part">
             <button
               type="button"
@@ -120,9 +131,7 @@
                 <img [src]="scene.cardImageUrl" alt="" loading="lazy" />
               }
               <span class="part-thumb-play" aria-hidden="true"><i class="pi pi-play"></i></span>
-              @if (watchedPercent(scene.id); as watched) {
-                <span class="part-watched" aria-hidden="true"><span [style.width.%]="watched"></span></span>
-              }
+              <app-progress-line [percent]="watchedPercent(scene.id)" />
             </button>
 
             <div class="part-info">

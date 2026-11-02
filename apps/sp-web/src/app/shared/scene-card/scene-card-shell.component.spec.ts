@@ -78,9 +78,7 @@ describe('SceneCardShellComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const host = fixture.nativeElement.querySelector(
-      'app-scene-card-shell',
-    ) as HTMLElement | null;
+    const host = fixture.nativeElement.querySelector('app-scene-card-shell') as HTMLElement | null;
     const primaryLink = fixture.nativeElement.querySelector(
       '.media-link-stretch',
     ) as HTMLAnchorElement | null;

@@ -37,7 +37,11 @@
               [attr.aria-label]="studioBadgeAriaLabel()"
             >
               <div class="studio-badge logo-plaque" [title]="studioBadgeLabel()">
-                <img [src]="item.studioImageUrl" [alt]="studioBadgeLabel() + ' logo'" loading="lazy" />
+                <img
+                  [src]="item.studioImageUrl"
+                  [alt]="studioBadgeLabel() + ' logo'"
+                  loading="lazy"
+                />
               </div>
             </a>
           } @else if (studioBadgeRouterCommands(); as commands) {
@@ -48,12 +52,20 @@
               [attr.aria-label]="studioBadgeAriaLabel()"
             >
               <div class="studio-badge logo-plaque" [title]="studioBadgeLabel()">
-                <img [src]="item.studioImageUrl" [alt]="studioBadgeLabel() + ' logo'" loading="lazy" />
+                <img
+                  [src]="item.studioImageUrl"
+                  [alt]="studioBadgeLabel() + ' logo'"
+                  loading="lazy"
+                />
               </div>
             </a>
           } @else {
             <div class="studio-badge logo-plaque" [title]="studioBadgeLabel()">
-              <img [src]="item.studioImageUrl" [alt]="studioBadgeLabel() + ' logo'" loading="lazy" />
+              <img
+                [src]="item.studioImageUrl"
+                [alt]="studioBadgeLabel() + ' logo'"
+                loading="lazy"
+              />
             </div>
           }
         } @else if (showStudioBadge && item.studio) {
@@ -101,18 +113,7 @@
       </div>
     }
 
-    @if (hasProgressBar()) {
-      <div
-        class="progress-track"
-        role="progressbar"
-        [attr.aria-valuenow]="progressPercent"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        [attr.aria-label]="'Watched ' + progressPercent + '%'"
-      >
-        <div class="progress-fill" [style.width.%]="progressPercent"></div>
-      </div>
-    }
+    <app-progress-line [percent]="progressPercent" />
   </div>
 
   @if (hasBody()) {

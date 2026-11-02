@@ -315,7 +315,9 @@ describe('SceneCardComponent', () => {
     component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
     fixture.detectChanges();
 
-    const stretch = fixture.nativeElement.querySelector('.details-link-stretch') as HTMLAnchorElement;
+    const stretch = fixture.nativeElement.querySelector(
+      '.details-link-stretch',
+    ) as HTMLAnchorElement;
     expect(stretch.getAttribute('href')).toBe('/scene/scene-1');
     expect(stretch.getAttribute('tabindex')).toBe('-1');
   });

@@ -19,9 +19,18 @@ import {
 import { NavigationHistoryService } from '../../core/navigation/navigation-history.service';
 import { BackLinkDirective } from '../../shared/back-link/back-link.directive';
 
+import { ProgressLineComponent } from '../../shared/progress-line/progress-line.component';
 @Component({
   selector: 'app-series-detail-page',
-  imports: [BackLinkDirective, FormsModule, RouterLink, Message, ProgressSpinner, ScenePreviewDirective],
+  imports: [
+    ProgressLineComponent,
+    BackLinkDirective,
+    FormsModule,
+    RouterLink,
+    Message,
+    ProgressSpinner,
+    ScenePreviewDirective,
+  ],
   templateUrl: './series-detail-page.component.html',
   styleUrl: './series-detail-page.component.scss',
 })
@@ -41,7 +50,9 @@ export class SeriesDetailPageComponent implements OnInit, OnDestroy {
   protected readonly series = signal<SeriesDetail | null>(null);
   protected readonly navigationHistory = inject(NavigationHistoryService);
   // Names this screen for the next one's "Back to ..." button.
-  private readonly nameForBackButton = effect(() => this.navigationHistory.setLabel(this.series()?.name));
+  private readonly nameForBackButton = effect(() =>
+    this.navigationHistory.setLabel(this.series()?.name),
+  );
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   // Any write in flight (reorder/remove/edit/delete): disables the controls.

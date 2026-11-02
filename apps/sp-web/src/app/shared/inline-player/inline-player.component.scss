@@ -117,6 +117,11 @@
   opacity: 0;
 }
 
+.poster.is-showing-site app-progress-line,
+.poster.is-previewing app-progress-line {
+  display: none;
+}
+
 // YouTube's red play button.
 .play-badge {
   display: grid;

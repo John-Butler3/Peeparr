@@ -59,9 +59,10 @@ export class SceneCardBodyDirective {}
 })
 export class SceneCardPlaceholderDirective {}
 
+import { ProgressLineComponent } from '../progress-line/progress-line.component';
 @Component({
   selector: 'app-scene-card-shell',
-  imports: [RouterLink, ScenePreviewDirective],
+  imports: [RouterLink, ScenePreviewDirective, ProgressLineComponent],
   templateUrl: './scene-card-shell.component.html',
   styleUrl: './scene-card-shell.component.scss',
   host: {
@@ -78,10 +79,6 @@ export class SceneCardShellComponent {
   @Input() progressPercent: number | null = null;
   /** Hover / hold preview stream; null when the scene can't be previewed. */
   @Input() previewLoader: ScenePreviewLoader | null = null;
-
-  protected hasProgressBar(): boolean {
-    return this.progressPercent !== null && this.progressPercent > 0;
-  }
 
   @ContentChild(SceneCardTopRightDirective)
   private topRightSlot?: SceneCardTopRightDirective;

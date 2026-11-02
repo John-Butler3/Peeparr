@@ -47,6 +47,7 @@ import { HomeHeroComponent } from './home-hero/home-hero.component';
 
 import { onShowingPage } from '../../core/navigation/page-fade.service';
 import { LogoContrastDirective } from '../../shared/logo-contrast/logo-contrast.directive';
+import { WatchProgressService } from '../../core/player/watch-progress.service';
 @Component({
   selector: 'app-home-page',
   imports: [
@@ -71,6 +72,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly router = inject(Router);
   private readonly libraryService = inject(LibraryService);
+  private readonly watchProgress = inject(WatchProgressService);
   private readonly notifications = inject(AppNotificationsService);
   // The last scene shuffled to (not picked again straight away).
   private lastRandomSceneId: string | undefined;
@@ -154,6 +156,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
         this.continueWatchingStale = true;
       }
     });
+  // Marked unwatched (on a scene's page): out of Continue Watching at once,
+  // which holds its own copy of everyone's progress.
+  private readonly clearedWatch = inject(WatchProgressService).cleared.subscribe((ids) =>
+    this.continueWatchingItems.update((items) => items.filter((item) => !ids.includes(item.id))),
+  );
   // Back on Home after a while away (the page was kept, asleep): catch up.
   private readonly navigationWatch = inject(Router)
     .events.pipe(filter((event) => event instanceof NavigationEnd))
@@ -210,6 +217,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.navigationWatch.unsubscribe();
     this.progressWatch.unsubscribe();
+    this.clearedWatch.unsubscribe();
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
@@ -398,6 +406,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
         this.continueWatchingItems.update((items) =>
           items.filter((item) => item.id !== localSceneId),
         );
+        // Its other cards, on Home and elsewhere.
+        this.watchProgress.refresh();
       },
     });
   }

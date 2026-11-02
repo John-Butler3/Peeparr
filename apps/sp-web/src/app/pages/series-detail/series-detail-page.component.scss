@@ -166,17 +166,8 @@ textarea.app-control-input {
 }
 
 // Red "watched" line along the bottom of the thumbnail.
-.part-watched {
-  position: absolute;
-  inset: auto 0 0;
-  height: 3px;
-  background: rgb(255 255 255 / 30%);
-}
-
-.part-watched span {
-  display: block;
-  height: 100%;
-  background: var(--yt-red, #f00);
+app-progress-line {
+  --progress-line-h: 3px;
 }
 
 .part-thumb-play {
