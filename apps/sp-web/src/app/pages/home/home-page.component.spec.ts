@@ -336,9 +336,11 @@ describe('HomePageComponent', () => {
       of({ items: [buildRailItem({ id: 'in-progress-1' })], message: null }),
     );
     playerService.progressSaved.next('in-progress-1');
-    fixture.detectChanges();
 
-    expect(section()?.classList).toContain('is-arriving');
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(section()?.classList).toContain('is-arriving');
+    });
   });
 
   it('puts the scene just watched first, however the server orders them', async () => {
@@ -351,7 +353,12 @@ describe('HomePageComponent', () => {
       of({ items: [buildRailItem({ id: 'a' }), buildRailItem({ id: 'b' })], message: null }),
     );
     playerService.progressSaved.next('b');
-    fixture.detectChanges();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelectorAll('[data-testid="continue-watching"] app-scene-card'),
+      ).toHaveLength(2);
+    });
 
     const first = fixture.nativeElement.querySelector(
       '[data-testid="continue-watching"] app-scene-card a[href*="library/scene"], [data-testid="continue-watching"] app-scene-card a[href]',

@@ -532,52 +532,59 @@ p {
   gap: 0.8rem;
 }
 
-// Continue Watching comes and goes as scenes are played: its section slides
-// open and shut, pushing what's below, and a scene joining the front has the
-// row slide over for it.
-.continue-watching {
-  display: grid;
-  grid-template-rows: 1fr;
-  gap: 0;
+// Continue Watching comes and goes as scenes are played. It takes its full
+// space at once, unseen, and the rows below are drawn from where they were,
+// sliding down by transform (--cw-h is its measured height): nothing is laid
+// out again as it moves, so it stays smooth. Then its scenes come in. Leaving
+// is the same in reverse.
+// (Eases in and out: no sudden start.)
+:host {
+  --cw-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.continue-watching-body {
-  display: grid;
-  gap: 0.72rem;
-  min-height: 0;
+.continue-watching.is-arriving ~ section {
+  animation: cw-push-down 450ms var(--cw-ease) both;
 }
 
-.continue-watching.is-arriving,
-.continue-watching.is-leaving {
-  overflow: hidden;
+.continue-watching.is-arriving .continue-watching-body {
+  animation: cw-come-in 400ms var(--cw-ease) 380ms both;
 }
 
-.continue-watching.is-arriving {
-  animation: rail-open var(--motion-slow) var(--yt-ease-out) both;
-}
-
-.continue-watching.is-leaving {
-  animation: rail-close var(--motion-base) var(--yt-ease) both;
-}
-
-.continue-watching.is-arriving .continue-watching-body,
-.continue-watching.is-leaving .continue-watching-body {
-  overflow: hidden;
-}
-
-@keyframes rail-open {
+@keyframes cw-push-down {
   from {
-    grid-template-rows: 0fr;
-    margin-top: 0;
-    opacity: 0;
+    transform: translateY(calc(-1 * var(--cw-h, 0px)));
   }
 }
 
-@keyframes rail-close {
-  to {
-    grid-template-rows: 0fr;
-    margin-top: 0;
+@keyframes cw-come-in {
+  from {
     opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+// (Its own animation does nothing but keep it there until the rows have moved.)
+.continue-watching.is-leaving {
+  animation: cw-hold 440ms linear both;
+}
+
+.continue-watching.is-leaving .continue-watching-body {
+  animation: yt-fade-out var(--motion-quick) var(--yt-ease) both;
+}
+
+.continue-watching.is-leaving ~ section {
+  animation: cw-pull-up 320ms var(--cw-ease) 120ms both;
+}
+
+@keyframes cw-hold {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cw-pull-up {
+  to {
+    transform: translateY(calc(-1 * var(--cw-h, 0px)));
   }
 }
 
@@ -587,11 +594,12 @@ p {
 }
 
 .rail-track.is-making-room {
-  animation: rail-make-room var(--motion-slow) var(--yt-ease-out);
+  animation: rail-make-room 400ms var(--cw-ease);
 }
 
+// (Once the row has made room.)
 .rail-card.is-arriving {
-  animation: yt-fade-in var(--motion-slow) ease-out;
+  animation: yt-fade-in 300ms ease-out 240ms both;
 }
 
 .rail-card.is-leaving {
@@ -786,5 +794,19 @@ p {
 @media (max-width: 900px) {
   .rail-track.site-track {
     grid-auto-columns: 140px;
+  }
+}
+
+.continue-watching-body {
+  display: grid;
+  gap: 0.72rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .continue-watching.is-arriving ~ section,
+  .continue-watching.is-arriving .continue-watching-body,
+  .continue-watching.is-leaving ~ section,
+  .rail-card.is-arriving {
+    animation: none;
   }
 }

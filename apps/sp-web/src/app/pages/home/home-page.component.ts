@@ -8,6 +8,7 @@ import {
   ViewChildren,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -126,11 +127,31 @@ export class HomePageComponent implements OnInit, OnDestroy {
   protected readonly continueWatchingArriving = signal<'section' | 'card' | null>(null);
   protected readonly continueWatchingFront = signal<string | null>(null);
   private continueWatchingLoaded = false;
+  /** The latest reload (one that's still getting ready gives way to it). */
+  private continueWatchingRun = 0;
+  // Its height, for the rows below to slide by: taken as soon as it changes,
+  // before anything's drawn. (Going, it's still there, on its way out.)
+  private readonly continueWatchingHeight = effect(() => {
+    this.continueWatchingItems();
+    afterNextRender(
+      () => {
+        const section = this.continueWatchingSection();
+        if (section) {
+          const margin = parseFloat(getComputedStyle(section).marginTop) || 0;
+          this.host.style.setProperty('--cw-h', `${section.offsetHeight + margin}px`);
+        }
+      },
+      { injector: this.injector },
+    );
+  });
   /** Scenes whose place was saved in this visit, latest first. */
   private savedLately: string[] = [];
   private arrivalTimer: ReturnType<typeof setTimeout> | null = null;
   /** A little longer than the animations. */
-  private static readonly ARRIVAL_MS = 600;
+  private static readonly ARRIVAL_MS = 1200;
+  /** Longest to wait for its pictures, before showing it anyway. */
+  private static readonly PRELOAD_MAX_MS = 800;
+  private static readonly SETTLE_MAX_MS = 500;
 
   /** While Home is open, it re-checks your library this often. */
   static readonly REFRESH_MS = 60_000;
@@ -298,34 +319,87 @@ export class HomePageComponent implements OnInit, OnDestroy {
         if (response.message && response.items.length === 0) {
           return;
         }
-        const before = this.continueWatchingItems();
-        const items = this.latestFirst(
-          response.items.filter((item) => !this.watchProgress.isClearing(item.id)),
-        );
-        this.setIfChanged(this.continueWatchingItems, items);
-        this.animateContinueWatching(before, items);
-        this.continueWatchingLoaded = true;
+        void this.showContinueWatching(response.items);
       });
   }
 
+  private async showContinueWatching(fetched: HomeRailItem[]): Promise<void> {
+    const run = ++this.continueWatchingRun;
+    const visible = () =>
+      this.latestFirst(fetched.filter((item) => !this.watchProgress.isClearing(item.id)));
+    const before = this.continueWatchingItems();
+    const arrival = this.arrivalFor(before, visible());
+    if (arrival) {
+      // Ready first: its pictures there, the page done coming in.
+      await Promise.all([this.preloadPictures(visible()), this.pageSettled()]);
+      if (run !== this.continueWatchingRun) {
+        return;
+      }
+    }
+    const items = visible();
+    this.setIfChanged(this.continueWatchingItems, items);
+    this.continueWatchingLoaded = true;
+    if (arrival) {
+      this.playArrival(arrival, items[0]?.id ?? null);
+    }
+  }
+
+  // Not on first opening Home. The first scene in the row: the section comes
+  // in. Another at the front: the row slides over to make room.
+  private arrivalFor(before: HomeRailItem[], items: HomeRailItem[]): 'section' | 'card' | null {
+    if (!this.continueWatchingLoaded || items.length === 0 || !this.awake()) {
+      return null;
+    }
+    if (before.length === 0) {
+      return 'section';
+    }
+    return items[0]?.id === before[0]?.id ? null : 'card';
+  }
+
+  /** The pictures that will show first, decoded so they appear whole (not for too long). */
+  private preloadPictures(items: HomeRailItem[]): Promise<unknown> {
+    const pictures = items
+      .slice(0, 3)
+      .flatMap((item) => (item.cardImageUrl ? [item.cardImageUrl] : []))
+      .map((url) => {
+        const image = new Image();
+        image.src = url;
+        return typeof image.decode === 'function' ? image.decode().catch(() => undefined) : null;
+      });
+    return Promise.race([
+      Promise.all(pictures),
+      new Promise((resolve) => setTimeout(resolve, HomePageComponent.PRELOAD_MAX_MS)),
+    ]);
+  }
+
+  /** Coming back to Home, it's fading in: wait for that, so the two don't overlap. */
+  private pageSettled(): Promise<void> {
+    const deadline = Date.now() + HomePageComponent.SETTLE_MAX_MS;
+    return new Promise((resolve) => {
+      const check = () => {
+        const moving = this.host.closest('.is-pending, .is-entering');
+        if (!moving || Date.now() > deadline) {
+          resolve();
+        } else {
+          requestAnimationFrame(check);
+        }
+      };
+      check();
+    });
+  }
+
   // What's been watched in this visit leads the row, however Stash orders it.
+  private continueWatchingSection(): HTMLElement | null {
+    return this.host.querySelector<HTMLElement>('[data-testid="continue-watching"]');
+  }
+
   private latestFirst(items: HomeRailItem[]): HomeRailItem[] {
     const lately = this.savedLately.flatMap((id) => items.filter((item) => item.id === id));
     return [...lately, ...items.filter((item) => !this.savedLately.includes(item.id))];
   }
 
-  // Not on first opening Home. The first scene in the row: the section slides
-  // open. Another at the front: the row slides over to make room.
-  private animateContinueWatching(before: HomeRailItem[], items: HomeRailItem[]): void {
-    if (!this.continueWatchingLoaded || items.length === 0) {
-      return;
-    }
-    const arriving = before.length === 0;
-    const front = items[0]?.id;
-    if (!arriving && front === before[0]?.id) {
-      return;
-    }
-    if (!arriving) {
+  private playArrival(kind: 'section' | 'card', front: string | null): void {
+    if (kind === 'card') {
       // The new one's at the start: that's where to be.
       // (Once it's in: scroll snapping otherwise stays with the old first card.)
       afterNextRender(
@@ -336,8 +410,21 @@ export class HomePageComponent implements OnInit, OnDestroy {
         { injector: this.injector },
       );
     }
-    this.continueWatchingArriving.set(arriving ? 'section' : 'card');
-    this.continueWatchingFront.set(front ?? null);
+    this.continueWatchingArriving.set(kind);
+    this.continueWatchingFront.set(front);
+    if (kind === 'section') {
+      // Off screen, the browser keeps the page steady by itself: moving the
+      // rows as well would be a jump.
+      afterNextRender(
+        () => {
+          const rect = this.continueWatchingSection()?.getBoundingClientRect();
+          if (!rect || rect.top > window.innerHeight || rect.bottom < 0) {
+            this.continueWatchingArriving.set(null);
+          }
+        },
+        { injector: this.injector },
+      );
+    }
     if (this.arrivalTimer) {
       clearTimeout(this.arrivalTimer);
     }
