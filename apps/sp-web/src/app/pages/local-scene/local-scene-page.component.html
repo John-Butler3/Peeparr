@@ -72,7 +72,7 @@
           </div>
 
           <!-- Under the title, one compact line: local only, the site (opens
-               its library scenes), release date and length. -->
+               its page), release date and length. -->
           <div class="watch-meta">
             <span class="local-badge">Local only</span>
             @if (scene.studio) {
@@ -80,8 +80,8 @@
                 @if (scene.libraryStudioId) {
                   <a
                     class="site-link studio-link"
-                    [routerLink]="['/library']"
-                    [queryParams]="{ studios: scene.libraryStudioId, studioNames: scene.studio }"
+                    [href]="studioLibraryHref(scene)"
+                    (click)="openStudio($event, scene)"
                     >{{ scene.studio }}</a
                   >
                 } @else {
@@ -104,9 +104,9 @@
                   <div class="performer">
                     <a
                       class="performer-link"
-                      [routerLink]="['/library']"
-                      [queryParams]="{ performers: performer.id, performerNames: performer.name }"
-                      [attr.aria-label]="'Library scenes with ' + performer.name"
+                      [href]="performerLibraryHref(performer)"
+                      (click)="openPerformer($event, performer)"
+                      [attr.aria-label]="performer.name"
                     >
                       <img
                         class="performer-image"

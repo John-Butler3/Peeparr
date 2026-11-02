@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
+import { DiscoverService } from '../../core/api/discover.service';
 import { GroupsService } from '../../core/api/groups.service';
 import { LibraryService } from '../../core/api/library.service';
 import { LibrarySceneDetail } from '../../core/api/library.types';
@@ -42,7 +43,13 @@ describe('LocalScenePageComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
 
   async function render(
-    options: { scene?: LibrarySceneDetail | Error; returnTo?: string; watched?: boolean } = {},
+    options: {
+      scene?: LibrarySceneDetail | Error;
+      returnTo?: string;
+      watched?: boolean;
+      catalogPerformers?: Array<{ id: string; name: string; sceneCount: number }>;
+      catalogStudios?: Array<{ id: string; name: string }>;
+    } = {},
   ) {
     const scene = options.scene ?? buildScene();
     const libraryService = {
@@ -104,6 +111,10 @@ describe('LocalScenePageComponent', () => {
       }),
     };
     const notifications = { success: vi.fn(), error: vi.fn() };
+    const discoverService = {
+      getPerformersFeed: vi.fn().mockReturnValue(of({ items: options.catalogPerformers ?? [] })),
+      getStudiosFeed: vi.fn().mockReturnValue(of({ items: options.catalogStudios ?? [] })),
+    };
 
     await TestBed.configureTestingModule({
       imports: [LocalScenePageComponent],
@@ -112,6 +123,7 @@ describe('LocalScenePageComponent', () => {
         provideRouter([]),
         provideNoopAnimations(),
         { provide: LibraryService, useValue: libraryService },
+        { provide: DiscoverService, useValue: discoverService },
         { provide: GroupsService, useValue: groupsService },
         { provide: PlayerService, useValue: playerService },
         { provide: AppNotificationsService, useValue: notifications },
@@ -178,14 +190,12 @@ describe('LocalScenePageComponent', () => {
     );
   });
 
-  it('links performers, studio and tags into the filtered library', async () => {
+  it('has real links to the filtered library, for a new tab', async () => {
     const { element } = await render();
 
-    expect(
-      element
-        .querySelector('a[aria-label="Library scenes with Performer One"]')
-        ?.getAttribute('href'),
-    ).toBe('/library?performers=7&performerNames=Performer%20One');
+    expect(element.querySelector('a.performer-link')?.getAttribute('href')).toBe(
+      '/library?performers=7&performerNames=Performer%20One',
+    );
     expect(element.querySelector('.studio-link')?.getAttribute('href')).toBe(
       '/library?studios=3&studioNames=Archive',
     );
@@ -207,6 +217,41 @@ describe('LocalScenePageComponent', () => {
 
     expect(layout.classList).not.toContain('is-docking');
     expect(element.querySelector('.watch-dock')).toBeNull();
+  });
+
+  it("opens a performer's and site's own pages, found in the catalog by name", async () => {
+    const { element, router } = await render({
+      catalogPerformers: [
+        { id: 'other', name: 'Performer One Two', sceneCount: 900 },
+        { id: 'small', name: 'Performer One', sceneCount: 3 },
+        { id: 'main', name: 'performer one', sceneCount: 50 },
+      ],
+      catalogStudios: [{ id: 'site-9', name: 'Archive' }],
+    });
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    (element.querySelector('.performer-link') as HTMLElement).click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(navigate).toHaveBeenCalledWith(['/performer', 'main']);
+
+    (element.querySelector('.studio-link') as HTMLElement).click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(navigate).toHaveBeenCalledWith(['/studio', 'site-9']);
+  });
+
+  it('falls back to their library scenes when the catalog has no such page', async () => {
+    const { element, router } = await render();
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    (element.querySelector('.performer-link') as HTMLElement).click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(navigate).toHaveBeenCalledWith(['/library'], {
+      queryParams: { performers: '7', performerNames: 'Performer One' },
+    });
   });
 
   it('plays the scene in place of its thumbnail', async () => {

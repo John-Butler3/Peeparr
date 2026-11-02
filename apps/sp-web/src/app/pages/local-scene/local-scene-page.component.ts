@@ -8,7 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Subscription, catchError, of } from 'rxjs';
@@ -39,6 +39,7 @@ import { SimilarScenesComponent } from '../../shared/similar-scenes/similar-scen
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 import { LibraryDeletionService } from '../../core/library/library-deletion.service';
 import { WatchDockDirective } from '../scene/watch-dock.directive';
+import { CatalogMatchService } from '../../core/api/catalog-match.service';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
@@ -63,6 +64,7 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   private readonly groupsService = inject(GroupsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly catalogMatch = inject(CatalogMatchService);
   private readonly notifications = inject(AppNotificationsService);
   private readonly libraryDeletion = inject(LibraryDeletionService);
   private readonly playerService = inject(PlayerService);
@@ -138,6 +140,71 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     if (!this.navigationHistory.back()) {
       void this.router.navigateByUrl(this.backLink());
     }
+  }
+
+  // Performers and the site open their own pages (found in the catalog by
+  // name, looked up ahead so it's immediate); without one, their scenes in
+  // the library. The link itself is that too, for opening in a new tab.
+  private lookUpCatalogPages(scene: LibrarySceneDetail): void {
+    scene.performers.forEach((performer) => void this.catalogMatch.performerId(performer.name));
+    if (scene.studio) {
+      void this.catalogMatch.studioId(scene.studio);
+    }
+  }
+
+  private performerLibraryQuery(performer: { id: string; name: string }): Params {
+    return { performers: performer.id, performerNames: performer.name };
+  }
+
+  private studioLibraryQuery(scene: LibrarySceneDetail): Params {
+    return { studios: scene.libraryStudioId, studioNames: scene.studio };
+  }
+
+  protected performerLibraryHref(performer: { id: string; name: string }): string {
+    return this.libraryHref(this.performerLibraryQuery(performer));
+  }
+
+  protected studioLibraryHref(scene: LibrarySceneDetail): string {
+    return this.libraryHref(this.studioLibraryQuery(scene));
+  }
+
+  private libraryHref(queryParams: Params): string {
+    return this.router.serializeUrl(this.router.createUrlTree(['/library'], { queryParams }));
+  }
+
+  protected openPerformer(event: MouseEvent, performer: { id: string; name: string }): void {
+    this.openCatalogPage(
+      event,
+      this.catalogMatch.performerId(performer.name),
+      '/performer',
+      this.performerLibraryQuery(performer),
+    );
+  }
+
+  protected openStudio(event: MouseEvent, scene: LibrarySceneDetail): void {
+    this.openCatalogPage(
+      event,
+      this.catalogMatch.studioId(scene.studio ?? ''),
+      '/studio',
+      this.studioLibraryQuery(scene),
+    );
+  }
+
+  private openCatalogPage(
+    event: MouseEvent,
+    match: Promise<string | null>,
+    path: string,
+    libraryQuery: Params,
+  ): void {
+    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    void match.then((id) =>
+      id
+        ? this.router.navigate([path, id])
+        : this.router.navigate(['/library'], { queryParams: libraryQuery }),
+    );
   }
 
   // Tapping the shrunken picture: back to the top, playing.
@@ -268,6 +335,7 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
       next: (scene) => {
         this.loading.set(false);
         this.scene.set(scene);
+        this.lookUpCatalogPages(scene);
       },
       error: () => {
         this.loading.set(false);
