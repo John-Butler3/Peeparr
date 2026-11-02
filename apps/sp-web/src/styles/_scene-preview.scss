@@ -45,6 +45,47 @@
   opacity: 1;
 }
 
+// Mute, over a playing preview (PreviewAudioService).
+.preview-mute {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 65%);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: yt-fade-in var(--motion-base) ease-out;
+}
+
+.preview-mute i {
+  pointer-events: none;
+}
+
+.preview-mute:hover {
+  background: rgb(0 0 0 / 85%);
+}
+
+.preview-mute:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .preview-mute::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+  }
+}
+
 // Phones: on screen almost at once.
 .scene-preview-quick .hover-preview {
   transition-duration: 150ms;

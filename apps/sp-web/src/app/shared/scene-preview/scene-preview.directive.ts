@@ -11,14 +11,15 @@ import {
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ScenePreviewSource } from '../scene-card/scene-preview.service';
+import { PreviewAudioService } from './preview-audio.service';
 import { ScenePreviewAutoplayService } from './scene-preview-autoplay.service';
 
 export type ScenePreviewLoader = () => Observable<ScenePreviewSource | null>;
 
 /**
- * YouTube-style scene preview on any thumbnail: a muted loop from the middle
- * of the scene, faded in over the thumbnail. Read-only: previews never save
- * progress.
+ * YouTube-style scene preview on any thumbnail: a loop from the middle of the
+ * scene, faded in over the thumbnail, with sound and a mute button
+ * (PreviewAudioService). Read-only: previews never save progress.
  *
  * - Mouse: rest on the thumbnail. The video starts loading straight away
  *   (hidden) and fades in once the hover is confirmed and a frame is ready.
@@ -79,6 +80,9 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
   readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly autoplay = inject(ScenePreviewAutoplayService);
+  private readonly audio = inject(PreviewAudioService);
+  private muteButton: HTMLElement | null = null;
+  private videoListeners: AbortController | null = null;
   private video: HTMLVideoElement | null = null;
   private visible = false;
   /** Previewing, for an independent one (others share `active`). */
@@ -120,6 +124,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     this.host.removeEventListener('dragstart', this.blockListener);
     this.stop();
     this.teardownVideo();
+    this.muteButton?.remove();
   }
 
   /** Can play in autoplay right now. */
@@ -134,7 +139,9 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
   @HostListener('pointerenter', ['$event'])
   protected onPointerEnter(event: PointerEvent): void {
-    if (event.pointerType !== 'mouse' || !this.loader || !this.scenePreviewHover) {
+    // (Already on it: browsers can report this again when what's under the
+    // pointer changes, and it shouldn't start the preview over.)
+    if (event.pointerType !== 'mouse' || !this.loader || !this.scenePreviewHover || this.hovered) {
       return;
     }
 
@@ -323,7 +330,9 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
 
   private createVideo(src: string): void {
     this.teardownVideo();
-    const video = document.createElement('video');
+    const video = this.audio.takeVideo();
+    this.videoListeners = new AbortController();
+    const signal = this.videoListeners.signal;
     video.className = 'hover-preview';
     video.muted = true;
     video.defaultMuted = true;
@@ -336,18 +345,18 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     if (this.scenePreviewFadeMs !== null) {
       video.style.transitionDuration = `${this.scenePreviewFadeMs}ms`;
     }
-    video.addEventListener('loadedmetadata', () => this.onMetadata(video));
-    video.addEventListener('playing', () => this.onPlaying(video));
-    video.addEventListener('timeupdate', () => this.onTimeUpdate(video));
-    video.addEventListener('error', () => this.onVideoError());
-    video.addEventListener('ended', () => this.finishIfOnce());
+    video.addEventListener('loadedmetadata', () => this.onMetadata(video), { signal });
+    video.addEventListener('playing', () => this.onPlaying(video), { signal });
+    video.addEventListener('timeupdate', () => this.onTimeUpdate(video), { signal });
+    video.addEventListener('error', () => this.onVideoError(), { signal });
+    video.addEventListener('ended', () => this.finishIfOnce(), { signal });
+    video.addEventListener('volumechange', () => this.syncMuteButton(), { signal });
     video.src = src;
     this.host.appendChild(video);
     this.video = video;
   }
 
   private onMetadata(video: HTMLVideoElement): void {
-    video.muted = true;
     // Full file whose duration wasn't known up front: jump to the middle now.
     if (
       !this.clipMode &&
@@ -365,8 +374,7 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
   }
 
   private play(video: HTMLVideoElement): void {
-    const playing = video.play() as Promise<void> | undefined;
-    playing?.catch(() => this.stop());
+    this.audio.play(video).catch(() => this.stop());
   }
 
   // Shown only once a real frame is on screen, so the fade goes from the
@@ -424,6 +432,53 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     this.visible = visible;
     this.video?.classList.toggle('is-playing', visible);
     this.host.classList.toggle('is-previewing', visible);
+    this.syncMuteButton();
+  }
+
+  // Over the preview while it shows. (A span: the thumbnail may be a button.)
+  private syncMuteButton(): void {
+    const video = this.video;
+    if (!this.visible || !video) {
+      this.muteButton?.remove();
+      this.muteButton = null;
+      return;
+    }
+    if (!this.muteButton) {
+      this.muteButton = this.createMuteButton();
+      this.host.appendChild(this.muteButton);
+    }
+    const label = video.muted ? 'Turn preview sound on' : 'Mute previews';
+    this.muteButton.setAttribute('aria-label', label);
+    this.muteButton.title = label;
+    const icon = this.muteButton.firstElementChild;
+    icon?.classList.toggle('pi-volume-off', video.muted);
+    icon?.classList.toggle('pi-volume-up', !video.muted);
+  }
+
+  private createMuteButton(): HTMLElement {
+    const button = document.createElement('span');
+    button.className = 'preview-mute';
+    button.setAttribute('role', 'button');
+    button.tabIndex = 0;
+    const icon = document.createElement('i');
+    icon.className = 'pi';
+    icon.setAttribute('aria-hidden', 'true');
+    button.appendChild(icon);
+    // Not the thumbnail's own tap (opening or playing the scene).
+    const toggle = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this.video) {
+        this.audio.toggle(this.video);
+      }
+    };
+    button.addEventListener('click', toggle);
+    button.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        toggle(event);
+      }
+    });
+    return button;
   }
 
   private teardownVideo(): void {
@@ -435,10 +490,14 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     // Drop the source so the browser stops downloading the stream.
     const video = this.video;
     if (video) {
+      this.videoListeners?.abort();
+      this.videoListeners = null;
       video.pause();
       video.removeAttribute('src');
       video.load();
       video.remove();
+      video.style.transitionDuration = '';
+      this.audio.release(video);
       this.video = null;
     }
     this.setVisible(false);

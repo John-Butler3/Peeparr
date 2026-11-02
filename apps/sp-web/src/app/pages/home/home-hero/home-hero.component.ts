@@ -14,6 +14,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { HomeRailItem } from '../../../core/api/home.types';
+import { PreviewAudioService } from '../../../shared/scene-preview/preview-audio.service';
 import { ScenePreviewAutoplayService } from '../../../shared/scene-preview/scene-preview-autoplay.service';
 import {
   ScenePreviewService,
@@ -72,6 +73,9 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly previewService = inject(ScenePreviewService);
   private readonly autoplay = inject(ScenePreviewAutoplayService);
+  private readonly audio = inject(PreviewAudioService);
+  /** The banner's preview has sound. */
+  protected readonly soundOn = signal(false);
   protected readonly slides = signal<HomeRailItem[]>([]);
   protected readonly index = signal(0);
   protected readonly current = computed(() => this.slides()[this.index()] ?? null);
@@ -203,8 +207,11 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       : ['/library/scene', item.id];
   }
 
+  protected toggleSound(video: HTMLVideoElement): void {
+    this.audio.toggle(video);
+  }
+
   protected onVideoMetadata(video: HTMLVideoElement): void {
-    video.muted = true;
     if (
       !this.clipMode &&
       !this.previewStart &&
@@ -214,8 +221,8 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       this.previewStart = Math.floor(video.duration / 2);
       video.currentTime = this.previewStart;
     }
-    void video
-      .play()
+    this.audio
+      .play(video)
       .catch(() => this.scheduleAdvance(HomeHeroComponent.NO_PREVIEW_ADVANCE_MS, true));
   }
 
@@ -318,7 +325,7 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
     }
     this.pausedWith = null;
     this.scheduleAdvance(paused.remaining, true, paused.total);
-    void video.play().catch(() => this.loadPreview());
+    this.audio.play(video).catch(() => this.loadPreview());
   }
 
   private pause(): void {

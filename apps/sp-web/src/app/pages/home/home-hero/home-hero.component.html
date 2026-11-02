@@ -45,13 +45,12 @@
         }
       </div>
 
-      <!-- The current scene's muted preview, faded in over its picture. -->
+      <!-- The current scene's preview, faded in over its picture. -->
       <video
         #video
         class="hover-preview hero-video"
         [class.is-playing]="videoPlaying() && !dragging()"
         muted
-        [muted]="true"
         playsinline
         preload="auto"
         aria-hidden="true"
@@ -59,7 +58,25 @@
         (playing)="onVideoPlaying(video)"
         (timeupdate)="onVideoTimeUpdate(video)"
         (error)="onVideoError()"
+        (volumechange)="soundOn.set(!video.muted)"
       ></video>
+
+      @if (videoPlaying()) {
+        <button
+          type="button"
+          class="preview-mute hero-mute"
+          [attr.aria-label]="soundOn() ? 'Mute previews' : 'Turn preview sound on'"
+          [title]="soundOn() ? 'Mute previews' : 'Turn preview sound on'"
+          (click)="toggleSound(video)"
+        >
+          <i
+            class="pi"
+            [class.pi-volume-up]="soundOn()"
+            [class.pi-volume-off]="!soundOn()"
+            aria-hidden="true"
+          ></i>
+        </button>
+      }
 
       <div class="hero-shade" aria-hidden="true"></div>
 
