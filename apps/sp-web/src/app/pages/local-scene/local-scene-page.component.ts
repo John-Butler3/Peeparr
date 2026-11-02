@@ -38,6 +38,7 @@ import { SceneChaptersComponent } from '../../shared/scene-chapters/scene-chapte
 import { SimilarScenesComponent } from '../../shared/similar-scenes/similar-scenes.component';
 import { PlaybackMenuComponent } from '../../shared/playback-menu/playback-menu.component';
 import { LibraryDeletionService } from '../../core/library/library-deletion.service';
+import { WatchDockDirective } from '../scene/watch-dock.directive';
 @Component({
   selector: 'app-local-scene-page',
   imports: [
@@ -50,6 +51,7 @@ import { LibraryDeletionService } from '../../core/library/library-deletion.serv
     AddToSeriesDialogComponent,
     InlinePlayerComponent,
     UpNextListComponent,
+    WatchDockDirective,
   ],
   templateUrl: './local-scene-page.component.html',
   styleUrl: './local-scene-page.component.scss',
@@ -82,6 +84,8 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     this.navigationHistory.setLabel(this.scene()?.title),
   );
   protected readonly loading = signal(false);
+  /** The scene is loaded in the player: it stays pinned. Otherwise it shrinks away on scrolling. */
+  protected readonly playerOpen = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly series = signal<SceneSeriesMembership[]>([]);
   protected readonly seriesDialogOpen = signal(false);
@@ -134,6 +138,11 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     if (!this.navigationHistory.back()) {
       void this.router.navigateByUrl(this.backLink());
     }
+  }
+
+  // Tapping the docked picture goes back to the top.
+  protected scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   protected goBack(event: MouseEvent): void {

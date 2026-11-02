@@ -19,10 +19,11 @@
     <div
       class="watch-layout"
       [class.is-catalog-only]="!canPlay(scene)"
-      [appWatchDock]="!canPlay(scene)"
+      [class.is-docking]="!playerOpen()"
+      [appWatchDock]="!playerOpen()"
     >
       <div class="watch-primary">
-        @if (!canPlay(scene)) {
+        @if (!playerOpen()) {
           <!-- The docked header: the title beside the shrunken picture
                (watch-dock.directive). -->
           <div class="watch-dock">
@@ -55,7 +56,7 @@
         }
 
         <div class="watch-media">
-          @if (!canPlay(scene)) {
+          @if (!playerOpen()) {
             <button
               type="button"
               class="watch-dock-hit"
@@ -73,6 +74,7 @@
               [embedUrl]="embedUrl"
               [details]="playerDetails(scene)"
               [autoplay]="autoplay()"
+              (openChange)="playerOpen.set($event)"
               (minimize)="leaveToMiniplayer()"
             />
           } @else {
@@ -87,6 +89,7 @@
               [autoplay]="autoplay()"
               [markers]="chapterMarkers()"
               [siteLogoUrl]="scene.studioImageUrl"
+              (openChange)="playerOpen.set($event)"
               (ended)="playNextUp()"
               (minimize)="leaveToMiniplayer()"
             />

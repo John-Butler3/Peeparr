@@ -194,6 +194,21 @@ describe('LocalScenePageComponent', () => {
     );
   });
 
+  it('shrinks away on scrolling until the scene is loaded in the player, then stays pinned', async () => {
+    const { fixture, element } = await render();
+    const layout = element.querySelector('.watch-layout') as HTMLElement;
+    expect(layout.classList).toContain('is-docking');
+    expect(element.querySelector('.watch-dock-title')?.textContent).toContain('Home Movie');
+
+    (element.querySelector('[data-testid="inline-player-poster"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(layout.classList).not.toContain('is-docking');
+    expect(element.querySelector('.watch-dock')).toBeNull();
+  });
+
   it('plays the scene in place of its thumbnail', async () => {
     const { fixture, element, playerService, libraryService } = await render();
 

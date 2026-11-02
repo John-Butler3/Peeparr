@@ -108,6 +108,8 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private similarRailViewport?: ElementRef<HTMLDivElement>;
 
   protected readonly loading = signal(true);
+  /** The scene is loaded in the player: it stays pinned. Otherwise it shrinks away on scrolling. */
+  protected readonly playerOpen = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly scene = signal<SceneDetails | null>(null);
   protected readonly navigationHistory = inject(NavigationHistoryService);

@@ -213,6 +213,41 @@ describe('ScenePageComponent', () => {
     expect(page.moreFromHeading(scene)).toBe('More from Anna, Bella, Cara');
   });
 
+  it('shrinks away on scrolling until the scene is loaded in the player, then stays pinned', async () => {
+    const { fixture } = await renderScene(
+      buildScene({
+        stash: {
+          exists: true,
+          hasMultipleCopies: false,
+          copies: [
+            {
+              id: 'stash-scene-1',
+              viewUrl: 'http://stash.local/scenes/stash-scene-1',
+              width: 1920,
+              height: 1080,
+              label: '1080p',
+            },
+          ],
+        },
+      }),
+    );
+    const layout = fixture.nativeElement.querySelector('.watch-layout') as HTMLElement;
+    expect(layout.classList).toContain('is-docking');
+    expect(layout.classList).not.toContain('is-catalog-only');
+
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="inline-player-poster"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(layout.classList).not.toContain('is-docking');
+    expect(fixture.nativeElement.querySelector('.watch-dock')).toBeNull();
+  });
+
   it('plays the linked stash copy in place of the thumbnail', async () => {
     const scene = buildScene({
       stash: {

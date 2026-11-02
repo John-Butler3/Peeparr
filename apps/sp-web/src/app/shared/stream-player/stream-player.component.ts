@@ -10,6 +10,7 @@ import {
   SimpleChanges,
   ViewChild,
   inject,
+  effect,
   signal,
 } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
@@ -62,9 +63,12 @@ export class StreamPlayerComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   /** Swiped down: leave the page, the stream carrying on in the miniplayer. */
+  /** The scene is loaded in the player, playing or paused (not just its thumbnail). */
+  @Output() openChange = new EventEmitter<boolean>();
   @Output() minimize = new EventEmitter<void>();
 
   protected readonly status = signal<'idle' | 'ready'>('idle');
+  private readonly openWatch = effect(() => this.openChange.emit(this.status() === 'ready'));
 
   private spot: HTMLElement | null = null;
   private asleep = false;

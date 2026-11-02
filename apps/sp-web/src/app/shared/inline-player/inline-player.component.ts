@@ -9,6 +9,7 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -163,6 +164,8 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   /** The site's logo, shown before the thumbnail's preview. */
   @Input() siteLogoUrl: string | null = null;
 
+  /** The scene is loaded in the player, playing or paused (not just its thumbnail). */
+  @Output() openChange = new EventEmitter<boolean>();
   @Output() ended = new EventEmitter<void>();
   /** Swiped down: leave the page (playing, the video carries on in the miniplayer; paused, it's closed). */
   @Output() minimize = new EventEmitter<void>();
@@ -170,6 +173,9 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   protected readonly status = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
   protected readonly source = signal<ScenePlaybackSource | null>(null);
   protected readonly dragOffset = signal(0);
+  private readonly openWatch = effect(() =>
+    this.openChange.emit(this.status() === 'ready' || this.status() === 'loading'),
+  );
   protected readonly siteLogoShowing = signal(false);
   /** Its logo has loaded (none shown otherwise: never an empty background). */
   protected readonly siteLogoReady = signal(false);

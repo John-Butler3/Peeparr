@@ -15,9 +15,29 @@
       <button type="button" class="pill" (click)="retry()">Retry</button>
     </div>
   } @else if (scene(); as scene) {
-    <div class="watch-layout">
+    <div class="watch-layout" [class.is-docking]="!playerOpen()" [appWatchDock]="!playerOpen()">
       <div class="watch-primary">
+        @if (!playerOpen()) {
+          <!-- The docked header: the title beside the shrunken picture
+               (watch-dock.directive). -->
+          <div class="watch-dock">
+            <p class="watch-dock-title" aria-hidden="true">{{ scene.title }}</p>
+          </div>
+          <div class="watch-dock-marker" aria-hidden="true">
+            <span class="watch-dock-probe"></span>
+          </div>
+        }
+
         <div class="watch-media">
+          @if (!playerOpen()) {
+            <button
+              type="button"
+              class="watch-dock-hit"
+              tabindex="-1"
+              aria-label="Back to top"
+              (click)="scrollToTop()"
+            ></button>
+          }
           <app-inline-player
             #player
             [title]="scene.title"
@@ -28,6 +48,7 @@
             [autoplay]="autoplay()"
             [markers]="chapterMarkers()"
             [siteLogoUrl]="scene.studioImageUrl"
+            (openChange)="playerOpen.set($event)"
             (ended)="playNextUp()"
             (minimize)="leaveToMiniplayer()"
           />

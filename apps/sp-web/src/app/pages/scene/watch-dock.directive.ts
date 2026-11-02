@@ -1,9 +1,10 @@
 import { DestroyRef, Directive, ElementRef, Input, NgZone, OnChanges, inject } from '@angular/core';
 
 /**
- * Scene page, for scenes not in the library: as you scroll, the picture
- * stays pinned and shrinks into the top-right corner, and the title slides
- * into a slim bar beside it (styles in _watch-page.scss, `.is-catalog-only`).
+ * Scene pages, while the scene isn't loaded in the player (always, for ones
+ * not in the library): as you scroll, the picture stays pinned and shrinks
+ * into the top-right corner, and the title slides into a slim bar beside it
+ * (styles in _watch-page.scss, `.is-docking`).
  *
  * Sets on the host:
  * - `--dock` 0..1: how far the picture has docked. It shrinks at the same
@@ -92,11 +93,14 @@ export class WatchDockDirective implements OnChanges {
     const style = getComputedStyle(media);
     const width = media.offsetWidth;
     const height = media.offsetHeight;
-    const thumbWidth = parseFloat(getComputedStyle(this.host).getPropertyValue('--dock-thumb-w')) || 112;
+    const thumbWidth =
+      parseFloat(getComputedStyle(this.host).getPropertyValue('--dock-thumb-w')) || 112;
     const scale = Math.min(1, thumbWidth / width);
     // Where the picture would be without sticking, and where it sticks.
-    const naturalTop = marker.getBoundingClientRect().top + window.scrollY + (parseFloat(style.marginTop) || 0);
-    const pinsAt = naturalTop - (marker.querySelector<HTMLElement>('.watch-dock-probe')?.offsetHeight ?? 0);
+    const naturalTop =
+      marker.getBoundingClientRect().top + window.scrollY + (parseFloat(style.marginTop) || 0);
+    const pinsAt =
+      naturalTop - (marker.querySelector<HTMLElement>('.watch-dock-probe')?.offsetHeight ?? 0);
     const distance = height * (1 - scale);
     const dock = distance > 0 ? Math.min(1, Math.max(0, (window.scrollY - pinsAt) / distance)) : 0;
 

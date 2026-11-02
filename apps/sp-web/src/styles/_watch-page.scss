@@ -645,12 +645,20 @@ app-scene-chapters {
   }
 }
 
-// ---- Scenes not in the library ---------------------------------------------
-// Nothing to play, so the picture is smaller. As you scroll it stays pinned
-// and shrinks into the top-right corner (the content below attached to its
-// bottom edge), and the title slides into a slim bar beside it
-// (watch-dock.directive sets --dock, --dock-scale and --dock-title).
-.is-catalog-only {
+// ---- Not loaded in the player ----------------------------------------------
+// As you scroll, the picture stays pinned and shrinks into the top-right corner
+// (the content below attached to its bottom edge), and the title slides into a
+// slim bar beside it (watch-dock.directive sets --dock, --dock-scale and
+// --dock-title). Scenes not in the library are always like this, with a smaller
+// picture (.is-catalog-only); others until they're played, then they stay
+// full size.
+.watch-media {
+  // Played while part docked: back to full size, from that corner.
+  transform-origin: top right;
+  transition: transform 250ms var(--yt-ease-out, ease-out);
+}
+
+.is-docking {
   --dock: 0;
   --dock-scale: 1;
   --dock-title: 0;
@@ -661,21 +669,24 @@ app-scene-chapters {
   --dock-top: calc(var(--shell-masthead-h, 0px) + env(safe-area-inset-top, 0px));
 }
 
-:host-context(.shell-bars-hidden) .is-catalog-only {
+:host-context(.shell-bars-hidden) .is-docking {
   --dock-top: env(safe-area-inset-top, 0px);
 }
 
 // Always room to scroll the picture and title up into the bar, however
 // little there is below them.
-.is-catalog-only .watch-info {
+.is-docking .watch-info {
   min-height: 100dvh;
 }
 
 .is-catalog-only .watch-media {
+  max-width: 720px;
+}
+
+.is-docking .watch-media {
   position: sticky;
   top: calc(var(--dock-top) + var(--dock-gap));
   z-index: 30;
-  max-width: 720px;
   // Keeps its rounded corners as it shrinks.
   border-radius: calc(12px / (1 - (1 - var(--dock-scale)) * var(--dock)));
   transform-origin: top right;
@@ -683,7 +694,7 @@ app-scene-chapters {
   transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-.is-catalog-only.is-docked .watch-media {
+.is-docking.is-docked .watch-media {
   box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
 }
 
@@ -706,7 +717,7 @@ app-scene-chapters {
   display: none;
 }
 
-.is-catalog-only.is-docked .watch-dock-hit {
+.is-docking.is-docked .watch-dock-hit {
   position: absolute;
   inset: 0;
   z-index: 5;
@@ -726,12 +737,15 @@ app-scene-chapters {
   align-items: center;
   gap: 12px;
   box-sizing: border-box;
-  max-width: 720px;
   height: var(--dock-bar-h);
   margin-bottom: calc(-1 * var(--dock-bar-h));
   padding: 0 calc(var(--dock-thumb-w) + 12px + var(--dock-inset)) 0 var(--dock-inset);
   pointer-events: none;
   transition: top var(--bars-duration, 340ms) var(--bars-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.is-catalog-only .watch-dock {
+  max-width: 720px;
 }
 
 .watch-dock::before {
@@ -751,7 +765,7 @@ app-scene-chapters {
   transform: translateY(calc((1 - var(--dock-title)) * 10px));
 }
 
-.is-catalog-only.is-docked .watch-dock > * {
+.is-docking.is-docked .watch-dock > * {
   pointer-events: auto;
 }
 
@@ -774,9 +788,19 @@ app-scene-chapters {
 }
 
 @media (max-width: 720px) {
-  .is-catalog-only {
+  .is-docking {
     --dock-thumb-w: 96px;
     --dock-inset: 16px;
+  }
+
+  // Edge to edge and square-cornered at first, as when it's played; it takes
+  // on the corners and the inset as it shrinks. (Its padding clears the notch,
+  // so it needn't stick below it.)
+  .is-docking:not(.is-catalog-only) .watch-media {
+    top: calc(var(--dock-top) + var(--dock-gap) - env(safe-area-inset-top, 0px));
+    border-radius: calc(12px * var(--dock) / (1 - (1 - var(--dock-scale)) * var(--dock)));
+    transform: translateX(calc(var(--dock) * var(--dock-inset) * -1))
+      scale(calc(1 - (1 - var(--dock-scale)) * var(--dock)));
   }
 
   .is-catalog-only .watch-media {
@@ -784,7 +808,7 @@ app-scene-chapters {
     padding-top: 0;
   }
 
-  .watch-dock {
+  .is-catalog-only .watch-dock {
     max-width: none;
   }
 
@@ -798,7 +822,8 @@ app-scene-chapters {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .is-catalog-only .watch-media,
+  .watch-media,
+  .is-docking .watch-media,
   .watch-dock {
     transition: none;
   }
