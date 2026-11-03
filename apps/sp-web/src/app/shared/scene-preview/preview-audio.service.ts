@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
+import { onShowingPage } from '../../core/navigation/page-fade.service';
 
 const pathOf = (url: string) => url.split(/[?#]/)[0];
 
@@ -12,6 +13,9 @@ const pathOf = (url: string) => url.split(/[?#]/)[0];
  * all): it then plays muted, and its button says so; tapping that turns the
  * sound on. Phones allow sound per video element, once tapped, so such an
  * element is kept for the next preview.
+ *
+ * A page left is kept alive, out of sight: nothing on it plays, let alone with
+ * sound -- not what was playing as it was left, nor anything due to start.
  */
 @Injectable({ providedIn: 'root' })
 export class PreviewAudioService {
@@ -25,6 +29,8 @@ export class PreviewAudioService {
   /** Elements allowed sound by a tap, not in use. */
   private readonly allowed: HTMLVideoElement[] = [];
   private readonly tapped = new WeakSet<HTMLVideoElement>();
+  /** Previews started and not yet done with. */
+  private readonly playing = new Set<HTMLVideoElement>();
 
   constructor() {
     this.router.events.subscribe((event) => {
@@ -32,6 +38,7 @@ export class PreviewAudioService {
         // A page left stays alive: nothing from it should carry on being heard.
         this.silence();
       } else if (event instanceof NavigationEnd) {
+        this.stopOffPage();
         const path = pathOf(event.urlAfterRedirects);
         if (path !== this.path) {
           this.path = path;
@@ -61,6 +68,12 @@ export class PreviewAudioService {
 
   /** Starts a preview, with sound if it can have it. */
   play(video: HTMLVideoElement): Promise<void> {
+    if (!onShowingPage(video)) {
+      // Due to start, but its page has gone meanwhile.
+      video.muted = true;
+      return Promise.resolve();
+    }
+    this.playing.add(video);
     this.applySound(video);
     const playing = (video.play() as Promise<void> | undefined) ?? Promise.resolve();
     return playing.catch((error: { name?: string }) => {
@@ -92,11 +105,25 @@ export class PreviewAudioService {
 
   /** A preview's done with its video. */
   release(video: HTMLVideoElement): void {
+    this.playing.delete(video);
     if (this.audible === video) {
       this.audible = null;
     }
     if (this.tapped.has(video)) {
       this.allowed.push(video);
+    }
+  }
+
+  private stopOffPage(): void {
+    for (const video of this.playing) {
+      if (!onShowingPage(video)) {
+        video.muted = true;
+        video.pause();
+        this.playing.delete(video);
+        if (this.audible === video) {
+          this.audible = null;
+        }
+      }
     }
   }
 

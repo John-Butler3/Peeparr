@@ -13,6 +13,7 @@ describe('PreviewAudioService', () => {
     const video = document.createElement('video');
     video.className = 'hover-preview';
     video.muted = true;
+    document.body.appendChild(video);
     return video;
   };
 
@@ -30,6 +31,7 @@ describe('PreviewAudioService', () => {
   });
 
   afterEach(() => {
+    document.body.innerHTML = '';
     vi.restoreAllMocks();
     TestBed.resetTestingModule();
   });
@@ -90,6 +92,29 @@ describe('PreviewAudioService', () => {
 
     expect(service.takeVideo()).toBe(video);
     expect(service.takeVideo()).not.toBe(video);
+  });
+
+  it('never plays one whose page has been left, and stops those still going', async () => {
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/a');
+    const playingOn = preview();
+    await service.play(playingOn);
+    expect(playingOn.muted).toBe(false);
+
+    // Its page kept, out of the document.
+    playingOn.remove();
+    await router.navigateByUrl('/b');
+    expect(playingOn.muted).toBe(true);
+    expect(pause).toHaveBeenCalled();
+
+    // One due to start (a hover's timer) after its page went.
+    const late = preview();
+    late.remove();
+    play.mockClear();
+    await service.play(late);
+    expect(late.muted).toBe(true);
+    expect(play).not.toHaveBeenCalled();
   });
 
   it('stays silent while a scene plays, and leaves when one starts', async () => {
