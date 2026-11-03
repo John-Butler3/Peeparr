@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Observable, Subscription, of } from 'rxjs';
+import { Observable, Subscription, of, shareReplay } from 'rxjs';
 import { SceneMarker, ScenePlaybackSource } from '../../core/api/discover.types';
 import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
@@ -121,12 +121,17 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private readonly navigationWatch = inject(Router).events.subscribe((event) => {
     if (event instanceof NavigationStart) {
       this.leavingRect = this.video?.getBoundingClientRect() ?? null;
+      // Its place may move on while away (the miniplayer): asked afresh.
+      this.prefetchedSource = null;
     } else if (event instanceof NavigationEnd) {
       // Its page left (kept, asleep) or back on screen.
       if (!onShowingPage(this.host) && !this.asleep) {
         this.sleep();
       } else if (onShowingPage(this.host) && this.asleep) {
         this.wake();
+      }
+      if (onShowingPage(this.host)) {
+        this.prefetchSource();
       }
     }
   });
@@ -218,6 +223,10 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
 
     if ((sceneChanged || changes['autoplay']) && this.autoplay && this.status() === 'idle') {
       this.start();
+    }
+    if (sceneChanged || changes['playable']) {
+      this.prefetchedSource = null;
+      this.prefetchSource();
     }
     this.syncPreviewHold();
   }
@@ -511,6 +520,38 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     return this.watchProgress.percentFor(this.localSceneId ?? this.catalogStashId);
   }
 
+  // Where to play it from, asked for as soon as the page shows it, so pressing
+  // play goes straight to the video (and the server finds it in Stash
+  // meanwhile). Not kept for long: its place may move on.
+  private prefetchedSource: {
+    id: string;
+    at: number;
+    source: Observable<ScenePlaybackSource>;
+  } | null = null;
+  private static readonly PREFETCH_FRESH_MS = 30_000;
+
+  private prefetchSource(): void {
+    const id = this.localSceneId ?? this.catalogStashId;
+    const request = this.status() === 'idle' && this.playable && id ? this.resolveSource() : null;
+    if (!request || !id || this.prefetchedSource?.id === id) {
+      return;
+    }
+    const source = request.pipe(shareReplay(1));
+    source.subscribe({ error: () => (this.prefetchedSource = null) });
+    this.prefetchedSource = { id, at: Date.now(), source };
+  }
+
+  private takePrefetchedSource(): Observable<ScenePlaybackSource> | null {
+    const prefetched = this.prefetchedSource;
+    this.prefetchedSource = null;
+    const id = this.localSceneId ?? this.catalogStashId;
+    return prefetched &&
+      prefetched.id === id &&
+      Date.now() - prefetched.at < InlinePlayerComponent.PREFETCH_FRESH_MS
+      ? prefetched.source
+      : null;
+  }
+
   /** The scene's preview, for the thumbnail (none without a scene to preview). */
   protected readonly loadPreview = (): Observable<ScenePreviewSource | null> => {
     if (this.localSceneId) {
@@ -673,7 +714,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       return;
     }
 
-    const request = this.resolveSource();
+    const request = this.takePrefetchedSource() ?? this.resolveSource();
     if (!request) {
       return;
     }

@@ -41,6 +41,7 @@ export interface StashSceneStreamResponse {
 export class MediaService {
   /** How long a scene's resolved Stash video URL is reused. */
   private static readonly VIDEO_URL_TTL_MS = 10 * 60 * 1000;
+  private static readonly CONFIG_TTL_MS = 10_000;
 
   private readonly logger = new Logger(MediaService.name);
   // A player makes many range requests per video (and previews more still);
@@ -225,6 +226,16 @@ export class MediaService {
     if (contentRange) {
       headers['Content-Range'] = contentRange;
     }
+    // Kept by the browser (pieces of it, by range): a preview hovered again,
+    // or a stretch of a scene played again, comes from there.
+    for (const name of ['etag', 'last-modified']) {
+      const value = response.headers.get(name);
+      if (value) {
+        headers[name === 'etag' ? 'ETag' : 'Last-Modified'] = value;
+      }
+    }
+    headers['Cache-Control'] =
+      kind === 'preview' ? 'private, max-age=86400' : 'private, max-age=3600';
 
     if (headOnly) {
       // Release the upstream connection rather than let it sit there
@@ -419,7 +430,38 @@ export class MediaService {
     }
   }
 
-  private async getStashConfig(): Promise<{
+  // Every picture and video asks for it: read from the database at most once
+  // every few seconds, not each time.
+  private stashConfig: {
+    value: Promise<{ baseUrl: string; apiKey?: string | null }>;
+    at: number;
+  } | null = null;
+
+  private getStashConfig(): Promise<{
+    baseUrl: string;
+    apiKey?: string | null;
+  }> {
+    const cached = this.stashConfig;
+    if (cached && Date.now() - cached.at < MediaService.CONFIG_TTL_MS) {
+      return cached.value;
+    }
+    const value = this.readStashConfig();
+    this.stashConfig = { value, at: Date.now() };
+    value.catch(() => (this.stashConfig = null));
+    return value;
+  }
+
+  /**
+   * Looks up where a scene's video is in Stash ahead of its being played (as
+   * its page opens), so pressing play goes straight to it.
+   */
+  warmSceneVideo(sceneId: string): void {
+    void this.resolveVideoUrl(sceneId, 'stream', `stream:${sceneId}`).catch(
+      () => undefined,
+    );
+  }
+
+  private async readStashConfig(): Promise<{
     baseUrl: string;
     apiKey?: string | null;
   }> {

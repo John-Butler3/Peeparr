@@ -28,7 +28,7 @@
       (click)="start()"
     >
       @if (posterUrl) {
-        <img class="poster-image" [src]="posterUrl" alt="" />
+        <img class="poster-image" [src]="posterUrl" alt="" fetchpriority="high" />
       }
       <app-progress-line [percent]="watchedPercent()" />
       <!-- The site's logo, filling the thumbnail on the way into its preview. -->

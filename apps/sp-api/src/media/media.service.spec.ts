@@ -315,6 +315,8 @@ describe('MediaService', () => {
         'Accept-Ranges': 'bytes',
         'Content-Type': 'video/mp4',
         'Content-Length': '1000',
+        // Kept by the browser for a while (ranges of it).
+        'Cache-Control': 'private, max-age=3600',
       });
     });
 

@@ -5,7 +5,7 @@
          plays, a muted duplicate of it plays here in step. -->
     <div class="hero-ambient" aria-hidden="true">
       @if (item.cardImageUrl ?? item.imageUrl; as image) {
-        <img [src]="image" alt="" />
+        <img [src]="image" alt="" decoding="async" />
       }
       <video
         #ambientVideo
@@ -39,7 +39,7 @@
             [attr.aria-label]="slide.title"
           >
             @if (slide.cardImageUrl ?? slide.imageUrl; as image) {
-              <img [src]="image" alt="" />
+              <img [src]="image" alt="" decoding="async" />
             }
           </a>
         }

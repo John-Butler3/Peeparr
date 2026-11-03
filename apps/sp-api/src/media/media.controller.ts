@@ -274,6 +274,8 @@ export class MediaController {
     height: number | null;
     streamToken: string | null;
   }> {
+    // About to be played, most likely: its video found in Stash meanwhile.
+    this.mediaService.warmSceneVideo(sceneId);
     const [info, auth] = await Promise.all([
       this.mediaService.getScenePlaybackInfo(sceneId),
       this.authService.resolveRequestAuth(request),
@@ -318,9 +320,12 @@ export class MediaController {
       'Content-Length',
       asset.contentLength ?? String(asset.body.byteLength),
     );
-    if (asset.cacheControl) {
-      response.setHeader('Cache-Control', asset.cacheControl);
-    }
+    // Pictures change rarely: kept a day, then checked again in the background.
+    response.setHeader(
+      'Cache-Control',
+      asset.cacheControl ??
+        'private, max-age=86400, stale-while-revalidate=604800',
+    );
     response.status(200).end(asset.body);
   }
 }

@@ -21,7 +21,16 @@ describe('InlinePlayerComponent thumbnail preview', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: PlayerService, useValue: { close: vi.fn(), saveProgress: vi.fn() } },
+        {
+          provide: PlayerService,
+          useValue: {
+            close: vi.fn(),
+            saveProgress: vi.fn(),
+            resolveLocalSource: vi.fn(() =>
+              of({ streamUrl: '/stream', stashSceneId: '412', resumeSeconds: 0, duration: 600 }),
+            ),
+          },
+        },
       ],
     });
     const fixture = TestBed.createComponent(InlinePlayerComponent);
@@ -275,6 +284,18 @@ describe('InlinePlayerComponent thumbnail preview', () => {
 
     expect(player.saveProgress).not.toHaveBeenCalled();
     expect(host.querySelector('.poster')?.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('finds where to play it from as the page opens, so play goes straight to it', () => {
+    const { fixture } = render();
+    const player = TestBed.inject(PlayerService) as unknown as {
+      resolveLocalSource: ReturnType<typeof vi.fn>;
+    };
+    expect(player.resolveLocalSource).toHaveBeenCalledTimes(1);
+
+    (fixture.nativeElement.querySelector('.poster') as HTMLButtonElement).click();
+
+    expect(player.resolveLocalSource).toHaveBeenCalledTimes(1);
   });
 
   it('previews nothing for a scene that cannot be played', () => {

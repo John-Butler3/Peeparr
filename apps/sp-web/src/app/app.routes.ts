@@ -12,26 +12,6 @@ import {
 import { AppShellLayoutComponent } from './layouts/app-shell-layout/app-shell-layout.component';
 import { BootstrapPageComponent } from './features/auth/bootstrap-page.component';
 import { LoginPageComponent } from './features/auth/login-page.component';
-import { SetupPageComponent } from './features/setup/setup-page.component';
-import { AcquisitionPageComponent } from './pages/acquisition/acquisition-page.component';
-import { UpcomingPageComponent } from './pages/upcoming/upcoming-page.component';
-import { GalleriesPageComponent } from './pages/galleries/galleries-page.component';
-import { GalleryPageComponent } from './pages/gallery/gallery-page.component';
-import { LibraryPageComponent } from './pages/library/library-page.component';
-import { ScenesPageComponent } from './pages/scenes/scenes-page.component';
-import { ScenePageComponent } from './pages/scene/scene-page.component';
-import { IndexingSettingsPageComponent } from './pages/settings/indexing-settings-page.component';
-import { SettingsAboutPageComponent } from './pages/settings/settings-about-page.component';
-import { SettingsAccountPageComponent } from './pages/settings/settings-account-page.component';
-import { SettingsContentPageComponent } from './pages/settings/settings-content-page.component';
-import { SettingsIntegrationsPageComponent } from './pages/settings/settings-integrations-page.component';
-import { SettingsOverviewPageComponent } from './pages/settings/settings-overview-page.component';
-import { SettingsPageComponent } from './pages/settings/settings-page.component';
-import { PerformersPageComponent } from './pages/performers/performers-page.component';
-import { PerformerPageComponent } from './pages/performer/performer-page.component';
-import { StudiosPageComponent } from './pages/studios/studios-page.component';
-import { StudioPageComponent } from './pages/studio/studio-page.component';
-import { SearchPageComponent } from './pages/search/search-page.component';
 
 export const routes: Routes = [
   {
@@ -46,7 +26,8 @@ export const routes: Routes = [
   },
   {
     path: 'setup',
-    component: SetupPageComponent,
+    loadComponent: () =>
+      import('./features/setup/setup-page.component').then((m) => m.SetupPageComponent),
     canActivate: [requireAuthenticatedGuard, setupOnlyWhenIncompleteGuard],
   },
   {
@@ -61,36 +42,48 @@ export const routes: Routes = [
       },
       {
         path: 'scene/:stashId',
-        component: ScenePageComponent,
+        loadComponent: () =>
+          import('./pages/scene/scene-page.component').then((m) => m.ScenePageComponent),
         canDeactivate: [fadeOutUnderMovingVideoGuard],
       },
       {
         path: 'scenes',
-        component: ScenesPageComponent,
+        loadComponent: () =>
+          import('./pages/scenes/scenes-page.component').then((m) => m.ScenesPageComponent),
       },
       {
         path: 'search',
-        component: SearchPageComponent,
+        loadComponent: () =>
+          import('./pages/search/search-page.component').then((m) => m.SearchPageComponent),
       },
       {
         path: 'acquisition',
-        component: AcquisitionPageComponent,
+        loadComponent: () =>
+          import('./pages/acquisition/acquisition-page.component').then(
+            (m) => m.AcquisitionPageComponent,
+          ),
       },
       {
         path: 'upcoming',
-        component: UpcomingPageComponent,
+        loadComponent: () =>
+          import('./pages/upcoming/upcoming-page.component').then((m) => m.UpcomingPageComponent),
       },
       {
         path: 'library',
-        component: LibraryPageComponent,
+        loadComponent: () =>
+          import('./pages/library/library-page.component').then((m) => m.LibraryPageComponent),
       },
       {
         path: 'galleries',
-        component: GalleriesPageComponent,
+        loadComponent: () =>
+          import('./pages/galleries/galleries-page.component').then(
+            (m) => m.GalleriesPageComponent,
+          ),
       },
       {
         path: 'galleries/:galleryId',
-        component: GalleryPageComponent,
+        loadComponent: () =>
+          import('./pages/gallery/gallery-page.component').then((m) => m.GalleryPageComponent),
       },
       {
         path: 'library/scene/:sceneId',
@@ -116,47 +109,74 @@ export const routes: Routes = [
       },
       {
         path: 'performers',
-        component: PerformersPageComponent,
+        loadComponent: () =>
+          import('./pages/performers/performers-page.component').then(
+            (m) => m.PerformersPageComponent,
+          ),
       },
       {
         path: 'studios',
-        component: StudiosPageComponent,
+        loadComponent: () =>
+          import('./pages/studios/studios-page.component').then((m) => m.StudiosPageComponent),
       },
       {
         path: 'performer/:performerId',
-        component: PerformerPageComponent,
+        loadComponent: () =>
+          import('./pages/performer/performer-page.component').then(
+            (m) => m.PerformerPageComponent,
+          ),
       },
       {
         path: 'studio/:studioId',
-        component: StudioPageComponent,
+        loadComponent: () =>
+          import('./pages/studio/studio-page.component').then((m) => m.StudioPageComponent),
       },
       {
         path: 'settings',
-        component: SettingsPageComponent,
+        loadComponent: () =>
+          import('./pages/settings/settings-page.component').then((m) => m.SettingsPageComponent),
         children: [
           {
             path: '',
-            component: SettingsOverviewPageComponent,
+            loadComponent: () =>
+              import('./pages/settings/settings-overview-page.component').then(
+                (m) => m.SettingsOverviewPageComponent,
+              ),
           },
           {
             path: 'integrations',
-            component: SettingsIntegrationsPageComponent,
+            loadComponent: () =>
+              import('./pages/settings/settings-integrations-page.component').then(
+                (m) => m.SettingsIntegrationsPageComponent,
+              ),
           },
           {
             path: 'indexing',
-            component: IndexingSettingsPageComponent,
+            loadComponent: () =>
+              import('./pages/settings/indexing-settings-page.component').then(
+                (m) => m.IndexingSettingsPageComponent,
+              ),
           },
           {
             path: 'content',
-            component: SettingsContentPageComponent,
+            loadComponent: () =>
+              import('./pages/settings/settings-content-page.component').then(
+                (m) => m.SettingsContentPageComponent,
+              ),
           },
           {
             path: 'account',
-            component: SettingsAccountPageComponent,
+            loadComponent: () =>
+              import('./pages/settings/settings-account-page.component').then(
+                (m) => m.SettingsAccountPageComponent,
+              ),
           },
           {
             path: 'about',
-            component: SettingsAboutPageComponent,
+            loadComponent: () =>
+              import('./pages/settings/settings-about-page.component').then(
+                (m) => m.SettingsAboutPageComponent,
+              ),
           },
         ],
       },
