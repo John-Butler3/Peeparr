@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.9.0](https://github.com/John-Butler3/Peeparr/compare/v1.8.0...v1.9.0) (2026-11-03)
+
+
+### Features
+
+* Continue Watching updates at once and always lists part-watched scenes ([5eecf39](https://github.com/John-Butler3/Peeparr/commit/5eecf39990d6846c80856aa915aefe53dfc902a5))
+* GitHub-style almond ripple on the launch logo, a quicker reveal, and popular performers and sites matched by the names TPDB's homepage shows ([edeaa99](https://github.com/John-Butler3/Peeparr/commit/edeaa993c68c42ef790fed3d92f38c77eaa23976))
+* shuffle button on Home -- opens a random scene from the library ([260e0a9](https://github.com/John-Butler3/Peeparr/commit/260e0a932ebbc26ee14456978a3f92ea617ba5dd))
+* **web:** a full-size site logo into a scene page's preview, which plays once ([7320176](https://github.com/John-Butler3/Peeparr/commit/7320176361bc43fe7cef9178008c180d5206916d))
+* **web:** a scene page's preview carries on in the banner, and dims the page ([bbcb6a4](https://github.com/John-Butler3/Peeparr/commit/bbcb6a4a505df5323e6f05711178198f6a176dc9))
+* **web:** a scene page's thumbnail plays its preview after a few seconds ([1774e1c](https://github.com/John-Butler3/Peeparr/commit/1774e1c08f5495cdf09062d9b46a07a9654103a6))
+* **web:** local-only scenes open their performers' and site's own pages ([0e6d755](https://github.com/John-Butler3/Peeparr/commit/0e6d755204bd23368ae5a53f3ec208a81e78f8ca))
+* **web:** More from names every woman in the scene ([f21629e](https://github.com/John-Butler3/Peeparr/commit/f21629e2046b59d0d860c33a2608ed034589d85c))
+* **web:** previews have sound, with a mute button that lasts until a new page ([36b3abb](https://github.com/John-Butler3/Peeparr/commit/36b3abb1f88473197ec55694554924dae725a2b6))
+* **web:** scene pages shrink the picture away until the scene is played ([3f34d1d](https://github.com/John-Butler3/Peeparr/commit/3f34d1d346fef8ac01cc877c898d7e163850998e))
+* **web:** signed out, the loading logo stays still and only the sign-in slide plays ([ce414b8](https://github.com/John-Butler3/Peeparr/commit/ce414b856d8f9d14b0d9091eeefd9c3ee4e3cc1a))
+* **web:** the loading logo shows straight away -- iOS launch images and a stylesheet that no longer holds up the first paint ([a697d35](https://github.com/John-Butler3/Peeparr/commit/a697d35a0e200eebcca75ba5b7f1d1161e754b1d))
+* **web:** the logo's almond rings pulse gently on the launch screen and sign-in page ([1e5ab87](https://github.com/John-Butler3/Peeparr/commit/1e5ab8700565f81b2c83d6f82375e24e92f4ff98))
+* **web:** the site's logo, then a slow fade, into a scene page's preview ([17c240b](https://github.com/John-Butler3/Peeparr/commit/17c240b270a902861390a5a14d29ec0055ce563d))
+
+
+### Bug Fixes
+
+* **api:** popular performers from the homepage's top list, as the performers themselves ([a9663fd](https://github.com/John-Butler3/Peeparr/commit/a9663fdbfd325a48ec78834ef436122470ceea49))
+* **player:** the previous scene's picture no longer shows on the next one ([f447351](https://github.com/John-Butler3/Peeparr/commit/f4473516419aa9849da3f93d313b9f4ebcaa26a1))
+* **web:** a preview's sound stops with its page, and none starts after ([fa24893](https://github.com/John-Butler3/Peeparr/commit/fa248930b1060478eae92a6fe0ecd53c6c0ce650))
+* **web:** animation audit -- states that return, steady text and matching exits ([3b50f68](https://github.com/John-Butler3/Peeparr/commit/3b50f687acfbce7aaaafcf18931bbe0857b12947))
+* **web:** Continue Watching doesn't flash scenes that have left it, and leaves smoothly ([951887e](https://github.com/John-Butler3/Peeparr/commit/951887e4ca31bf3ad693a52003d02763a965e8cd))
+* **web:** Continue Watching measures its real height, so the rows below don't jump ([b2219c4](https://github.com/John-Butler3/Peeparr/commit/b2219c44419b78bb9a898db98c5426686a56e25a))
+* **web:** marking a scene unwatched clears its progress everywhere at once ([d2e659d](https://github.com/John-Butler3/Peeparr/commit/d2e659d1f51117973d0dbda709c37acf0e552159))
+* **web:** previews in Similar and More from work again on scene pages ([cba3400](https://github.com/John-Butler3/Peeparr/commit/cba340079f5310e748aea06a4294adf21edc19c9))
+
+
+### Performance Improvements
+
+* compressed, cached and loaded-on-demand pages, and quicker video starts ([4147285](https://github.com/John-Butler3/Peeparr/commit/414728538f3eee77da3e010431936effb709cd01))
+* More from a scene's performers comes straight from the library index ([a7581cb](https://github.com/John-Butler3/Peeparr/commit/a7581cb39b8d9aa29cc6cbbbae8e5bb43a69237a))
+
 ## [1.8.0](https://github.com/John-Butler3/Peeparr/compare/v1.7.0...v1.8.0) (2026-10-26)
 
 
