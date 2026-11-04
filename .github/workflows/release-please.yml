@@ -42,3 +42,15 @@ jobs:
     uses: ./.github/workflows/release-bundle.yml
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
+
+  # Its Docker image: 1.2.3, v1.2, v1 and latest.
+  release-image:
+    name: Release Image
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/ghcr-publish.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
