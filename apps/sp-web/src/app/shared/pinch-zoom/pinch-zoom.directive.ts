@@ -48,6 +48,9 @@ interface Fitted {
  * side, which squashes or stretches the picture). The live transform is on
  * the fitted-size picture (a small layer), and the settled layout carries no
  * transform (painted in tiles like a long page), so neither gets that big.
+ * Safari (and every browser on iPhone and iPad, all built on it) still
+ * stretches a picture drawn past about 8192 device pixels on a side, so
+ * there zoom stops short of that (MAX_DEVICE_SIDE_PX); elsewhere it doesn't.
  *
  * Smoothness: moves are a GPU transform, animated frame by frame. Sharpness:
  * a transform only stretches the picture as drawn at its fitted size, so once
@@ -71,6 +74,12 @@ export class PinchZoomDirective implements OnDestroy {
   static readonly MIN_MAX_SCALE = 4;
   /** ...and as far as this beyond actual pixels (pixel-peeping). */
   static readonly BEYOND_ACTUAL = 4;
+  /** Safari: the longest a picture is drawn, in device pixels (see above). */
+  static readonly MAX_DEVICE_SIDE_PX = 8192;
+  /** Safari's engine (Safari, and any browser on iPhone and iPad). */
+  static isWebKit(): boolean {
+    return typeof navigator !== 'undefined' && navigator.vendor === 'Apple Computer, Inc.';
+  }
   /** Space between pictures in a carousel strip. */
   static readonly SLIDE_GAP_PX = 24;
   static readonly SLIDE_MS = 280;
@@ -539,10 +548,17 @@ export class PinchZoomDirective implements OnDestroy {
   }
 
   private maxScale(): number {
-    return Math.max(
+    const deepest = Math.max(
       PinchZoomDirective.MIN_MAX_SCALE,
       this.actualPixelsScale() * PinchZoomDirective.BEYOND_ACTUAL,
     );
+    const fitted = this.measure();
+    if (!PinchZoomDirective.isWebKit() || !fitted) {
+      return deepest;
+    }
+    const longest = Math.max(fitted.w, fitted.h) * (globalThis.devicePixelRatio || 1);
+    const safe = longest > 0 ? PinchZoomDirective.MAX_DEVICE_SIDE_PX / longest : deepest;
+    return Math.max(1, Math.min(deepest, safe));
   }
 
   /** Picture pixels per screen (device) pixel when fitted. */

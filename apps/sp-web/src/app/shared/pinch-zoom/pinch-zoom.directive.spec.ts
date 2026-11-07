@@ -61,6 +61,7 @@ describe('PinchZoomDirective', () => {
     }),
   );
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
     TestBed.resetTestingModule();
   });
@@ -214,6 +215,8 @@ describe('PinchZoomDirective', () => {
   });
 
   it('zooms far past actual pixels, and all the way in the picture keeps its shape', () => {
+    // (Not Safari: jsdom says it's Apple's.)
+    vi.spyOn(PinchZoomDirective, 'isWebKit').mockReturnValue(false);
     const { stage, photo } = render();
 
     for (let i = 0; i < 60; i++) {
@@ -231,6 +234,25 @@ describe('PinchZoomDirective', () => {
     expect(width / height).toBeCloseTo(400 / 300);
     // Laid out, not stretched by a leftover transform.
     expect(photo.style.transform).toBe('none');
+  });
+
+  it('on Safari (iPhone, iPad), stops short of the size it would stretch the picture at', () => {
+    vi.spyOn(PinchZoomDirective, 'isWebKit').mockReturnValue(true);
+    const { stage, photo } = render();
+
+    for (let i = 0; i < 60; i++) {
+      stage.dispatchEvent(
+        new WheelEvent('wheel', { deltaY: -400, clientX: 400, clientY: 300, cancelable: true }),
+      );
+      vi.advanceTimersByTime(20);
+    }
+    vi.advanceTimersByTime(SETTLED);
+
+    const width = parseFloat(photo.style.width);
+    const height = parseFloat(photo.style.height);
+    // Its long side no more than 8192 device pixels (here 1 per CSS pixel).
+    expect(width).toBeCloseTo(PinchZoomDirective.MAX_DEVICE_SIDE_PX, 0);
+    expect(width / height).toBeCloseTo(400 / 300);
   });
 
   it('a mouse click on the photo zooms and unzooms; the wheel zooms too', () => {
