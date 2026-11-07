@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/John-Butler3/Peeparr/compare/v1.9.0...v1.9.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **galleries:** photos no longer stretch when zoomed in deep on iPhone ([8b3bd92](https://github.com/John-Butler3/Peeparr/commit/8b3bd92c2302eecead5da64c5da9e08e536efb6c))
+
 ## [1.9.0](https://github.com/John-Butler3/Peeparr/compare/v1.8.0...v1.9.0) (2026-11-03)
 
 
