@@ -371,6 +371,18 @@ textarea:focus {
   color: #f1f1f1 !important;
 }
 
+// Both lines in the toast's own colour (the theme's text colour, meant for the
+// page, made the second line light on light).
+.app-toast .p-toast-summary,
+.app-toast .p-toast-detail,
+.app-toast .p-toast-close-button {
+  color: inherit !important;
+}
+
+.app-toast .p-toast-detail {
+  opacity: 0.75;
+}
+
 // ---- Scrollbars and motion -------------------------------------------------
 
 * {
