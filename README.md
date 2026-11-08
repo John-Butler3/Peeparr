@@ -21,7 +21,7 @@ A self-hosted hub for your adult library, alongside Stash and Whisparr: discover
 </p>
 
 <p align="center">
-  <img src="docs/assets/peeparr-ad.gif" alt="Peeparr in use: search for scenes, request them, follow the downloads, and watch, on desktop and on a phone" width="100%" />
+  <img src="docs/assets/peeparr-ad.gif" alt="Peeparr from sign-in to watching, on desktop and a phone side by side: search, request, follow the download, preview and watch" width="100%" />
 </p>
 
 ## What is Peeparr?

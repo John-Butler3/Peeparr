@@ -1,0 +1,159 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#09090b;font-family:'Noto Sans','DejaVu Sans',sans-serif;color:#f4f4f5}
+.abs{position:absolute}
+#bg{inset:0;background:radial-gradient(ellipse 55% 60% at 30% 60%,rgba(255,0,51,.10),transparent 70%),radial-gradient(ellipse 40% 55% at 85% 55%,rgba(255,0,51,.08),transparent 70%),#09090b}
+#deco{inset:0;opacity:.5}
+/* Caption */
+#cap{left:80px;top:46px;right:80px;height:130px}
+.capItem{position:absolute;left:0;top:0;display:flex;align-items:center;gap:26px;will-change:transform,opacity}
+.num{flex:none;display:grid;place-items:center;width:74px;height:74px;border-radius:22px;background:#ff0033;color:#fff;font-size:34px;font-weight:900;box-shadow:0 10px 30px rgba(255,0,51,.35)}
+.capText b{display:block;font-size:46px;font-weight:900;letter-spacing:-1px;line-height:1.05}
+.capText span{display:block;margin-top:8px;font-size:25px;font-weight:600;color:#c4c4cc}
+/* Devices */
+#desk{left:70px;top:206px;width:1240px;border-radius:18px;overflow:hidden;background:#111;box-shadow:0 40px 110px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.12);will-change:transform,opacity}
+#desk .bar{height:34px;background:#1b1b1f;display:flex;align-items:center;gap:8px;padding:0 16px}
+#desk .bar i{width:12px;height:12px;border-radius:50%;background:#3a3a40;display:block}
+#desk .bar em{margin-left:16px;flex:1;max-width:420px;height:22px;border-radius:11px;background:#26262b;color:#9a9aa4;font-style:normal;font-size:13px;display:flex;align-items:center;padding-left:14px}
+#deskView{position:relative;width:1240px;height:775px;overflow:hidden;background:#0f0f0f}
+#deskView img{width:1240px;height:775px;display:block}
+#phone{left:1430px;top:212px;width:381px;padding:13px;border-radius:58px;background:#050507;box-shadow:0 40px 100px rgba(0,0,0,.75),0 0 0 2px rgba(255,255,255,.16);will-change:transform,opacity}
+#phoneView{position:relative;width:355px;height:768px;border-radius:46px;overflow:hidden;background:#0f0f0f}
+#phoneView img{width:355px;height:768px;display:block}
+.devLabel{position:absolute;top:-34px;left:4px;font-size:16px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8b8b95}
+.ripple{position:absolute;border-radius:50%;border:4px solid #ff0033;pointer-events:none;box-shadow:0 0 22px rgba(255,0,51,.55)}
+#cursor{position:absolute;width:26px;height:26px;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+/* Progress */
+#prog{left:80px;right:80px;bottom:30px;height:6px;display:flex;gap:8px}
+#prog div{flex:1;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+#prog div i{display:block;height:100%;width:0;background:#ff0033}
+/* Title cards */
+#card{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;will-change:opacity}
+#brand{display:flex;align-items:center}
+#logo{width:200px;filter:drop-shadow(0 18px 50px rgba(255,0,51,.5));will-change:transform}
+#nameWrap{overflow:hidden}
+#name{padding-left:34px;font-size:150px;font-weight:900;letter-spacing:-5px;line-height:1;white-space:nowrap;will-change:transform}
+#tag{font-size:40px;font-weight:700;color:#e4e4e7}
+#sub{font-size:26px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#ff3355}
+#url{font-size:28px;font-weight:700;color:#a1a1aa}
+</style></head><body>
+<div id="bg" class="abs"></div>
+<svg id="deco" class="abs" viewBox="0 0 1920 1080"><g id="rings" transform="translate(960 560)"></g></svg>
+<div id="cap" class="abs"></div>
+<div id="desk" class="abs"><div class="devLabel">Desktop</div><div class="bar"><i></i><i></i><i></i><em>peeparr.local</em></div><div id="deskView"><img id="deskImg"><div id="deskFx" class="abs" style="inset:0"></div></div></div>
+<div id="phone" class="abs"><div class="devLabel" style="left:18px">Phone</div><div id="phoneView"><img id="phoneImg"><div id="phoneFx" class="abs" style="inset:0"></div></div></div>
+<div id="prog" class="abs"></div>
+<div id="card" class="abs"><div id="brand"><div id="logo"></div><div id="nameWrap"><div id="name">Peeparr</div></div></div><div id="tag"></div><div id="sub"></div><div id="url"></div></div>
+<script>
+const D = window.DATA;
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const outC = (x) => 1 - Math.pow(1 - x, 3);
+const outBack = (x) => 1 + 2.4 * Math.pow(x - 1, 3) + 1.4 * Math.pow(x - 1, 2);
+$('logo').innerHTML = D.logoSvg;
+const ALMOND = 'M0 -100C38 -70 50 -5 0 60C-50 -5 -38 -70 0 -100Z';
+const rings = [0, 1, 2, 3].map(() => { const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', ALMOND); p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#ff0033'); p.setAttribute('stroke-width', '3'); p.setAttribute('vector-effect', 'non-scaling-stroke'); $('rings').appendChild(p); return p; });
+D.steps.forEach(() => { const d = document.createElement('div'); d.appendChild(document.createElement('i')); $('prog').appendChild(d); });
+const capEls = D.steps.map((s, i) => { const el = document.createElement('div'); el.className = 'capItem'; el.innerHTML = `<div class="num">${i + 1}</div><div class="capText"><b>${s.title}</b><span>${s.text}</span></div>`; el.style.opacity = 0; $('cap').appendChild(el); return el; });
+const cursorSvg = '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 2l15 11-6.5 1.2L16 21l-3 1.4-3.6-6.8L4 20z" fill="#fff" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+
+// Device time for a moment of the ad: each step's stretch of the recording,
+// sped up to fit when it ran long, held on its last frame when it ran short.
+function localTime(dev, g) {
+  const tl = D.dev[dev];
+  for (let i = 0; i < D.steps.length; i++) {
+    const s = D.steps[i];
+    if (g < s.g1 || i === D.steps.length - 1) {
+      const into = Math.max(0, g - s.g0);
+      const d = tl.d[i];
+      const rate = Math.max(d / (s.g1 - s.g0), 0.8);
+      return tl.s[i] + Math.min(into * rate, d);
+    }
+  }
+}
+function frameAt(dev, t) {
+  const f = D.dev[dev].frames; let lo = 0, hi = f.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (f[mid][0] <= t) lo = mid; else hi = mid - 1; }
+  return f[lo][1];
+}
+async function setImg(img, src) { if (img.dataset.src === src) return; img.dataset.src = src; img.src = src; await img.decode().catch(() => {}); }
+// Taps, mapped to the ad's time (inverse of localTime, per step).
+function tapGlobal(dev, tap) {
+  const tl = D.dev[dev];
+  for (let i = 0; i < D.steps.length; i++) {
+    const s = D.steps[i];
+    if (tap.t >= tl.s[i] && (tap.t < tl.s[i] + tl.d[i] || i === D.steps.length - 1)) {
+      const rate = Math.max(tl.d[i] / (s.g1 - s.g0), 0.8);
+      return s.g0 + (tap.t - tl.s[i]) / rate;
+    }
+  }
+  return -99;
+}
+for (const dev of ['desktop', 'phone']) for (const tap of D.dev[dev].taps) tap.g = tapGlobal(dev, tap);
+
+function fx(dev, g) {
+  const box = $(dev === 'desktop' ? 'deskFx' : 'phoneFx');
+  const k = dev === 'desktop' ? 1240 / 1280 : 355 / 390;
+  let html = '';
+  for (const tap of D.dev[dev].taps) {
+    const a = g - tap.g;
+    if (a >= 0 && a < 0.7) { const r = 14 + 46 * outC(a / 0.7); html += `<div class="ripple" style="left:${tap.x * k - r}px;top:${tap.y * k - r}px;width:${2 * r}px;height:${2 * r}px;opacity:${1 - a / 0.7}"></div>`; }
+  }
+  if (dev === 'desktop') {
+    // A pointer gliding to each click just before it.
+    const taps = D.dev.desktop.taps; let x = 900, y = 520;
+    for (let i = 0; i < taps.length; i++) {
+      const t = taps[i], prev = taps[i - 1] ?? { x: 900, y: 520 };
+      if (g >= t.g) { x = t.x; y = t.y; continue; }
+      const m = prog(g, t.g - 0.7, t.g); x = prev.x + (t.x - prev.x) * ease(m); y = prev.y + (t.y - prev.y) * ease(m); break;
+    }
+    const press = D.dev.desktop.taps.some((t) => g - t.g >= 0 && g - t.g < 0.12);
+    html += `<div id="cursor" style="left:${x * k - 4}px;top:${y * k - 3}px;transform:scale(${press ? 0.82 : 1})">${cursorSvg}</div>`;
+  }
+  box.innerHTML = html;
+}
+
+window.render = async function (g) {
+  const first = D.steps[0], last = D.steps[D.steps.length - 1];
+  // Title card: in at the start, back at the end.
+  const introOut = prog(g, first.g0 - 0.6, first.g0 + 0.2);
+  const outroIn = prog(g, last.g1 + 0.2, last.g1 + 1.1);
+  const cardOn = g < first.g0 ? 1 - introOut : outroIn;
+  const card = $('card');
+  card.style.opacity = g < first.g0 + 0.2 ? 1 - introOut : outroIn;
+  const isOutro = g > last.g1;
+  const c0 = isOutro ? last.g1 + 0.4 : 0.2;
+  const lp = outBack(prog(g, c0, c0 + 0.8));
+  $('logo').style.transform = `scale(${0.4 + 0.6 * lp}) rotate(${(1 - prog(g, c0, c0 + 0.8)) * -8}deg)`;
+  $('name').style.transform = `translateX(${-110 * (1 - outC(prog(g, c0 + 0.5, c0 + 1.2)))}%)`;
+  $('tag').textContent = isOutro ? 'Find it. Request it. Watch it.' : 'The front end for your Stash and Whisparr';
+  $('sub').textContent = isOutro ? 'Self-hosted · Free · Open source' : 'From sign-in to watching, start to finish';
+  $('url').textContent = isOutro ? 'github.com/John-Butler3/Peeparr' : '';
+  for (const id of ['tag', 'sub', 'url']) { const k = outC(prog(g, c0 + 0.9 + (id === 'sub' ? 0.2 : id === 'url' ? 0.4 : 0), c0 + 1.5 + (id === 'sub' ? 0.2 : id === 'url' ? 0.4 : 0))); $(id).style.opacity = k; $(id).style.transform = `translateY(${(1 - k) * 18}px)`; }
+  rings.forEach((r, i) => { const ph = ((g * 0.33 + i / 4) % 1); r.setAttribute('transform', `scale(${0.6 + ph * 3.6})`); r.setAttribute('opacity', String((cardOn * 0.6 + 0.12) * (1 - ph))); });
+  // Devices: rise in after the title card, sink away before the end.
+  const devIn = outC(prog(g, first.g0 - 0.5, first.g0 + 0.5));
+  const devOut = prog(g, last.g1 - 0.1, last.g1 + 0.7);
+  const shown = devIn * (1 - devOut);
+  $('desk').style.opacity = shown; $('phone').style.opacity = shown;
+  $('desk').style.transform = `translateY(${(1 - devIn) * 70 + devOut * 40}px) scale(${0.97 + 0.03 * devIn})`;
+  $('phone').style.transform = `translateY(${(1 - outC(prog(g, first.g0 - 0.35, first.g0 + 0.65))) * 90 + devOut * 40}px)`;
+  $('cap').style.opacity = shown; $('prog').style.opacity = shown;
+  // Captions: the current one slides in, the last one up and away.
+  D.steps.forEach((s, i) => {
+    const inK = outC(prog(g, s.g0 - 0.15, s.g0 + 0.45));
+    const outK = i < D.steps.length - 1 ? prog(g, s.g1 - 0.25, s.g1 + 0.2) : 0;
+    const el = capEls[i];
+    el.style.opacity = g < s.g0 - 0.15 ? 0 : inK * (1 - outK);
+    el.style.transform = `translateY(${(1 - inK) * 34 - outK * 30}px)`;
+    $('prog').children[i].firstChild.style.width = `${prog(g, s.g0, s.g1) * 100}%`;
+  });
+  if (shown > 0) {
+    await Promise.all([setImg($('deskImg'), D.dev.desktop.dir + frameAt('desktop', localTime('desktop', g))), setImg($('phoneImg'), D.dev.phone.dir + frameAt('phone', localTime('phone', g)))]);
+    fx('desktop', g); fx('phone', g);
+  }
+};
+window.ready = true;
+</script></body></html>
