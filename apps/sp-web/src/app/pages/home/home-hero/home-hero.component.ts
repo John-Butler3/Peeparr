@@ -15,6 +15,11 @@ import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { HomeRailItem } from '../../../core/api/home.types';
 import { PreviewAudioService } from '../../../shared/scene-preview/preview-audio.service';
+import {
+  PREVIEW_GLYPH_VIEW_BOX,
+  PREVIEW_SOUND_OFF_PATH,
+  PREVIEW_SOUND_ON_PATH,
+} from '../../../shared/scene-preview/preview-mute-glyphs';
 import { ScenePreviewAutoplayService } from '../../../shared/scene-preview/scene-preview-autoplay.service';
 import {
   ScenePreviewService,
@@ -23,7 +28,8 @@ import {
 
 /**
  * Home's hero: new scenes in the library mixed with random unwatched ones
- * (labelled which), one at a time, each playing its muted preview; once the preview clip has played through (or after
+ * (labelled which), one at a time, each playing its preview (muted, with a
+ * button for sound); once the preview clip has played through (or after
  * PREVIEW_HOLD_MS when previewing the full file) it slides on to the next
  * (looping), or swipe sideways to change scene. Tapping the picture
  * opens the scene; Play plays it. While it's on screen the thumbnails below
@@ -206,6 +212,10 @@ export class HomeHeroComponent implements OnChanges, OnDestroy {
       ? ['/scene', item.activeCatalogSceneId]
       : ['/library/scene', item.id];
   }
+
+  protected readonly glyphViewBox = PREVIEW_GLYPH_VIEW_BOX;
+  protected readonly soundOnPath = PREVIEW_SOUND_ON_PATH;
+  protected readonly soundOffPath = PREVIEW_SOUND_OFF_PATH;
 
   protected toggleSound(video: HTMLVideoElement): void {
     this.audio.toggle(video);

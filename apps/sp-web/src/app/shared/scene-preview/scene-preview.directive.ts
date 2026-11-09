@@ -12,13 +12,18 @@ import {
 import { Observable, Subscription } from 'rxjs';
 import { ScenePreviewSource } from '../scene-card/scene-preview.service';
 import { PreviewAudioService } from './preview-audio.service';
+import {
+  PREVIEW_GLYPH_VIEW_BOX,
+  PREVIEW_SOUND_OFF_PATH,
+  PREVIEW_SOUND_ON_PATH,
+} from './preview-mute-glyphs';
 import { ScenePreviewAutoplayService } from './scene-preview-autoplay.service';
 
 export type ScenePreviewLoader = () => Observable<ScenePreviewSource | null>;
 
 /**
  * YouTube-style scene preview on any thumbnail: a loop from the middle of the
- * scene, faded in over the thumbnail, with sound and a mute button
+ * scene, faded in over the thumbnail, muted, with a button for sound
  * (PreviewAudioService). Read-only: previews never save progress.
  *
  * - Mouse: rest on the thumbnail. The video starts loading straight away
@@ -450,9 +455,9 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     const label = video.muted ? 'Turn preview sound on' : 'Mute previews';
     this.muteButton.setAttribute('aria-label', label);
     this.muteButton.title = label;
-    const icon = this.muteButton.firstElementChild;
-    icon?.classList.toggle('pi-volume-off', video.muted);
-    icon?.classList.toggle('pi-volume-up', !video.muted);
+    this.muteButton
+      .querySelector('path')
+      ?.setAttribute('d', video.muted ? PREVIEW_SOUND_OFF_PATH : PREVIEW_SOUND_ON_PATH);
   }
 
   private createMuteButton(): HTMLElement {
@@ -460,10 +465,13 @@ export class ScenePreviewDirective implements OnInit, OnDestroy {
     button.className = 'preview-mute';
     button.setAttribute('role', 'button');
     button.tabIndex = 0;
-    const icon = document.createElement('i');
-    icon.className = 'pi';
-    icon.setAttribute('aria-hidden', 'true');
-    button.appendChild(icon);
+    // The same kind of glyph as the Play button's, centred in the circle.
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'mute-glyph');
+    svg.setAttribute('viewBox', PREVIEW_GLYPH_VIEW_BOX);
+    svg.setAttribute('aria-hidden', 'true');
+    svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'path'));
+    button.appendChild(svg);
     // Not the thumbnail's own tap (opening or playing the scene).
     const toggle = (event: Event) => {
       event.preventDefault();

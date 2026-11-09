@@ -45,7 +45,8 @@
   opacity: 1;
 }
 
-// Mute, over a playing preview (PreviewAudioService).
+// Sound on / off, over a playing preview (PreviewAudioService): a round
+// button like the card's Play, its speaker glyph an SVG centred in it.
 .preview-mute {
   position: absolute;
   left: 8px;
@@ -55,16 +56,22 @@
   place-items: center;
   width: 32px;
   height: 32px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: rgb(0 0 0 / 65%);
   color: #fff;
-  font-size: 0.9rem;
+  line-height: 0;
   cursor: pointer;
   pointer-events: auto;
   animation: yt-fade-in var(--motion-base) ease-out;
 }
 
-.preview-mute i {
+.mute-glyph {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
   pointer-events: none;
 }
 

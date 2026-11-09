@@ -69,12 +69,9 @@
           [title]="soundOn() ? 'Mute previews' : 'Turn preview sound on'"
           (click)="toggleSound(video)"
         >
-          <i
-            class="pi"
-            [class.pi-volume-up]="soundOn()"
-            [class.pi-volume-off]="!soundOn()"
-            aria-hidden="true"
-          ></i>
+          <svg class="mute-glyph" [attr.viewBox]="glyphViewBox" aria-hidden="true">
+            <path [attr.d]="soundOn() ? soundOnPath : soundOffPath" />
+          </svg>
         </button>
       }
 
