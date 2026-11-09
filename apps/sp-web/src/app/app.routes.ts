@@ -165,6 +165,13 @@ export const routes: Routes = [
               ),
           },
           {
+            path: 'purge',
+            loadComponent: () =>
+              import('./pages/settings/purge-settings-page.component').then(
+                (m) => m.PurgeSettingsPageComponent,
+              ),
+          },
+          {
             path: 'account',
             loadComponent: () =>
               import('./pages/settings/settings-account-page.component').then(

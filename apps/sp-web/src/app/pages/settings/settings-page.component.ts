@@ -33,6 +33,10 @@ export class SettingsPageComponent {
       route: '/settings/content',
     },
     {
+      label: 'Purge',
+      route: '/settings/purge',
+    },
+    {
       label: 'Account',
       route: '/settings/account',
     },

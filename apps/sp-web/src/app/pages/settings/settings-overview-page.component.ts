@@ -38,6 +38,12 @@ export class SettingsOverviewPageComponent implements OnInit {
       description: 'What shows while browsing, and request defaults',
     },
     {
+      route: '/settings/purge',
+      icon: 'pi pi-trash',
+      title: 'Purge',
+      description: 'Keep or delete library scenes one at a time, with a swipe',
+    },
+    {
       route: '/settings/account',
       icon: 'pi pi-user',
       title: 'Account',
@@ -70,11 +76,17 @@ export class SettingsOverviewPageComponent implements OnInit {
       return 0;
     }
 
-    return Number(status.required.catalog) + Number(status.required.stash) + Number(status.required.whisparr);
+    return (
+      Number(status.required.catalog) +
+      Number(status.required.stash) +
+      Number(status.required.whisparr)
+    );
   });
 
   protected readonly progressSummary = computed(() =>
-    this.setupStatus() ? `${this.readyCount()} of 3 required services ready` : 'Required service status unavailable',
+    this.setupStatus()
+      ? `${this.readyCount()} of 3 required services ready`
+      : 'Required service status unavailable',
   );
 
   protected readonly catalogProviderLabel = computed(() => {

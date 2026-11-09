@@ -1,0 +1,174 @@
+<section class="purge-page">
+  <header class="page-head">
+    <div class="page-copy">
+      <h2>Purge</h2>
+      <p class="lede">
+        Go through your library one scene at a time. Swipe right to keep a scene, left to delete it.
+        Deleting is immediate and can't be undone: the file goes from Stash, and Whisparr forgets
+        the scene and won't download it again.
+      </p>
+    </div>
+  </header>
+
+  @if (!started()) {
+    <section class="summary-card intro-card">
+      <p class="eyebrow">Before you start</p>
+      <ul class="rules">
+        <li><strong>Swipe right</strong> (or Keep): the scene stays, and isn't shown again.</li>
+        <li>
+          <strong>Swipe left</strong> (or Delete): the scene and its file are deleted at once. There
+          is no undo.
+        </li>
+        <li>Scenes come oldest-added first. Kept ones are remembered on this device.</li>
+      </ul>
+      <div class="action-row">
+        <button pButton type="button" data-testid="purge-start" (click)="start()">
+          {{ keptBefore() > 0 ? 'Carry on' : 'Start' }}
+        </button>
+        @if (keptBefore() > 0) {
+          <button
+            pButton
+            type="button"
+            class="p-button-text"
+            data-testid="purge-start-over"
+            (click)="startOver()"
+          >
+            Start over ({{ keptBefore() }} kept)
+          </button>
+        }
+      </div>
+    </section>
+  } @else if (loadError()) {
+    <section class="state-shell">
+      <p-message severity="error" styleClass="state-message">{{ loadError() }}</p-message>
+      <button pButton type="button" (click)="retry()">Retry</button>
+    </section>
+  } @else if (loading()) {
+    <div class="app-blocking-loader" role="status" aria-live="polite">
+      <p-progressspinner
+        styleClass="app-blocking-spinner"
+        strokeWidth="4"
+        [style]="{ width: '2.25rem', height: '2.25rem' }"
+      />
+      <p>Loading your library...</p>
+    </div>
+  } @else if (finished()) {
+    <section class="summary-card intro-card" data-testid="purge-finished">
+      <p class="eyebrow">Done</p>
+      <h3>You've been through everything</h3>
+      <p class="summary-copy">
+        Kept {{ keptNow() }} and deleted {{ deletedNow() }} this time. New scenes will show up here
+        as they arrive.
+      </p>
+      <div class="action-row">
+        <button pButton type="button" class="p-button-text" (click)="startOver()">
+          Go through kept scenes again
+        </button>
+      </div>
+    </section>
+  } @else {
+    <section class="deck-shell" aria-live="polite">
+      <div class="tally" data-testid="purge-tally">
+        <div class="tally-item">
+          <strong>{{ keptNow() }}</strong> kept
+        </div>
+        <div class="tally-item">
+          <strong>{{ deletedNow() }}</strong> deleted
+        </div>
+        @if (remaining(); as remaining) {
+          <div class="tally-item">
+            <strong>{{ remaining }}</strong> to go
+          </div>
+        }
+      </div>
+
+      <div class="deck">
+        @if (next(); as scene) {
+          <article class="scene-card is-next" aria-hidden="true">
+            <div class="thumb">
+              @if (thumbnail(scene); as image) {
+                <img [src]="image" alt="" loading="lazy" />
+              }
+            </div>
+            <div class="scene-text">
+              <h3 class="scene-title">{{ scene.title }}</h3>
+            </div>
+          </article>
+        }
+
+        @if (current(); as scene) {
+          <article
+            class="scene-card is-top"
+            data-testid="purge-card"
+            [class.is-dragging]="dragging()"
+            [class.is-flying]="flying() !== null"
+            [class.lean-keep]="(flying() ?? leaning()) === 'keep'"
+            [class.lean-delete]="(flying() ?? leaning()) === 'delete'"
+            [style.transform]="cardTransform()"
+            (pointerdown)="onPointerDown($event)"
+            (pointermove)="onPointerMove($event)"
+            (pointerup)="onPointerUp()"
+            (pointercancel)="onPointerCancel()"
+            (lostpointercapture)="onPointerCancel()"
+          >
+            <div class="thumb">
+              @if (thumbnail(scene); as image) {
+                <img [src]="image" [alt]="scene.title" draggable="false" />
+              }
+              <div
+                class="stamp stamp-keep"
+                [style.opacity]="leaning() === 'keep' ? leanAmount() : 0"
+              >
+                Keep
+              </div>
+              <div
+                class="stamp stamp-delete"
+                [style.opacity]="leaning() === 'delete' ? leanAmount() : 0"
+              >
+                Delete
+              </div>
+            </div>
+            <div class="scene-text">
+              <h3 class="scene-title" data-testid="purge-title">{{ scene.title }}</h3>
+              @if (byline(scene); as byline) {
+                <p class="scene-byline">{{ byline }}</p>
+              }
+              @if (scene.performerNames.length > 0) {
+                <p class="scene-performers">{{ scene.performerNames.join(', ') }}</p>
+              }
+            </div>
+          </article>
+        }
+      </div>
+
+      <div class="decide-row">
+        <button
+          pButton
+          type="button"
+          class="p-button-danger decide-button"
+          data-testid="purge-delete"
+          aria-label="Delete this scene and its file"
+          [disabled]="flying() !== null || !current()"
+          (click)="delete()"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i>
+          <span>Delete</span>
+        </button>
+        <button
+          pButton
+          type="button"
+          class="decide-button decide-keep"
+          data-testid="purge-keep"
+          aria-label="Keep this scene"
+          [disabled]="flying() !== null || !current()"
+          (click)="keep()"
+        >
+          <i class="pi pi-check" aria-hidden="true"></i>
+          <span>Keep</span>
+        </button>
+      </div>
+
+      <p class="action-hint">Swipe the card, or use the buttons. Deleting can't be undone.</p>
+    </section>
+  }
+</section>
