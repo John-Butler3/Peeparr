@@ -15,6 +15,7 @@ import { PlayerService } from '../../core/player/player.service';
 import { KeepAliveRouteStrategy } from '../../core/navigation/keep-alive-route.strategy';
 import { PageFadeService } from '../../core/navigation/page-fade.service';
 import { EmbedPlayerService } from '../../core/player/embed-player.service';
+import { NowPlayingService } from '../../core/player/now-playing.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
 
 /**
@@ -30,9 +31,6 @@ import { tidyMarkers } from '../scene-chapters/scene-chapters.component';
 })
 export class MiniplayerComponent implements OnDestroy {
   private static readonly PROGRESS_SAVE_INTERVAL_MS = 20_000;
-  // Sizes iOS/Android/desktop commonly probe for when picking a "now playing"
-  // artwork entry (the OS fetches and scales the same image whichever it picks).
-  private static readonly ARTWORK_SIZES = ['96x96', '192x192', '256x256', '384x384', '512x512'];
 
   private readonly playerService = inject(PlayerService);
   protected readonly sharedVideo = inject(SharedVideoService);
@@ -42,6 +40,7 @@ export class MiniplayerComponent implements OnDestroy {
     this.sharedVideo.pictureInPictureSupported();
   private readonly pageFade = inject(PageFadeService);
   private readonly embedPlayer = inject(EmbedPlayerService);
+  private readonly nowPlaying = inject(NowPlayingService);
   /** Streamed from Pornhub (its player, laid over this spot): no play/pause or progress here. */
   protected readonly streaming = computed(() => !!this.state()?.source.embedUrl);
   private readonly reuseStrategy = inject(RouteReuseStrategy);
@@ -415,17 +414,19 @@ export class MiniplayerComponent implements OnDestroy {
 
   private startedPlaying(): void {
     const current = this.state();
-    if (current) {
-      this.updateMediaSession(current.title, current.imageUrl);
+    const video = this.video;
+    if (current && video) {
+      this.nowPlaying.show(video, {
+        title: current.title,
+        imageUrl: current.imageUrl,
+        details: this.playerService.details(),
+      });
     }
     this.startProgressSaveInterval();
   }
 
   protected onVideoPlay(): void {
     this.paused.set(false);
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'playing';
-    }
   }
 
   protected onVideoTimeUpdate(): void {
@@ -441,75 +442,13 @@ export class MiniplayerComponent implements OnDestroy {
   protected onVideoPause(): void {
     this.paused.set(true);
     this.saveCurrentProgress();
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'paused';
-    }
   }
 
   protected closePlayer(): void {
     this.saveCurrentProgress();
     this.detachVideo();
     this.playerService.close();
-    this.clearMediaSession();
-  }
-
-  // The OS "now playing" surface (lock screen, Control Center, AirPlay,
-  // Android notification, media keys): the scene's title and picture, with
-  // play/pause/seek handlers -- WebKit only shows custom metadata once those
-  // are registered.
-  private updateMediaSession(title: string, imageUrl: string | null): void {
-    if (!('mediaSession' in navigator)) {
-      return;
-    }
-
-    const session = navigator.mediaSession;
-    session.metadata = new MediaMetadata({
-      title,
-      artwork: imageUrl
-        ? MiniplayerComponent.ARTWORK_SIZES.map((sizes) => ({ src: imageUrl, sizes }))
-        : [],
-    });
-    session.playbackState = 'playing';
-    session.setActionHandler('play', () => {
-      this.video?.play().catch(() => undefined);
-    });
-    session.setActionHandler('pause', () => {
-      this.video?.pause();
-    });
-    session.setActionHandler('seekto', (details) => {
-      const video = this.video;
-      if (video && typeof details.seekTime === 'number') {
-        video.currentTime = details.seekTime;
-      }
-    });
-    session.setActionHandler('seekbackward', (details) => {
-      const video = this.video;
-      if (video) {
-        video.currentTime = Math.max(0, video.currentTime - (details.seekOffset ?? 10));
-      }
-    });
-    session.setActionHandler('seekforward', (details) => {
-      const video = this.video;
-      if (video) {
-        video.currentTime = Math.min(
-          video.duration || Infinity,
-          video.currentTime + (details.seekOffset ?? 10),
-        );
-      }
-    });
-  }
-
-  private clearMediaSession(): void {
-    if (!('mediaSession' in navigator)) {
-      return;
-    }
-
-    const session = navigator.mediaSession;
-    session.metadata = null;
-    session.playbackState = 'none';
-    for (const action of ['play', 'pause', 'seekto', 'seekbackward', 'seekforward'] as const) {
-      session.setActionHandler(action, null);
-    }
+    this.nowPlaying.clear();
   }
 
   private startProgressSaveInterval(): void {

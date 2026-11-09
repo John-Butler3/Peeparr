@@ -18,6 +18,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Observable, Subscription, of, shareReplay } from 'rxjs';
 import { SceneMarker, ScenePlaybackSource } from '../../core/api/discover.types';
 import { PageFadeService, onShowingPage } from '../../core/navigation/page-fade.service';
+import { NowPlayingService } from '../../core/player/now-playing.service';
 import { PlayerDetails, PlayerService } from '../../core/player/player.service';
 import { SharedVideoService } from '../../core/player/shared-video.service';
 import { VideoQualityService } from '../../core/player/video-quality.service';
@@ -89,6 +90,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly playerService = inject(PlayerService);
   private readonly sharedVideo = inject(SharedVideoService);
+  private readonly nowPlaying = inject(NowPlayingService);
   private readonly pageFade = inject(PageFadeService);
   private readonly previewSources = inject(ScenePreviewService);
   private readonly watchProgress = inject(WatchProgressService);
@@ -239,6 +241,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     if (!this.handOffIfPlaying()) {
       this.saveProgress();
       this.sharedVideo.release(this);
+      this.nowPlaying.clear();
     }
     this.navigationWatch.unsubscribe();
     this.qualityWatch.unsubscribe();
@@ -279,6 +282,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       // Not playing: stopped, and the poster for when it's back.
       this.saveProgress();
       this.sharedVideo.release(this);
+      this.nowPlaying.clear();
       this.listeners?.abort();
       this.source.set(null);
       this.status.set('idle');
@@ -855,6 +859,7 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
       this.saveProgress();
     }
     this.sharedVideo.release(this);
+    this.nowPlaying.clear();
     this.cleanup();
     this.source.set(null);
     this.status.set('idle');
@@ -902,15 +907,15 @@ export class InlinePlayerComponent implements OnChanges, OnDestroy {
     return Number.isFinite(video.duration) ? video.duration : null;
   }
 
-  // Lock screen / AirPlay "now playing" title and artwork.
+  // Lock screen / AirPlay "now playing": the scene's title, people, site and picture.
   private updateMediaSession(): void {
-    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) {
-      return;
+    const video = this.video;
+    if (video) {
+      this.nowPlaying.show(video, {
+        title: this.title,
+        imageUrl: this.posterUrl,
+        details: this.details,
+      });
     }
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: this.title,
-      artwork: this.posterUrl ? [{ src: this.posterUrl, sizes: '512x512' }] : [],
-    });
   }
 }
