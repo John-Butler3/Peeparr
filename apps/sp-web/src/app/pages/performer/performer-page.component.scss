@@ -157,6 +157,32 @@ main > button {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
+.local-only {
+  margin-top: 0.9rem;
+}
+
+.local-only-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+}
+
+.local-only-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.local-only-head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.local-only-grid {
+  margin-top: 0.6rem;
+}
+
 .load-sentinel {
   height: 1px;
 }

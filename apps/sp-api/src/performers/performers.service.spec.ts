@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { IntegrationStatus } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { LibrarySceneQueryService } from '../library/library-scene-query.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { StashAdapter } from '../providers/stash/stash.adapter';
@@ -72,6 +73,7 @@ describe('PerformersService', () => {
   };
 
   const tpdbWebService = { getPopularPerformers: jest.fn() };
+  const librarySceneQueryService = { getLocalOnlyByPerformer: jest.fn() };
 
   let service: PerformersService;
 
@@ -86,6 +88,7 @@ describe('PerformersService', () => {
       integrationsService,
       stashAdapter,
       tpdbWebService as unknown as TpdbWebService,
+      librarySceneQueryService as unknown as LibrarySceneQueryService,
     );
 
     performerImagePreferenceService.getMainImageUrl = jest
@@ -777,6 +780,61 @@ describe('PerformersService', () => {
         apiKey: 'fansdb-key',
       }),
     );
+  });
+
+  describe('local-only library scenes', () => {
+    beforeEach(() => {
+      librarySceneQueryService.getLocalOnlyByPerformer = jest
+        .fn()
+        .mockResolvedValue([{ id: '31' }]);
+      integrationsService.findOne = jest.fn().mockResolvedValue({
+        enabled: true,
+        status: IntegrationStatus.CONFIGURED,
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-key',
+      });
+      stashAdapter.findPerformerByStashId = jest
+        .fn()
+        .mockResolvedValue({ id: '12', favorite: false });
+    });
+
+    it('finds them by the matching Stash performer and by name and aliases', async () => {
+      await expect(service.getLocalOnlyScenes('p-1')).resolves.toEqual({
+        items: [{ id: '31' }],
+      });
+
+      expect(stashAdapter.findPerformerByStashId).toHaveBeenCalledWith('p-1', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-key',
+      });
+      expect(
+        librarySceneQueryService.getLocalOnlyByPerformer,
+      ).toHaveBeenCalledWith(
+        { stashPerformerIds: ['12'], names: ['Performer One', 'Alias'] },
+        120,
+      );
+    });
+
+    it('falls back to names alone when Stash has no matching performer or is not set up', async () => {
+      stashAdapter.findPerformerByStashId = jest
+        .fn()
+        .mockRejectedValue(new Error('offline'));
+
+      await service.getLocalOnlyScenes('p-1');
+
+      expect(
+        librarySceneQueryService.getLocalOnlyByPerformer,
+      ).toHaveBeenCalledWith(
+        { stashPerformerIds: [], names: ['Performer One', 'Alias'] },
+        120,
+      );
+    });
+
+    it('rejects a blank performer id', async () => {
+      await expect(service.getLocalOnlyScenes('  ')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
   });
 
   it('searches studios from stashdb', async () => {

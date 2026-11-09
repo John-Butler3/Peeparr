@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { DiscoverResponseDto } from '../discover/dto/discover-item.dto';
+import { LibrarySceneFeedItemDto } from '../library/dto/library-scenes-feed.dto';
 import { PerformerDetailsDto } from './dto/performer-details.dto';
 import { PerformerFeedResponseDto } from './dto/performer-feed-response.dto';
 import { PerformerScenesQueryDto } from './dto/performer-scenes-query.dto';
@@ -66,6 +67,14 @@ export class PerformersController {
         onlyFavoriteStudios: query.onlyFavoriteStudios,
       },
     );
+  }
+
+  /** Library scenes with this performer that the catalog doesn't hold. */
+  @Get(':performerId/local-scenes')
+  getPerformerLocalOnlyScenes(
+    @Param('performerId') performerId: string,
+  ): Promise<{ items: LibrarySceneFeedItemDto[] }> {
+    return this.performersService.getLocalOnlyScenes(performerId);
   }
 
   @Get(':performerId')

@@ -148,6 +148,39 @@ export class LibrarySceneQueryService {
     return this.getScenesByIds(rows.map((row) => row.stashSceneId));
   }
 
+  /**
+   * The library's local-only scenes (no match in the catalog) with this
+   * performer, newest first: by their Stash performer ids, or failing that
+   * by name, since a performer tagged in Stash by hand carries no catalog
+   * id. A catalog's performer page lists only the scenes it knows, so these
+   * are the ones it leaves out.
+   */
+  async getLocalOnlyByPerformer(
+    performer: { stashPerformerIds: string[]; names: string[] },
+    limit: number,
+  ): Promise<LibrarySceneFeedItemDto[]> {
+    const ids = this.normalizeIds(performer.stashPerformerIds);
+    const names = [
+      ...new Set(
+        performer.names
+          .map((name) => name.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ];
+    if (ids.length === 0 && names.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.$queryRaw<Array<{ stashSceneId: string }>>`
+      SELECT "stashSceneId"
+      FROM "LibrarySceneIndex"
+      WHERE "linkedStashId" IS NULL
+        AND ("performerIds" && ${ids}::text[]
+          OR EXISTS (SELECT 1 FROM unnest("performerNames") AS p WHERE lower(p) = ANY(${names}::text[])))
+      ORDER BY "releaseDate" DESC NULLS LAST, "stashSceneId" DESC
+      LIMIT ${limit}`;
+    return this.getScenesByIds(rows.map((row) => row.stashSceneId));
+  }
+
   async getSimilarByTags(
     tagNames: string[],
     excludeIds: string[] = [],

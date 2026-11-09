@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { BehaviorSubject, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { DiscoverItem, PerformerDetails } from '../../core/api/discover.types';
+import { LibrarySceneItem } from '../../core/api/library.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { PerformerPageComponent } from './performer-page.component';
@@ -82,6 +83,7 @@ describe('PerformerPageComponent', () => {
     // Serves the feed as several pages instead of a single one.
     pages?: DiscoverItem[][];
     performer?: PerformerDetails;
+    localOnlyScenes?: LibrarySceneItem[];
   }) {
     const items = options?.items ?? [buildScene()];
     const pages = options?.pages ?? [items];
@@ -107,6 +109,9 @@ describe('PerformerPageComponent', () => {
           items: pages[page - 1] ?? [],
         }),
       ),
+      getPerformerLocalOnlyScenes: vi
+        .fn()
+        .mockReturnValue(of({ items: options?.localOnlyScenes ?? [] })),
       searchPerformerStudios: vi.fn().mockReturnValue(of([])),
       searchSceneTags: vi.fn().mockReturnValue(of([])),
       setPerformerMainImage: vi.fn(),
@@ -170,6 +175,46 @@ describe('PerformerPageComponent', () => {
       title: 'Performer Scene',
       imageUrl: 'http://cdn.local/scene.jpg',
     });
+  });
+
+  it('lists library scenes the catalog does not hold in their own section, opened on the library scene page', async () => {
+    const { fixture, discoverService } = await renderPage({
+      localOnlyScenes: [
+        {
+          id: '31',
+          activeCatalogSceneId: null,
+          title: 'Home Video',
+          description: null,
+          imageUrl: 'http://stash.local/31.jpg',
+          cardImageUrl: 'http://stash.local/31.jpg',
+          studioId: null,
+          studio: null,
+          studioImageUrl: null,
+          performerNames: ['Performer One'],
+          releaseDate: '2025-12-01',
+          duration: 600,
+          localCreatedAt: '2026-01-01T00:00:00.000Z',
+          type: 'SCENE',
+          source: 'STASH',
+          viewUrl: 'http://stash.local/scenes/31',
+        },
+      ],
+    });
+
+    expect(discoverService.getPerformerLocalOnlyScenes).toHaveBeenCalledWith('performer-1');
+    const section = fixture.nativeElement.querySelector('.local-only') as HTMLElement;
+    expect(section.textContent).toContain('Only in your library');
+    expect(section.textContent).toContain('1 scene with this performer');
+    expect(section.querySelectorAll('app-scene-card')).toHaveLength(1);
+    expect(section.textContent).toContain('Home Video');
+    expect(section.textContent).toContain('Local only');
+    // The catalog's own scenes are still listed, after it.
+    expect(fixture.nativeElement.querySelectorAll('app-scene-card')).toHaveLength(2);
+  });
+
+  it('shows no local-only section when the library has nothing the catalog lacks', async () => {
+    const { fixture } = await renderPage();
+    expect(fixture.nativeElement.querySelector('.local-only')).toBeNull();
   });
 
   it('labels the picker button "Select main photo" when there are 4 or fewer images', async () => {

@@ -2,6 +2,8 @@ import { DiscoverResponseDto } from '../discover/dto/discover-item.dto';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { LibrarySceneFeedItemDto } from '../library/dto/library-scenes-feed.dto';
+import { LibrarySceneQueryService } from '../library/library-scene-query.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { StashAdapter } from '../providers/stash/stash.adapter';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
@@ -32,6 +34,7 @@ export class PerformersService {
   private static readonly DEFAULT_PAGE = 1;
   private static readonly DEFAULT_PER_PAGE = 24;
   private static readonly DEFAULT_SCENES_PER_PAGE = 24;
+  private static readonly LOCAL_ONLY_SCENES_LIMIT = 120;
   private static readonly DEFAULT_PERFORMERS_SORT_DIRECTION: PerformerSortDirection =
     'ASC';
   private static readonly DEFAULT_SCENES_SORT_DIRECTION: PerformerScenesSortDirection =
@@ -46,6 +49,7 @@ export class PerformersService {
     private readonly integrationsService: IntegrationsService,
     private readonly stashAdapter: StashAdapter,
     private readonly tpdbWebService: TpdbWebService,
+    private readonly librarySceneQueryService: LibrarySceneQueryService,
   ) {}
 
   async getPerformersFeed(
@@ -488,6 +492,65 @@ export class PerformersService {
         };
       }),
     };
+  }
+
+  /**
+   * This performer's scenes that are in the library but not in the catalog,
+   * which the catalog's own listing above can never show. The performer is
+   * found in Stash by catalog id (when tagged from the catalog), and also
+   * by name and aliases, for one tagged by hand.
+   */
+  async getLocalOnlyScenes(
+    performerId: string,
+  ): Promise<{ items: LibrarySceneFeedItemDto[] }> {
+    const normalizedPerformerId = performerId.trim();
+    if (!normalizedPerformerId) {
+      throw new BadRequestException('Performer id is required.');
+    }
+
+    const config = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const [performer, stashPerformerId] = await Promise.all([
+      catalogAdapter.getPerformerById(normalizedPerformerId, config),
+      this.findStashPerformerId(normalizedPerformerId),
+    ]);
+
+    const items = await this.librarySceneQueryService.getLocalOnlyByPerformer(
+      {
+        stashPerformerIds: stashPerformerId ? [stashPerformerId] : [],
+        names: [performer.name, ...performer.aliases],
+      },
+      PerformersService.LOCAL_ONLY_SCENES_LIMIT,
+    );
+    return { items };
+  }
+
+  /** The Stash performer tagged with this catalog id, if Stash is set up and has one. */
+  private async findStashPerformerId(
+    catalogPerformerId: string,
+  ): Promise<string | null> {
+    try {
+      const integration = await this.integrationsService.findOne(
+        IntegrationType.STASH,
+      );
+      const baseUrl = integration.baseUrl?.trim();
+      if (
+        !integration.enabled ||
+        integration.status !== IntegrationStatus.CONFIGURED ||
+        !baseUrl
+      ) {
+        return null;
+      }
+      const match = await this.stashAdapter.findPerformerByStashId(
+        catalogPerformerId,
+        { baseUrl, apiKey: integration.apiKey },
+      );
+      return match?.id ?? null;
+    } catch {
+      // The name match below still finds the scenes.
+      return null;
+    }
   }
 
   async searchStudios(query?: string): Promise<PerformerStudioOptionDto[]> {

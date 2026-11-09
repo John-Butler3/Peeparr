@@ -33,6 +33,8 @@ import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DiscoverService } from '../../core/api/discover.service';
 import { PlayerService } from '../../core/player/player.service';
+import { libraryScenePlayerDetails } from '../../core/player/player-details.util';
+import { LibrarySceneItem } from '../../core/api/library.types';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { fetchAllPages } from '../../core/api/fetch-all-pages.util';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
@@ -180,6 +182,9 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   );
   protected readonly onlyFavoriteStudios = signal(false);
   protected readonly libraryOnly = signal(false);
+  // Library scenes with this performer that the catalog doesn't hold; the
+  // catalog feed above can never list them, so they get their own section.
+  protected readonly localOnlyScenes = signal<LibrarySceneItem[]>([]);
   protected readonly studioSearchTerm = signal('');
   protected readonly selectedStudios = signal<SelectedStudioChip[]>([]);
   protected readonly studioOptions = signal<PerformerStudioOption[]>([]);
@@ -239,6 +244,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
       this.performerId.set(nextPerformerId);
       if (performerChanged) {
         this.loadPerformer();
+        this.loadLocalOnlyScenes(nextPerformerId);
       }
 
       const changedByUrl = this.applyUrlFilterState(this.readUrlFilterState(queryParamMap));
@@ -801,6 +807,17 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
+  // Plays a local-only scene (Stash id), like the Library page.
+  protected playLocalScene(localSceneId: string): void {
+    const item = this.localOnlyScenes().find((scene) => scene.id === localSceneId);
+    this.playerService.openByLocalSceneId({
+      title: item?.title ?? 'Scene',
+      localSceneId,
+      imageUrl: item?.cardImageUrl ?? item?.imageUrl,
+      details: item ? libraryScenePlayerDetails(item) : null,
+    });
+  }
+
   // Tapping the docked photo / logo goes back to the top.
   protected scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -834,6 +851,18 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
         error: () => {
           this.performerError.set('Failed to load performer details.');
         },
+      });
+  }
+
+  private loadLocalOnlyScenes(performerId: string): void {
+    this.localOnlyScenes.set([]);
+    this.discoverService
+      .getPerformerLocalOnlyScenes(performerId)
+      .pipe(catchError(() => of({ items: [] as LibrarySceneItem[] })))
+      .subscribe((response) => {
+        if (this.performerId() === performerId) {
+          this.localOnlyScenes.set(response.items);
+        }
       });
   }
 

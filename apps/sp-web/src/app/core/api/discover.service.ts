@@ -27,6 +27,7 @@ import {
   SubmitSceneRequestResponse,
   StudioDetails,
 } from './discover.types';
+import { LibrarySceneItem } from './library.types';
 
 @Injectable({
   providedIn: 'root',
@@ -211,6 +212,13 @@ export class DiscoverService {
     return this.http.get<DiscoverResponse>(
       `/api/performers/${encodeURIComponent(performerId)}/scenes`,
       { params },
+    );
+  }
+
+  /** Library scenes with this performer that the catalog doesn't hold ("local only"). */
+  getPerformerLocalOnlyScenes(performerId: string): Observable<{ items: LibrarySceneItem[] }> {
+    return this.http.get<{ items: LibrarySceneItem[] }>(
+      `/api/performers/${encodeURIComponent(performerId)}/local-scenes`,
     );
   }
 

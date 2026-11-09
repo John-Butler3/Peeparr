@@ -66,6 +66,49 @@ describe('LibrarySceneQueryService similar scenes (by tags)', () => {
     expect(queryRaw).not.toHaveBeenCalled();
   });
 
+  it('finds local-only scenes by Stash performer id or name, newest first', async () => {
+    const queryRaw = jest
+      .fn()
+      .mockResolvedValueOnce([{ stashSceneId: '31' }, { stashSceneId: '7' }]);
+    const service = new LibrarySceneQueryService({
+      $queryRaw: queryRaw,
+    } as unknown as PrismaService);
+    const byIds = jest
+      .spyOn(service, 'getScenesByIds')
+      .mockImplementation((ids) =>
+        Promise.resolve(ids.map((id) => ({ id }) as never)),
+      );
+
+    await service.getLocalOnlyByPerformer(
+      { stashPerformerIds: [' 12 ', '12'], names: ['Anna', ' anna', 'Ann B'] },
+      60,
+    );
+
+    const [sql, ...params] = queryRaw.mock.calls[0] as [
+      TemplateStringsArray,
+      ...unknown[],
+    ];
+    expect(sql.join('?')).toContain('"linkedStashId" IS NULL');
+    expect(params).toContainEqual(['12']);
+    expect(params).toContainEqual(['anna', 'ann b']);
+    expect(params).toContain(60);
+    expect(byIds).toHaveBeenCalledWith(['31', '7']);
+  });
+
+  it('asks nothing for a performer with neither Stash id nor name', async () => {
+    const queryRaw = jest.fn();
+    const service = new LibrarySceneQueryService({
+      $queryRaw: queryRaw,
+    } as unknown as PrismaService);
+    await expect(
+      service.getLocalOnlyByPerformer(
+        { stashPerformerIds: [], names: [' '] },
+        60,
+      ),
+    ).resolves.toEqual([]);
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
   it('asks nothing without tags', async () => {
     const queryRaw = jest.fn();
     const service = new LibrarySceneQueryService({

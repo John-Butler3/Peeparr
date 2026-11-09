@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IntegrationsModule } from '../integrations/integrations.module';
+import { LibraryModule } from '../library/library.module';
 import { StashModule } from '../providers/stash/stash.module';
 import { StashdbModule } from '../providers/stashdb/stashdb.module';
 import { SceneStatusModule } from '../scene-status/scene-status.module';
@@ -13,6 +14,7 @@ import { PerformersService } from './performers.service';
 @Module({
   imports: [
     IntegrationsModule,
+    LibraryModule,
     StashModule,
     StashdbModule,
     SceneStatusModule,
