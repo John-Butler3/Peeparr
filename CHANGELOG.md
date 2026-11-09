@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.10.0](https://github.com/John-Butler3/Peeparr/compare/v1.9.0...v1.10.0) (2026-11-09)
+
+
+### Features
+
+* a performer's page lists the library scenes the catalog doesn't hold ([0e69d13](https://github.com/John-Butler3/Peeparr/commit/0e69d13ee5e9f114b61d4d5650231660394268cb))
+* Purge deals the library in random order, afresh on every visit ([a4fa01c](https://github.com/John-Butler3/Peeparr/commit/a4fa01c01a399412e2755f6c31176cc941b0aa64))
+* start a Stash scan for new videos or new images from Settings &gt; Indexing ([b2911ad](https://github.com/John-Butler3/Peeparr/commit/b2911ad4cd9b6eb4948eb087c340b4334ae995f4))
+* **web:** previews start muted, with sound on request ([67e7214](https://github.com/John-Butler3/Peeparr/commit/67e7214a02bd7f02f7f0366184a82496f1b6bed0))
+* **web:** Purge, in Settings: keep or delete library scenes one at a time, with a swipe ([d0acc50](https://github.com/John-Butler3/Peeparr/commit/d0acc50d1487ae630aac099e7c8172a30e3a8a31))
+
+
+### Bug Fixes
+
+* **galleries:** photos no longer stretch when zoomed in deep on iPhone ([8b3bd92](https://github.com/John-Butler3/Peeparr/commit/8b3bd92c2302eecead5da64c5da9e08e536efb6c))
+* **web:** a toast's second line is readable (it was light on light) ([fbf52f6](https://github.com/John-Butler3/Peeparr/commit/fbf52f6d2166bab8b6ce9fd4bea79a6ee2582777))
+* **web:** the lock screen and Apple TV show the scene's title and picture ([636b435](https://github.com/John-Butler3/Peeparr/commit/636b435958c718e419175c2ec9fbb75853b7230c))
+
 ## [1.9.0](https://github.com/John-Butler3/Peeparr/compare/v1.8.0...v1.9.0) (2026-11-03)
 
 
