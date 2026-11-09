@@ -33,22 +33,23 @@ function feed(items: LibrarySceneItem[], total = items.length, hasMore = false) 
   return { total, page: 1, perPage: 24, hasMore, latestSyncAt: null, items };
 }
 
+const SEED = expect.stringMatching(/^[A-Za-z0-9_-]{1,64}$/);
+
 describe('PurgeSettingsPageComponent', () => {
-  const getScenesFeed = vi.fn();
+  const getShuffledPage = vi.fn();
   const deleteNow = vi.fn();
   const notifyError = vi.fn();
 
   beforeEach(() => {
     vi.useFakeTimers();
-    localStorage.clear();
-    getScenesFeed.mockReset();
+    getShuffledPage.mockReset();
     deleteNow.mockReset();
     notifyError.mockReset();
     TestBed.configureTestingModule({
       imports: [PurgeSettingsPageComponent],
       providers: [
         provideRouter([]),
-        { provide: LibraryService, useValue: { getScenesFeed } },
+        { provide: LibraryService, useValue: { getShuffledPage } },
         { provide: LibraryDeletionService, useValue: { deleteNow } },
         { provide: AppNotificationsService, useValue: { error: notifyError, success: vi.fn() } },
       ],
@@ -78,22 +79,23 @@ describe('PurgeSettingsPageComponent', () => {
     return fixture.nativeElement.querySelector('[data-testid="purge-title"]')?.textContent?.trim();
   }
 
+  function tally(fixture: ReturnType<typeof render>) {
+    return fixture.nativeElement.querySelector('[data-testid="purge-tally"]').textContent;
+  }
+
   function settle(fixture: ReturnType<typeof render>) {
     vi.advanceTimersByTime(PurgeSettingsPageComponent.FLY_MS + 10);
     fixture.detectChanges();
   }
 
-  it('starts on request, with the oldest-added scene on top: its picture and title', () => {
-    getScenesFeed.mockReturnValue(of(feed([scene('1'), scene('2')])));
+  it('starts on request with a fresh shuffle, the first scene dealt on top: picture and title', () => {
+    getShuffledPage.mockReturnValue(of(feed([scene('1'), scene('2')])));
     const fixture = render();
-    expect(getScenesFeed).not.toHaveBeenCalled();
+    expect(getShuffledPage).not.toHaveBeenCalled();
 
     click(fixture, 'purge-start');
 
-    expect(getScenesFeed).toHaveBeenCalledWith(1, PurgeSettingsPageComponent.PER_PAGE, {
-      sort: 'CREATED_AT',
-      direction: 'ASC',
-    });
+    expect(getShuffledPage).toHaveBeenCalledWith(SEED, 1, PurgeSettingsPageComponent.PER_PAGE);
     expect(title(fixture)).toBe('Scene 1');
     const image = fixture.nativeElement.querySelector(
       '[data-testid="purge-card"] img',
@@ -101,8 +103,8 @@ describe('PurgeSettingsPageComponent', () => {
     expect(image.getAttribute('src')).toBe('/api/media/stash/scenes/1/screenshot');
   });
 
-  it('keeps a scene: on to the next, nothing deleted, and remembered on this device', () => {
-    getScenesFeed.mockReturnValue(of(feed([scene('1'), scene('2')])));
+  it('keeps a scene: on to the next, nothing deleted, nothing stored', () => {
+    getShuffledPage.mockReturnValue(of(feed([scene('1'), scene('2')])));
     const fixture = render();
     click(fixture, 'purge-start');
 
@@ -111,14 +113,12 @@ describe('PurgeSettingsPageComponent', () => {
 
     expect(title(fixture)).toBe('Scene 2');
     expect(deleteNow).not.toHaveBeenCalled();
-    expect(JSON.parse(localStorage.getItem('peeparr.purge.kept') ?? '[]')).toEqual(['1']);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="purge-tally"]').textContent,
-    ).toContain('1 kept');
+    expect(localStorage.length).toBe(0);
+    expect(tally(fixture)).toContain('1 kept');
   });
 
   it('deletes a scene at once, with no asking, and moves on', () => {
-    getScenesFeed.mockReturnValue(of(feed([scene('1'), scene('2')])));
+    getShuffledPage.mockReturnValue(of(feed([scene('1'), scene('2')])));
     deleteNow.mockReturnValue(of({ deletedStashSceneIds: ['1'], removedFromWhisparr: true }));
     const fixture = render();
     click(fixture, 'purge-start');
@@ -128,13 +128,11 @@ describe('PurgeSettingsPageComponent', () => {
     expect(deleteNow).toHaveBeenCalledWith({ stashSceneIds: ['1'], catalogSceneId: 'cat-1' });
     settle(fixture);
     expect(title(fixture)).toBe('Scene 2');
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="purge-tally"]').textContent,
-    ).toContain('1 deleted');
+    expect(tally(fixture)).toContain('1 deleted');
   });
 
   it('puts a scene back on top when deleting it fails, and says why', () => {
-    getScenesFeed.mockReturnValue(of(feed([scene('1'), scene('2')])));
+    getShuffledPage.mockReturnValue(of(feed([scene('1'), scene('2')])));
     const failure = new Subject<never>();
     deleteNow.mockReturnValue(failure);
     const fixture = render();
@@ -155,7 +153,7 @@ describe('PurgeSettingsPageComponent', () => {
   });
 
   it('a swipe left of the card deletes, a short drag snaps back', () => {
-    getScenesFeed.mockReturnValue(of(feed([scene('1'), scene('2')])));
+    getShuffledPage.mockReturnValue(of(feed([scene('1'), scene('2')])));
     deleteNow.mockReturnValue(of({ deletedStashSceneIds: ['1'], removedFromWhisparr: false }));
     const fixture = render();
     click(fixture, 'purge-start');
@@ -183,47 +181,60 @@ describe('PurgeSettingsPageComponent', () => {
     expect(title(fixture)).toBe('Scene 2');
   });
 
-  it('carries on past scenes kept on an earlier visit, loading the page after them', () => {
-    const keptBefore = Array.from({ length: 24 }, (_, i) => `k${i}`);
-    localStorage.setItem('peeparr.purge.kept', JSON.stringify(keptBefore));
-    getScenesFeed.mockReturnValue(of({ ...feed([scene('30')], 25, false), page: 2 }));
+  it('as the deck runs low, loads the page after the kept ones, from the same shuffle', () => {
+    const perPage = PurgeSettingsPageComponent.PER_PAGE;
+    const total = perPage + 3;
+    const firstPage = Array.from({ length: perPage }, (_, i) => scene(`a${i}`));
+    const secondPage = [scene('b1'), scene('b2'), scene('b3')];
+    getShuffledPage
+      .mockReturnValueOnce(of(feed(firstPage, total, true)))
+      .mockReturnValueOnce(of({ ...feed(secondPage, total), page: 2 }));
     const fixture = render();
-
-    expect(fixture.nativeElement.textContent).toContain('Carry on');
     click(fixture, 'purge-start');
+    const [seed] = getShuffledPage.mock.calls[0] as [string];
 
-    expect(getScenesFeed).toHaveBeenCalledWith(2, PurgeSettingsPageComponent.PER_PAGE, {
-      sort: 'CREATED_AT',
-      direction: 'ASC',
-    });
-    expect(title(fixture)).toBe('Scene 30');
+    // Kept down to the low-water mark: the next page is asked for.
+    const toKeep = perPage - PurgeSettingsPageComponent.LOW_WATER;
+    for (let i = 0; i < toKeep; i += 1) {
+      click(fixture, 'purge-keep');
+      settle(fixture);
+    }
+
+    expect(getShuffledPage).toHaveBeenCalledTimes(2);
+    expect(getShuffledPage).toHaveBeenLastCalledWith(seed, 2, perPage);
+    expect(title(fixture)).toBe(`Scene a${toKeep}`);
+    expect(tally(fixture)).toContain(`${total - toKeep} to go`);
   });
 
-  it('says when everything has been gone through, and can start over', () => {
-    getScenesFeed.mockReturnValue(of(feed([scene('1')])));
+  it('says when everything has been gone through, and shuffles anew on request', () => {
+    getShuffledPage.mockReturnValue(of(feed([scene('1')])));
     const fixture = render();
     click(fixture, 'purge-start');
+    const [firstSeed] = getShuffledPage.mock.calls[0] as [string];
     click(fixture, 'purge-keep');
     settle(fixture);
 
     expect(fixture.nativeElement.querySelector('[data-testid="purge-finished"]')).toBeTruthy();
 
-    getScenesFeed.mockReturnValue(of(feed([scene('1')])));
     (
       fixture.nativeElement.querySelector('[data-testid="purge-finished"] button') as HTMLElement
     ).click();
     fixture.detectChanges();
+    const [secondSeed] = getShuffledPage.mock.calls[1] as [string];
+    expect(secondSeed).not.toBe(firstSeed);
     expect(title(fixture)).toBe('Scene 1');
-    expect(localStorage.getItem('peeparr.purge.kept')).toBe('[]');
+    expect(tally(fixture)).toContain('0 kept');
   });
 
   it('shows the error and offers a retry when the library cannot be loaded', () => {
-    getScenesFeed.mockReturnValueOnce(throwError(() => ({ error: { message: 'Stash is down.' } })));
+    getShuffledPage.mockReturnValueOnce(
+      throwError(() => ({ error: { message: 'Stash is down.' } })),
+    );
     const fixture = render();
     click(fixture, 'purge-start');
     expect(fixture.nativeElement.textContent).toContain('Stash is down.');
 
-    getScenesFeed.mockReturnValue(of(feed([scene('1')])));
+    getShuffledPage.mockReturnValue(of(feed([scene('1')])));
     (fixture.nativeElement.querySelector('.state-shell button') as HTMLElement).click();
     fixture.detectChanges();
     expect(title(fixture)).toBe('Scene 1');

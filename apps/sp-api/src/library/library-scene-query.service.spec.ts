@@ -95,6 +95,39 @@ describe('LibrarySceneQueryService similar scenes (by tags)', () => {
     expect(byIds).toHaveBeenCalledWith(['31', '7']);
   });
 
+  it('deals a page of the library shuffled by the seed, saying whether more follow', async () => {
+    const queryRaw = jest
+      .fn()
+      .mockResolvedValueOnce([{ stashSceneId: '8' }, { stashSceneId: '2' }]);
+    const count = jest.fn().mockResolvedValue(5);
+    const service = new LibrarySceneQueryService({
+      $queryRaw: queryRaw,
+      librarySceneIndex: { count },
+    } as unknown as PrismaService);
+    const byIds = jest
+      .spyOn(service, 'getScenesByIds')
+      .mockImplementation((ids) =>
+        Promise.resolve(ids.map((id) => ({ id }) as never)),
+      );
+
+    const page = await service.getShuffledPage('seed-1', 2, 2);
+
+    const [sql, ...params] = queryRaw.mock.calls[0] as [
+      TemplateStringsArray,
+      ...unknown[],
+    ];
+    expect(sql.join('?')).toContain('ORDER BY md5(? || "stashSceneId")');
+    expect(params).toEqual(['seed-1', 2, 2]);
+    expect(byIds).toHaveBeenCalledWith(['8', '2']);
+    expect(page).toMatchObject({
+      total: 5,
+      page: 2,
+      perPage: 2,
+      hasMore: true,
+    });
+    expect(page.items).toHaveLength(2);
+  });
+
   it('asks nothing for a performer with neither Stash id nor name', async () => {
     const queryRaw = jest.fn();
     const service = new LibrarySceneQueryService({

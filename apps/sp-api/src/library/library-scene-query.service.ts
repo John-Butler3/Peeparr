@@ -266,6 +266,35 @@ export class LibrarySceneQueryService {
     };
   }
 
+  /**
+   * A page of the whole library in a shuffled order fixed by `seed` (the same
+   * seed, the same order), for going through it a scene at a time (Settings >
+   * Purge). Scenes deleted meanwhile drop out without disturbing the rest.
+   */
+  async getShuffledPage(
+    seed: string,
+    page: number,
+    perPage: number,
+  ): Promise<LibraryScenesFeedDto> {
+    const offset = (page - 1) * perPage;
+    const [rows, total] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ stashSceneId: string }>>`
+        SELECT "stashSceneId"
+        FROM "LibrarySceneIndex"
+        ORDER BY md5(${seed} || "stashSceneId"), "stashSceneId"
+        LIMIT ${perPage} OFFSET ${offset}`,
+      this.prisma.librarySceneIndex.count(),
+    ]);
+    return {
+      total,
+      page,
+      perPage,
+      hasMore: offset + rows.length < total,
+      latestSyncAt: null,
+      items: await this.getScenesByIds(rows.map((row) => row.stashSceneId)),
+    };
+  }
+
   // Loads scenes by id, returned in the order of the given ids (for callers
   // that pick and rank the ids themselves, e.g. library search).
   async getScenesByIds(ids: string[]): Promise<LibrarySceneFeedItemDto[]> {

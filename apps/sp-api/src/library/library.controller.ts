@@ -17,6 +17,7 @@ import {
   LibraryScenesFeedDto,
 } from './dto/library-scenes-feed.dto';
 import { LibraryScenesQueryDto } from './dto/library-scenes-query.dto';
+import { LibraryShuffleQueryDto } from './dto/library-shuffle-query.dto';
 import {
   LibrarySearchDto,
   LibrarySearchQueryDto,
@@ -49,6 +50,18 @@ export class LibraryController {
       query.favoriteStudiosOnly,
       query.favoriteTagsOnly,
       query.performerIds,
+    );
+  }
+
+  /** The library shuffled, a page at a time, in the order the seed fixes (Purge). */
+  @Get('shuffle')
+  getShuffledScenes(
+    @Query() query: LibraryShuffleQueryDto,
+  ): Promise<LibraryScenesFeedDto> {
+    return this.libraryService.getShuffledPage(
+      query.seed,
+      query.page,
+      query.perPage,
     );
   }
 

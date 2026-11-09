@@ -3,9 +3,9 @@
     <div class="page-copy">
       <h2>Purge</h2>
       <p class="lede">
-        Go through your library one scene at a time. Swipe right to keep a scene, left to delete it.
-        Deleting is immediate and can't be undone: the file goes from Stash, and Whisparr forgets
-        the scene and won't download it again.
+        Go through your library one scene at a time, in random order. Swipe right to keep a scene,
+        left to delete it. Deleting is immediate and can't be undone: the file goes from Stash, and
+        Whisparr forgets the scene and won't download it again.
       </p>
     </div>
   </header>
@@ -14,28 +14,15 @@
     <section class="summary-card intro-card">
       <p class="eyebrow">Before you start</p>
       <ul class="rules">
-        <li><strong>Swipe right</strong> (or Keep): the scene stays, and isn't shown again.</li>
+        <li><strong>Swipe right</strong> (or Keep): the scene stays.</li>
         <li>
           <strong>Swipe left</strong> (or Delete): the scene and its file are deleted at once. There
           is no undo.
         </li>
-        <li>Scenes come oldest-added first. Kept ones are remembered on this device.</li>
+        <li>Scenes come in random order, and every visit starts afresh with the whole library.</li>
       </ul>
       <div class="action-row">
-        <button pButton type="button" data-testid="purge-start" (click)="start()">
-          {{ keptBefore() > 0 ? 'Carry on' : 'Start' }}
-        </button>
-        @if (keptBefore() > 0) {
-          <button
-            pButton
-            type="button"
-            class="p-button-text"
-            data-testid="purge-start-over"
-            (click)="startOver()"
-          >
-            Start over ({{ keptBefore() }} kept)
-          </button>
-        }
+        <button pButton type="button" data-testid="purge-start" (click)="start()">Start</button>
       </div>
     </section>
   } @else if (loadError()) {
@@ -50,19 +37,16 @@
         strokeWidth="4"
         [style]="{ width: '2.25rem', height: '2.25rem' }"
       />
-      <p>Loading your library...</p>
+      <p>Shuffling your library...</p>
     </div>
   } @else if (finished()) {
     <section class="summary-card intro-card" data-testid="purge-finished">
       <p class="eyebrow">Done</p>
       <h3>You've been through everything</h3>
-      <p class="summary-copy">
-        Kept {{ keptNow() }} and deleted {{ deletedNow() }} this time. New scenes will show up here
-        as they arrive.
-      </p>
+      <p class="summary-copy">Kept {{ keptNow() }} and deleted {{ deletedNow() }} this time.</p>
       <div class="action-row">
-        <button pButton type="button" class="p-button-text" (click)="startOver()">
-          Go through kept scenes again
+        <button pButton type="button" class="p-button-text" (click)="start()">
+          Shuffle and go again
         </button>
       </div>
     </section>

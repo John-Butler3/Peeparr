@@ -72,6 +72,19 @@ export class LibraryService {
     return this.http.get<LibraryScenesFeedResponse>('/api/library/scenes', { params });
   }
 
+  /** The library shuffled (the same seed, the same order), a page at a time. */
+  getShuffledPage(
+    seed: string,
+    page: number,
+    perPage: number,
+  ): Observable<LibraryScenesFeedResponse> {
+    const params = new HttpParams()
+      .set('seed', seed)
+      .set('page', page.toString())
+      .set('perPage', perPage.toString());
+    return this.http.get<LibraryScenesFeedResponse>('/api/library/shuffle', { params });
+  }
+
   getScene(sceneId: string): Observable<LibrarySceneDetail> {
     return this.http.get<LibrarySceneDetail>(`/api/library/scenes/${encodeURIComponent(sceneId)}`);
   }

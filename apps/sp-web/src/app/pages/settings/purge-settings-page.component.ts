@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ButtonDirective } from 'primeng/button';
 import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -11,16 +11,16 @@ import { AppNotificationsService } from '../../core/notifications/app-notificati
 type Decision = 'keep' | 'delete';
 
 /**
- * Settings > Purge: the library one scene at a time, oldest in it first,
- * each a card with its thumbnail and title. Swipe right (or Keep) to keep
- * it; swipe left (or Delete) and it's deleted at once -- the file from
- * Stash, and out of Whisparr -- with no undo. Kept scenes are remembered on
- * this device, so a later visit carries on with the ones not yet seen;
- * "Start over" forgets them.
+ * Settings > Purge: the library one scene at a time, in random order, each a
+ * card with its thumbnail and title. Swipe right (or Keep) to keep it; swipe
+ * left (or Delete) and it's deleted at once -- the file from Stash, and out
+ * of Whisparr -- with no undo. Nothing is remembered: every visit is a fresh
+ * shuffle of the whole library.
  *
- * The deck is a prefix of the library in order of adding (new scenes join
- * at the end), so what's left to go through always starts right after the
- * kept ones: that's the page to load.
+ * The shuffle is fixed by a seed for the visit, so the deck is a prefix of
+ * one stable order (deleted scenes just drop out of it): what's left to go
+ * through always starts right after the kept ones, and that's the page to
+ * load.
  */
 @Component({
   selector: 'app-purge-settings-page',
@@ -28,7 +28,7 @@ type Decision = 'keep' | 'delete';
   templateUrl: './purge-settings-page.component.html',
   styleUrl: './purge-settings-page.component.scss',
 })
-export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
+export class PurgeSettingsPageComponent implements OnDestroy {
   static readonly PER_PAGE = 24;
   /** Load more when this few are left in the deck. */
   static readonly LOW_WATER = 6;
@@ -36,7 +36,6 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
   static readonly SWIPE_PX = 110;
   /** A decided card flying off, before the next one is on top. */
   static readonly FLY_MS = 280;
-  private static readonly KEPT_KEY = 'peeparr.purge.kept';
 
   private readonly library = inject(LibraryService);
   private readonly deletion = inject(LibraryDeletionService);
@@ -55,8 +54,6 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
   protected readonly dragging = signal(false);
   /** The top card on its way off. */
   protected readonly flying = signal<Decision | null>(null);
-  /** Kept on this device, across visits. */
-  protected readonly keptBefore = signal(0);
 
   protected readonly current = computed(() => this.deck()[0] ?? null);
   protected readonly next = computed(() => this.deck()[1] ?? null);
@@ -77,6 +74,9 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
     () => this.started() && !this.loading() && !this.hasMore && this.deck().length === 0,
   );
 
+  /** This visit's shuffle. */
+  private seed = '';
+  /** Kept this visit (they stay in the order, ahead of the deck). */
   private kept = new Set<string>();
   private hasMore = true;
   private fetching = false;
@@ -86,11 +86,6 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
   private drag: { x: number; y: number; sideways: boolean | null } | null = null;
   private flyTimer: ReturnType<typeof setTimeout> | null = null;
 
-  ngOnInit(): void {
-    this.kept = this.loadKept();
-    this.keptBefore.set(this.kept.size);
-  }
-
   ngOnDestroy(): void {
     this.fetch?.unsubscribe();
     if (this.flyTimer) {
@@ -98,23 +93,19 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** A fresh shuffle of the whole library. */
   protected start(): void {
-    this.started.set(true);
-    this.loadMore();
-  }
-
-  /** Forgets the kept scenes: everything comes round again. */
-  protected startOver(): void {
-    this.kept.clear();
-    this.saveKept();
-    this.keptBefore.set(0);
+    this.seed = PurgeSettingsPageComponent.newSeed();
+    this.kept = new Set();
     this.keptNow.set(0);
     this.deletedNow.set(0);
     this.deck.set([]);
+    this.total.set(null);
     this.hasMore = true;
     this.pagesSkipped = 0;
     this.fetch?.unsubscribe();
     this.fetching = false;
+    this.loadError.set(null);
     this.started.set(true);
     this.loadMore();
   }
@@ -220,7 +211,6 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
     this.flying.set(decision);
     if (decision === 'keep') {
       this.kept.add(scene.id);
-      this.saveKept();
       this.keptNow.update((n) => n + 1);
     } else {
       this.deleteScene(scene);
@@ -264,9 +254,9 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
 
   /**
    * The next page of scenes not yet decided on. Everything before the deck in
-   * the library's order has been kept (deleted ones are gone from it), so the
-   * deck's end sits at position kept + loaded; the page holding that position
-   * is the one to load, less whatever of it is already kept or loaded.
+   * the shuffle has been kept (deleted ones are gone from it), so the deck's
+   * end sits at position kept + loaded; the page holding that position is the
+   * one to load, less whatever of it is already kept or loaded.
    */
   private loadMore(): void {
     if (this.fetching || !this.hasMore) {
@@ -277,52 +267,32 @@ export class PurgeSettingsPageComponent implements OnInit, OnDestroy {
     const page = Math.floor(position / perPage) + 1 + this.pagesSkipped;
     this.loading.set(this.deck().length === 0);
     this.fetching = true;
-    this.fetch = this.library
-      .getScenesFeed(page, perPage, { sort: 'CREATED_AT', direction: 'ASC' })
-      .subscribe({
-        next: (feed) => {
-          this.fetching = false;
-          this.loading.set(false);
-          this.total.set(feed.total);
-          this.hasMore = feed.hasMore;
-          const loaded = new Set(this.deck().map((item) => item.id));
-          const fresh = feed.items.filter(
-            (item) => !this.kept.has(item.id) && !loaded.has(item.id),
-          );
-          if (fresh.length > 0) {
-            this.pagesSkipped = 0;
-            this.deck.update((deck) => [...deck, ...fresh]);
-          } else if (feed.hasMore) {
-            // Kept scenes gone from Stash since put the sums out: the next page.
-            this.pagesSkipped += 1;
-            this.loadMore();
-          }
-        },
-        error: (error: { error?: { message?: string } }) => {
-          this.fetching = false;
-          this.loading.set(false);
-          this.loadError.set(error.error?.message ?? "Couldn't load your library.");
-        },
-      });
+    this.fetch = this.library.getShuffledPage(this.seed, page, perPage).subscribe({
+      next: (feed) => {
+        this.fetching = false;
+        this.loading.set(false);
+        this.total.set(feed.total);
+        this.hasMore = feed.hasMore;
+        const loaded = new Set(this.deck().map((item) => item.id));
+        const fresh = feed.items.filter((item) => !this.kept.has(item.id) && !loaded.has(item.id));
+        if (fresh.length > 0) {
+          this.pagesSkipped = 0;
+          this.deck.update((deck) => [...deck, ...fresh]);
+        } else if (feed.hasMore) {
+          // Kept scenes gone from Stash since put the sums out: the next page.
+          this.pagesSkipped += 1;
+          this.loadMore();
+        }
+      },
+      error: (error: { error?: { message?: string } }) => {
+        this.fetching = false;
+        this.loading.set(false);
+        this.loadError.set(error.error?.message ?? "Couldn't load your library.");
+      },
+    });
   }
 
-  private loadKept(): Set<string> {
-    try {
-      const raw = localStorage.getItem(PurgeSettingsPageComponent.KEPT_KEY);
-      const ids: unknown = raw ? JSON.parse(raw) : [];
-      return new Set(
-        Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [],
-      );
-    } catch {
-      return new Set();
-    }
-  }
-
-  private saveKept(): void {
-    try {
-      localStorage.setItem(PurgeSettingsPageComponent.KEPT_KEY, JSON.stringify([...this.kept]));
-    } catch {
-      // Private browsing or full: kept for this visit only.
-    }
+  private static newSeed(): string {
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
   }
 }

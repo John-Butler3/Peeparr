@@ -73,7 +73,7 @@ Questions about how it fits with your setup? See **[Common questions](docs/FAQ.m
 - Home: newest scenes, continue watching, fresh in your library, popular now.
 - Library, Galleries and Series browsing with filters.
 - Performer and studio pages with favourites; a performer's page also lists library scenes the catalog doesn't hold.
-- Purge: go through the library one scene at a time, keep or delete with a swipe (Settings > Purge). Deleting removes the file from Stash and the scene from Whisparr.
+- Purge: go through the library one scene at a time, in random order, keep or delete with a swipe (Settings > Purge). Deleting removes the file from Stash and the scene from Whisparr.
 
 **Setup and security**
 - Guided setup for Stash, Whisparr and the catalog, with connection checks and repair hints.

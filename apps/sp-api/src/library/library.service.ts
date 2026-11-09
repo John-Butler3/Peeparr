@@ -75,6 +75,15 @@ export class LibraryService {
     });
   }
 
+  /** The library in a shuffled order (see LibrarySceneQueryService.getShuffledPage). */
+  getShuffledPage(
+    seed: string,
+    page = LibrarySceneQueryService.DEFAULT_PAGE,
+    perPage = LibrarySceneQueryService.DEFAULT_PER_PAGE,
+  ): Promise<LibraryScenesFeedDto> {
+    return this.librarySceneQueryService.getShuffledPage(seed, page, perPage);
+  }
+
   /** Library scenes sharing these tags (see LibrarySceneQueryService.getSimilarByTags). */
   getSimilarByTags(
     tagNames: string[],
