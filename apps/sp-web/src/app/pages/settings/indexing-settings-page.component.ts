@@ -10,6 +10,7 @@ import {
   IndexingStatusResponse,
   ManualIndexingSyncJob,
 } from '../../core/api/indexing.types';
+import { StashScanService, StashScanTarget } from '../../core/api/stash-scan.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 
 interface JobDefinition {
@@ -85,6 +86,7 @@ const INDEXING_JOB_DEFINITIONS: Record<string, JobDefinition> = {
 })
 export class IndexingSettingsPageComponent implements OnInit {
   private readonly indexingService = inject(IndexingService);
+  private readonly stashScanService = inject(StashScanService);
   private readonly notifications = inject(AppNotificationsService);
 
   protected readonly loading = signal(true);
@@ -94,6 +96,7 @@ export class IndexingSettingsPageComponent implements OnInit {
   protected readonly actionSuccess = signal<string | null>(null);
   protected readonly status = signal<IndexingStatusResponse | null>(null);
   protected readonly triggeringAction = signal<ManualIndexingSyncJob | null>(null);
+  protected readonly startingStashScan = signal<StashScanTarget | null>(null);
 
   protected readonly jobViews = computed<IndexingJobView[]>(() =>
     (this.status()?.jobs ?? []).map((job) => ({
@@ -204,6 +207,64 @@ export class IndexingSettingsPageComponent implements OnInit {
 
   protected syncAll(): void {
     this.runSync('all', 'Sync All');
+  }
+
+  /**
+   * Has Stash scan its folders for new files: videos for the library, images
+   * for galleries. Stash runs the scan itself; once it's through, the next
+   * Library Projection sync brings the new scenes in here.
+   */
+  protected startStashScan(target: StashScanTarget): void {
+    if (this.startingStashScan() !== null) {
+      return;
+    }
+
+    const label = target === 'galleries' ? 'Scan galleries' : 'Scan library';
+    this.startingStashScan.set(target);
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+
+    this.stashScanService
+      .start(target)
+      .pipe(
+        finalize(() => {
+          this.startingStashScan.set(null);
+        }),
+      )
+      .subscribe({
+        next: (started) => {
+          const folders = started.paths.length;
+          const where =
+            folders > 0 ? `${folders} ${folders === 1 ? 'folder' : 'folders'}` : 'every folder';
+          const kind = target === 'galleries' ? 'images' : 'videos';
+          this.actionSuccess.set(
+            `Stash is scanning ${where} for new ${kind} (job ${started.jobId}). ` +
+              'Run Library Projection once it finishes to see them here.',
+          );
+          this.notifications.success('Stash scan started');
+        },
+        error: (error: unknown) => {
+          const detail = this.errorMessage(error);
+          this.actionError.set(detail ? `${label} failed: ${detail}` : `Failed to start ${label}.`);
+          this.notifications.error(`Failed to start ${label}`);
+        },
+      });
+  }
+
+  protected isStashScanDisabled(): boolean {
+    return this.loading() || this.startingStashScan() !== null || this.triggeringAction() !== null;
+  }
+
+  protected stashScanLabel(target: StashScanTarget): string {
+    if (this.startingStashScan() === target) {
+      return 'Starting...';
+    }
+    return target === 'galleries' ? 'Scan galleries in Stash' : 'Scan library in Stash';
+  }
+
+  private errorMessage(error: unknown): string | null {
+    const message = (error as { error?: { message?: unknown } } | null)?.error?.message;
+    return typeof message === 'string' && message.trim().length > 0 ? message.trim() : null;
   }
 
   protected triggerJob(job: IndexingJobView): void {

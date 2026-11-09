@@ -21,6 +21,7 @@ import { RequestsModule } from './requests/requests.module';
 import { RuntimeHealthModule } from './runtime-health/runtime-health.module';
 import { ScenesModule } from './scenes/scenes.module';
 import { SettingsModule } from './settings/settings.module';
+import { StashScanModule } from './stash-scan/stash-scan.module';
 import { SetupModule } from './setup/setup.module';
 import { StudiosModule } from './studios/studios.module';
 import { UpcomingModule } from './upcoming/upcoming.module';
@@ -49,6 +50,7 @@ import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.mo
     IntegrationsModule,
     SettingsModule,
     SetupModule,
+    StashScanModule,
     AcquisitionModule,
     ScenesModule,
     RequestsModule,

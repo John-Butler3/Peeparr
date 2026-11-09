@@ -738,6 +738,110 @@ describe('StashAdapter', () => {
     expect(body.variables).toEqual({ id: '411' });
   });
 
+  describe('startScan', () => {
+    function stashWith(
+      stashes: Array<{
+        path: string;
+        excludeVideo?: boolean;
+        excludeImage?: boolean;
+      }>,
+      jobId = '42',
+    ) {
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: { configuration: { general: { stashes } } },
+            }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ data: { metadataScan: jobId } }),
+        } as Response);
+    }
+
+    function scanInput(): Record<string, unknown> {
+      const [, init] = fetchMock.mock.calls[1] ?? [];
+      const body = JSON.parse(init?.body as string) as {
+        query: string;
+        variables: { input: Record<string, unknown> };
+      };
+      expect(body.query).toContain('metadataScan(input: $input)');
+      return body.variables.input;
+    }
+
+    it('scans only the folders that take videos for the library, generating covers and previews', async () => {
+      stashWith([
+        { path: '/media/videos', excludeImage: true },
+        { path: '/media/photos', excludeVideo: true },
+        { path: '/media/mixed' },
+      ]);
+
+      await expect(
+        adapter.startScan('library', { baseUrl: 'http://stash.local' }),
+      ).resolves.toEqual({
+        jobId: '42',
+        paths: ['/media/videos', '/media/mixed'],
+      });
+
+      expect(scanInput()).toEqual(
+        expect.objectContaining({
+          paths: ['/media/videos', '/media/mixed'],
+          scanGenerateCovers: true,
+          scanGeneratePreviews: true,
+          scanGenerateThumbnails: false,
+        }),
+      );
+    });
+
+    it('scans only the folders that take images for galleries, generating thumbnails', async () => {
+      stashWith([
+        { path: '/media/videos', excludeImage: true },
+        { path: '/media/photos', excludeVideo: true },
+      ]);
+
+      await expect(
+        adapter.startScan('galleries', { baseUrl: 'http://stash.local' }),
+      ).resolves.toEqual({ jobId: '42', paths: ['/media/photos'] });
+
+      expect(scanInput()).toEqual(
+        expect.objectContaining({
+          paths: ['/media/photos'],
+          scanGenerateThumbnails: true,
+          scanGenerateCovers: false,
+          scanGeneratePreviews: false,
+        }),
+      );
+    });
+
+    it('leaves the paths open when every folder takes this kind of file', async () => {
+      stashWith([{ path: '/media/a' }, { path: '/media/b' }]);
+
+      await expect(
+        adapter.startScan('galleries', { baseUrl: 'http://stash.local' }),
+      ).resolves.toEqual({ jobId: '42', paths: [] });
+      expect(scanInput().paths).toEqual([]);
+    });
+
+    it('refuses a galleries scan when no folder takes images', async () => {
+      stashWith([{ path: '/media/videos', excludeImage: true }]);
+
+      await expect(
+        adapter.startScan('galleries', { baseUrl: 'http://stash.local' }),
+      ).rejects.toThrow('None of the library folders in Stash take images.');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails when Stash returns no job id', async () => {
+      stashWith([], '');
+
+      await expect(
+        adapter.startScan('library', { baseUrl: 'http://stash.local' }),
+      ).rejects.toBeInstanceOf(BadGatewayException);
+    });
+  });
+
   it('saves playback progress via sceneSaveActivity', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

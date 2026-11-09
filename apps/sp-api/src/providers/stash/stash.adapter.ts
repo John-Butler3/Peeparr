@@ -14,6 +14,19 @@ export interface StashAdapterBaseConfig {
   apiKey?: string | null;
 }
 
+/**
+ * What a Stash scan is for: 'library' takes in new or changed videos,
+ * 'galleries' new or changed images and image zips.
+ */
+export type StashScanTarget = 'library' | 'galleries';
+
+export interface StashScanJob {
+  /** Stash's id for the queued job (its Tasks page shows it). */
+  jobId: string;
+  /** The library folders asked to scan; empty means every folder. */
+  paths: string[];
+}
+
 export interface StashSceneMatch {
   id: string;
   width: number | null;
@@ -419,6 +432,16 @@ interface StashGraphqlResponse {
     findPerformers?: {
       performers?: StashPerformerMatchRecord[];
     };
+    configuration?: {
+      general?: {
+        stashes?: Array<{
+          path?: unknown;
+          excludeVideo?: unknown;
+          excludeImage?: unknown;
+        }>;
+      };
+    };
+    metadataScan?: unknown;
   };
   errors?: Array<{ message?: unknown }>;
 }
@@ -837,6 +860,120 @@ export class StashAdapter {
     await this.executeQuery(config, mutation, {
       id: normalizedSceneId,
     });
+  }
+
+  /**
+   * Asks Stash to scan its library folders for new or changed files, the
+   * same as its Tasks page's Scan. The target picks the folders: Stash
+   * marks each folder as holding videos, images or both, so a library scan
+   * covers the folders with videos and a galleries scan the ones with
+   * images. It also picks what Stash generates as it goes: covers and
+   * previews for new scenes, thumbnails for new images. Returns at once
+   * with Stash's job id; the scan runs in Stash.
+   */
+  async startScan(
+    target: StashScanTarget,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashScanJob> {
+    const paths = await this.getScanPaths(target, config);
+
+    const mutation = `
+      mutation MetadataScan($input: ScanMetadataInput!) {
+        metadataScan(input: $input)
+      }
+    `;
+    const input: Record<string, unknown> =
+      target === 'galleries'
+        ? {
+            paths,
+            scanGenerateThumbnails: true,
+            scanGenerateImagePreviews: false,
+            scanGenerateCovers: false,
+            scanGeneratePreviews: false,
+            scanGenerateSprites: false,
+            scanGeneratePhashes: false,
+            scanGenerateClipPreviews: false,
+          }
+        : {
+            paths,
+            scanGenerateCovers: true,
+            scanGeneratePreviews: true,
+            scanGenerateSprites: false,
+            scanGeneratePhashes: false,
+            scanGenerateThumbnails: false,
+            scanGenerateImagePreviews: false,
+            scanGenerateClipPreviews: false,
+          };
+
+    const payload = await this.executeQuery(config, mutation, { input });
+    const jobId = this.normalizeOptionalString(payload.data?.metadataScan);
+    if (!jobId) {
+      throw new BadGatewayException('Stash did not start the scan.');
+    }
+
+    return { jobId, paths };
+  }
+
+  /**
+   * The library folders a scan of this target covers, from Stash's own
+   * configuration. Empty when Stash has no folders set up or every folder
+   * takes everything: then the scan is left to cover the whole library.
+   * Throws when folders exist but none holds this kind of file.
+   */
+  private async getScanPaths(
+    target: StashScanTarget,
+    config: StashAdapterBaseConfig,
+  ): Promise<string[]> {
+    const query = `
+      query ScanFolders {
+        configuration {
+          general {
+            stashes {
+              path
+              excludeVideo
+              excludeImage
+            }
+          }
+        }
+      }
+    `;
+    const payload = await this.executeQuery(config, query);
+    const stashes = payload.data?.configuration?.general?.stashes ?? [];
+    const folders = stashes
+      .map((stash) => ({
+        path: this.normalizeOptionalString(stash?.path),
+        excludeVideo: stash?.excludeVideo === true,
+        excludeImage: stash?.excludeImage === true,
+      }))
+      .filter(
+        (
+          stash,
+        ): stash is {
+          path: string;
+          excludeVideo: boolean;
+          excludeImage: boolean;
+        } => stash.path !== null,
+      );
+
+    if (folders.length === 0) {
+      return [];
+    }
+
+    const wanted = folders.filter((folder) =>
+      target === 'galleries' ? !folder.excludeImage : !folder.excludeVideo,
+    );
+    if (wanted.length === 0) {
+      throw new BadGatewayException(
+        target === 'galleries'
+          ? 'None of the library folders in Stash take images.'
+          : 'None of the library folders in Stash take videos.',
+      );
+    }
+    if (wanted.length === folders.length) {
+      return [];
+    }
+
+    return wanted.map((folder) => folder.path);
   }
 
   async findPerformerByStashId(

@@ -100,6 +100,12 @@ p {
 .summary-copy,
 .section-head p,
 .job-purpose,
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 .action-hint {
   color: var(--text-muted);
 }

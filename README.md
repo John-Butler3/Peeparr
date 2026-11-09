@@ -72,10 +72,11 @@ Questions about how it fits with your setup? See **[Common questions](docs/FAQ.m
 **Library and home**
 - Home: newest scenes, continue watching, fresh in your library, popular now.
 - Library, Galleries and Series browsing with filters.
-- Performer and studio pages with favourites.
+- Performer and studio pages with favourites; a performer's page also lists library scenes the catalog doesn't hold.
 
 **Setup and security**
 - Guided setup for Stash, Whisparr and the catalog, with connection checks and repair hints.
+- Start a Stash scan for new videos or new images from Settings > Indexing.
 - One local admin account, password reset from the server.
 - Reverse-proxy ready: remote-access option in setup, security headers, cross-site request protection.
 - Discreet mode: a plain logo and home-screen icon, per device.

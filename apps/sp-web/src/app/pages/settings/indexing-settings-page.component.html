@@ -137,6 +137,41 @@
           Backfill.
         </p>
       </article>
+
+      <article class="summary-card action-card">
+        <p class="eyebrow">Stash</p>
+        <h2>Scan for new files</h2>
+        <p class="summary-copy">
+          Has Stash look through its folders for files added since its last scan: videos for
+          the library, or images for galleries. New scenes show up here after the next Library
+          Projection sync.
+        </p>
+
+        <div class="action-row">
+          <button
+            pButton
+            type="button"
+            data-testid="stash-scan-library"
+            [disabled]="isStashScanDisabled()"
+            (click)="startStashScan('library')"
+          >
+            {{ stashScanLabel('library') }}
+          </button>
+          <button
+            pButton
+            type="button"
+            data-testid="stash-scan-galleries"
+            [disabled]="isStashScanDisabled()"
+            (click)="startStashScan('galleries')"
+          >
+            {{ stashScanLabel('galleries') }}
+          </button>
+        </div>
+
+        <p class="action-hint">
+          The scan runs in Stash; its Tasks page shows the progress.
+        </p>
+      </article>
     </section>
 
     <section class="jobs-shell">

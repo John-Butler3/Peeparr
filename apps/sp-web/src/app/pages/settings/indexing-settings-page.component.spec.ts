@@ -1,12 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { Subject, of } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IndexingService } from '../../core/api/indexing.service';
 import {
   IndexingJobStatusResponse,
   IndexingStatusResponse,
 } from '../../core/api/indexing.types';
+import { StashScanService } from '../../core/api/stash-scan.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { IndexingSettingsPageComponent } from './indexing-settings-page.component';
 
@@ -89,6 +90,11 @@ describe('IndexingSettingsPageComponent', () => {
       error: vi.fn(),
       info: vi.fn(),
     };
+    const stashScanService = {
+      start: vi.fn().mockImplementation((target: string) =>
+        of({ target, jobId: '42', paths: target === 'galleries' ? ['/media/photos'] : [] }),
+      ),
+    };
 
     await TestBed.configureTestingModule({
       imports: [IndexingSettingsPageComponent],
@@ -97,6 +103,10 @@ describe('IndexingSettingsPageComponent', () => {
         {
           provide: IndexingService,
           useValue: indexingService,
+        },
+        {
+          provide: StashScanService,
+          useValue: stashScanService,
         },
         {
           provide: AppNotificationsService,
@@ -110,7 +120,7 @@ describe('IndexingSettingsPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, indexingService, notifications };
+    return { fixture, indexingService, notifications, stashScanService };
   }
 
   it('loads indexing status and renders summary and job details', async () => {
@@ -164,6 +174,53 @@ describe('IndexingSettingsPageComponent', () => {
     fixture.detectChanges();
 
     expect(notifications.success).toHaveBeenCalledWith('Whisparr Queue finished');
+  });
+
+  it('starts a Stash scan of the library or of galleries and says what Stash is scanning', async () => {
+    const { fixture, stashScanService, notifications } = await renderPage();
+
+    const galleriesButton = fixture.nativeElement.querySelector(
+      '[data-testid="stash-scan-galleries"]',
+    ) as HTMLButtonElement;
+    galleriesButton.click();
+    fixture.detectChanges();
+
+    expect(stashScanService.start).toHaveBeenCalledWith('galleries');
+    expect(notifications.success).toHaveBeenCalledWith('Stash scan started');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Stash is scanning 1 folder for new images (job 42)',
+    );
+
+    const libraryButton = fixture.nativeElement.querySelector(
+      '[data-testid="stash-scan-library"]',
+    ) as HTMLButtonElement;
+    libraryButton.click();
+    fixture.detectChanges();
+
+    expect(stashScanService.start).toHaveBeenCalledWith('library');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Stash is scanning every folder for new videos (job 42)',
+    );
+  });
+
+  it("shows Stash's reason when a scan cannot start", async () => {
+    const { fixture, stashScanService, notifications } = await renderPage();
+    stashScanService.start.mockReturnValueOnce(
+      throwError(() => ({
+        error: { message: 'None of the library folders in Stash take images.' },
+      })),
+    );
+
+    const galleriesButton = fixture.nativeElement.querySelector(
+      '[data-testid="stash-scan-galleries"]',
+    ) as HTMLButtonElement;
+    galleriesButton.click();
+    fixture.detectChanges();
+
+    expect(notifications.error).toHaveBeenCalledWith('Failed to start Scan galleries');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Scan galleries failed: None of the library folders in Stash take images.',
+    );
   });
 
   it('triggers Sync All from the manual actions panel', async () => {
