@@ -36,10 +36,22 @@ describe('PreviewAudioService', () => {
     TestBed.resetTestingModule();
   });
 
-  it('plays with sound, one at a time', async () => {
+  it('plays muted until sound is turned on', async () => {
+    expect(service.muted()).toBe(true);
+    const first = preview();
+    await service.play(first);
+    expect(first.muted).toBe(true);
+
+    service.toggle(first);
+    expect(first.muted).toBe(false);
+    expect(service.muted()).toBe(false);
+  });
+
+  it('with sound on, plays one at a time', async () => {
     const first = preview();
     const second = preview();
     await service.play(first);
+    service.toggle(first);
     expect(first.muted).toBe(false);
 
     await service.play(second);
@@ -47,31 +59,42 @@ describe('PreviewAudioService', () => {
     expect(first.muted).toBe(true);
   });
 
-  it('muting one mutes the rest, until a new page', async () => {
+  it('turning sound on carries to the rest, muting one mutes them, and a new page starts muted', async () => {
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/a');
     const first = preview();
     await service.play(first);
-
     service.toggle(first);
-    expect(first.muted).toBe(true);
 
     const second = preview();
     await service.play(second);
-    expect(second.muted).toBe(true);
+    expect(second.muted).toBe(false);
 
-    await router.navigateByUrl('/a?x=1');
+    service.toggle(second);
+    expect(second.muted).toBe(true);
     const third = preview();
     await service.play(third);
     expect(third.muted).toBe(true);
 
+    service.toggle(third);
+    await router.navigateByUrl('/a?x=1');
+    const sameDifferentQuery = preview();
+    await service.play(sameDifferentQuery);
+    expect(sameDifferentQuery.muted).toBe(false);
+
     await router.navigateByUrl('/b');
     const fourth = preview();
     await service.play(fourth);
-    expect(fourth.muted).toBe(false);
+    expect(fourth.muted).toBe(true);
+    expect(service.muted()).toBe(true);
   });
 
   it('plays muted when sound is refused, and tapping turns it on', async () => {
+    const first = preview();
+    await service.play(first);
+    service.toggle(first);
+
+    play.mockClear();
     play.mockRejectedValueOnce(Object.assign(new Error('no'), { name: 'NotAllowedError' }));
     const video = preview();
     await service.play(video);
@@ -100,6 +123,7 @@ describe('PreviewAudioService', () => {
     await router.navigateByUrl('/a');
     const playingOn = preview();
     await service.play(playingOn);
+    service.toggle(playingOn);
     expect(playingOn.muted).toBe(false);
 
     // Its page kept, out of the document.
@@ -120,6 +144,8 @@ describe('PreviewAudioService', () => {
   it('stays silent while a scene plays, and leaves when one starts', async () => {
     const first = preview();
     await service.play(first);
+    service.toggle(first);
+    expect(first.muted).toBe(false);
 
     const scene = document.createElement('video');
     document.body.appendChild(scene);

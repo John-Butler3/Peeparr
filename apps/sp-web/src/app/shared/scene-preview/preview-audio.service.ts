@@ -5,9 +5,10 @@ import { onShowingPage } from '../../core/navigation/page-fade.service';
 const pathOf = (url: string) => url.split(/[?#]/)[0];
 
 /**
- * Sound for scene previews. They play with sound, one at a time (whichever
- * started last), and never over a scene actually playing. Muting one mutes the
- * rest, until a new page.
+ * Sound for scene previews. They play muted until the viewer turns the sound
+ * on with a preview's button; from then on, on that page, they play with
+ * sound, one at a time (whichever started last), and never over a scene
+ * actually playing. Muting one mutes the rest again. A new page starts muted.
  *
  * Browsers can refuse to start a video with sound before a tap (phones most of
  * all): it then plays muted, and its button says so; tapping that turns the
@@ -19,8 +20,8 @@ const pathOf = (url: string) => url.split(/[?#]/)[0];
  */
 @Injectable({ providedIn: 'root' })
 export class PreviewAudioService {
-  /** The viewer's choice, on this page. */
-  readonly muted = signal(false);
+  /** The viewer's choice, on this page: muted until they turn sound on. */
+  readonly muted = signal(true);
 
   private readonly router = inject(Router);
   private path = pathOf(this.router.url);
@@ -42,7 +43,7 @@ export class PreviewAudioService {
         const path = pathOf(event.urlAfterRedirects);
         if (path !== this.path) {
           this.path = path;
-          this.muted.set(false);
+          this.muted.set(true);
         }
       }
     });
@@ -66,7 +67,7 @@ export class PreviewAudioService {
     }
   }
 
-  /** Starts a preview, with sound if it can have it. */
+  /** Starts a preview, with sound if the viewer has turned it on and it can have it. */
   play(video: HTMLVideoElement): Promise<void> {
     if (!onShowingPage(video)) {
       // Due to start, but its page has gone meanwhile.
