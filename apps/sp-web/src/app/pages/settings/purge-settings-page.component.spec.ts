@@ -42,6 +42,7 @@ describe('PurgeSettingsPageComponent', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    localStorage.clear();
     getShuffledPage.mockReset();
     deleteNow.mockReset();
     notifyError.mockReset();

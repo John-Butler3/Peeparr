@@ -41,6 +41,7 @@ describe('app routes', () => {
       'integrations',
       'indexing',
       'content',
+      'purge',
       'account',
       'about',
     ]);
