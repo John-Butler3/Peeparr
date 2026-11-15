@@ -15,7 +15,7 @@ import { Subscription, catchError, of } from 'rxjs';
 import { GroupsService } from '../../core/api/groups.service';
 import { SceneSeriesMembership } from '../../core/api/groups.types';
 import { LibraryService } from '../../core/api/library.service';
-import { LibrarySceneDetail } from '../../core/api/library.types';
+import { LibrarySceneDetail, LibrarySceneItem } from '../../core/api/library.types';
 import {
   libraryScenePlayerDetails,
   libraryUpNextItem,
@@ -59,6 +59,8 @@ import { CatalogMatchService } from '../../core/api/catalog-match.service';
 })
 export class LocalScenePageComponent implements OnInit, OnDestroy {
   private static readonly DESCRIPTION_PREVIEW_LENGTH = 420;
+  /** How many of its performers' other scenes head Up next. */
+  static readonly PERFORMER_UP_NEXT = 12;
 
   private readonly libraryService = inject(LibraryService);
   private readonly groupsService = inject(GroupsService);
@@ -93,12 +95,18 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
   protected readonly seriesDialogOpen = signal(false);
   protected readonly descriptionExpanded = signal(false);
   private readonly recommendedUpNext = signal<UpNextItem[]>([]);
+  // More with its performers (local-only scenes too), ahead of the random picks.
+  private readonly performerUpNext = signal<UpNextItem[]>([]);
+  private performerUpNextSubscription: Subscription | null = null;
   // The following parts when this scene is in a series.
   private readonly seriesUpNext = signal<UpNextItem[]>([]);
   private seriesUpNextSubscription: Subscription | null = null;
   private currentSceneId: string | null = null;
   protected readonly upNext = computed(() =>
-    mergeUpNext(this.seriesUpNext(), this.recommendedUpNext()),
+    mergeUpNext(
+      this.seriesUpNext(),
+      mergeUpNext(this.performerUpNext(), this.recommendedUpNext()),
+    ).filter((item) => item.id !== this.currentSceneId),
   );
   protected readonly upNextLoading = signal(false);
   protected readonly autoplay = signal(false);
@@ -116,6 +124,7 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     this.seriesSubscription?.unsubscribe();
     this.upNextSubscription?.unsubscribe();
     this.seriesUpNextSubscription?.unsubscribe();
+    this.performerUpNextSubscription?.unsubscribe();
   }
 
   protected retry(): void {
@@ -326,6 +335,8 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
     this.seriesSubscription?.unsubscribe();
     this.currentSceneId = sceneId;
     this.loadSeriesUpNext([]);
+    this.performerUpNextSubscription?.unsubscribe();
+    this.performerUpNext.set([]);
     this.loading.set(true);
     this.error.set(null);
     this.series.set([]);
@@ -337,6 +348,7 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.scene.set(scene);
         this.lookUpCatalogPages(scene);
+        this.loadPerformerUpNext(scene);
       },
       error: () => {
         this.loading.set(false);
@@ -345,8 +357,10 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
       },
     });
     this.chapterMarkers.set([]);
+    // Kept only if this is still the scene asked for: the page shows the last
+    // scene until this one has loaded, so its id is no guide.
     this.playerService.sceneMarkers(sceneId).subscribe((markers) => {
-      if (this.scene()?.id === sceneId || !this.scene()) {
+      if (this.currentSceneId === sceneId) {
         this.chapterMarkers.set(markers);
       }
     });
@@ -368,6 +382,29 @@ export class LocalScenePageComponent implements OnInit, OnDestroy {
       .subscribe((memberships) => {
         this.series.set(memberships);
         this.loadSeriesUpNext(memberships);
+      });
+  }
+
+  // Its performers' other library scenes, whether the catalog knows them or
+  // not, newest first: after the series, before the random picks.
+  private loadPerformerUpNext(scene: LibrarySceneDetail): void {
+    this.performerUpNextSubscription?.unsubscribe();
+    this.performerUpNext.set([]);
+    const performerIds = scene.performers.map((performer) => performer.id).filter(Boolean);
+    if (performerIds.length === 0) {
+      return;
+    }
+    this.performerUpNextSubscription = this.libraryService
+      .getScenesFeed(1, LocalScenePageComponent.PERFORMER_UP_NEXT, { performerIds })
+      .pipe(catchError(() => of({ items: [] as LibrarySceneItem[] })))
+      .subscribe((response) => {
+        if (this.currentSceneId === scene.id) {
+          this.performerUpNext.set(
+            response.items
+              .filter((item) => item.id !== scene.id)
+              .map((item) => libraryUpNextItem(item)),
+          );
+        }
       });
   }
 

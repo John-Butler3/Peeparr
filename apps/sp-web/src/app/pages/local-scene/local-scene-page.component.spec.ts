@@ -49,6 +49,7 @@ describe('LocalScenePageComponent', () => {
       watched?: boolean;
       catalogPerformers?: Array<{ id: string; name: string; sceneCount: number }>;
       catalogStudios?: Array<{ id: string; name: string }>;
+      performerScenes?: LibrarySceneDetail[];
     } = {},
   ) {
     const scene = options.scene ?? buildScene();
@@ -60,6 +61,16 @@ describe('LocalScenePageComponent', () => {
         .fn()
         .mockReturnValue(of({ items: [buildScene({ id: '500', title: 'Recommended Pick' })] })),
       getSimilarByTags: vi.fn().mockReturnValue(of({ items: [] })),
+      getScenesFeed: vi.fn().mockReturnValue(
+        of({
+          total: 2,
+          page: 1,
+          perPage: 12,
+          hasMore: false,
+          latestSyncAt: null,
+          items: options.performerScenes ?? [],
+        }),
+      ),
     };
     const groupsService = {
       getSeriesForScene: vi.fn().mockReturnValue(of([{ id: '5', name: 'Trilogy', sceneIndex: 2 }])),
@@ -283,6 +294,20 @@ describe('LocalScenePageComponent', () => {
     expect(navigate).toHaveBeenCalledWith(['/library/scene', '500'], {
       queryParams: { autoplay: '1' },
     });
+  });
+
+  it("puts its performers' other scenes, local-only ones too, after the series in Up next", async () => {
+    const { element, libraryService } = await render({
+      performerScenes: [buildScene(), buildScene({ id: '600', title: 'Only In Stash' })],
+    });
+
+    expect(libraryService.getScenesFeed).toHaveBeenCalledWith(1, 12, { performerIds: ['7'] });
+    const titles = Array.from(element.querySelectorAll('.up-next .title')).map((el) =>
+      el.textContent?.trim(),
+    );
+    // The series' next part, then the performer's other scene (not this one),
+    // then the random picks.
+    expect(titles).toEqual(['Recommended Pick', 'Only In Stash']);
   });
 
   it('goes back to the page that linked here, but only for in-app paths', async () => {
