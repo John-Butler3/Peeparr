@@ -6,6 +6,10 @@ export interface AuthStatusResponse {
   passwordChangeRequired?: boolean;
   /** Signed out: the account has a passkey, so Face ID can be offered at once. */
   passkeys?: boolean;
+  /** Signed in: the session ends when the app is closed. */
+  lockOnClose?: boolean;
+  /** Signed in: the app was left and the session will end unless it resumes. */
+  lockPending?: boolean;
 }
 
 export interface BootstrapAdminPayload {

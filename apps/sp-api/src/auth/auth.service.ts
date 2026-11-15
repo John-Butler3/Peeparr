@@ -27,6 +27,8 @@ type AdminSessionRecord = Awaited<ReturnType<AuthService['loadSessionRecord']>>;
 @Injectable()
 export class AuthService {
   private static readonly SESSION_TOUCH_INTERVAL_MS = 15 * 60 * 1000;
+  /** Lock on close: how long the app can be left (an app switch) without locking. */
+  static readonly LOCK_GRACE_MS = 15 * 1000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -41,7 +43,18 @@ export class AuthService {
   ): Promise<AuthStatusResponse> {
     const authContext = await this.resolveRequestAuth(request, response);
     const status = this.toStatus(authContext);
-    if (authContext.authenticated || authContext.bootstrapRequired) {
+    if (authContext.authenticated && authContext.sessionId) {
+      const session = await this.prisma.adminSession.findUnique({
+        where: { id: authContext.sessionId },
+        select: { lockAt: true, user: { select: { lockOnClose: true } } },
+      });
+      return {
+        ...status,
+        lockOnClose: session?.user?.lockOnClose ?? false,
+        lockPending: Boolean(session?.lockAt),
+      };
+    }
+    if (authContext.bootstrapRequired) {
       return status;
     }
     // Signed out: whether the login page can offer Face ID straight away.
@@ -227,6 +240,64 @@ export class AuthService {
     );
   }
 
+  /**
+   * The app is being left (hidden or closed). With lock on close, the session
+   * ends after the grace time unless the app comes back (resume) first;
+   * `now` ends it at once (the app was found to have been closed).
+   */
+  async lock(request: Request, response: Response, now = false): Promise<void> {
+    const authContext = await this.requireAuthenticatedRequest(
+      request,
+      response,
+    );
+    const user = await this.prisma.adminUser.findUnique({
+      where: { id: authContext.user.id },
+      select: { lockOnClose: true },
+    });
+    if (!user?.lockOnClose) {
+      return;
+    }
+    if (now) {
+      await this.prisma.adminSession.deleteMany({
+        where: { id: authContext.sessionId },
+      });
+      this.sessionCookieService.clearSessionCookie(response);
+      return;
+    }
+    await this.prisma.adminSession.update({
+      where: { id: authContext.sessionId },
+      data: { lockAt: new Date(Date.now() + AuthService.LOCK_GRACE_MS) },
+    });
+  }
+
+  /** Back in the app within the grace time: no lock after all. */
+  async resume(request: Request, response: Response): Promise<void> {
+    const authContext = await this.requireAuthenticatedRequest(
+      request,
+      response,
+    );
+    await this.prisma.adminSession.update({
+      where: { id: authContext.sessionId },
+      data: { lockAt: null },
+    });
+  }
+
+  async setLockOnClose(
+    request: Request,
+    response: Response,
+    enabled: boolean,
+  ): Promise<{ lockOnClose: boolean }> {
+    const authContext = await this.requireAuthenticatedRequest(
+      request,
+      response,
+    );
+    await this.prisma.adminUser.update({
+      where: { id: authContext.user.id },
+      data: { lockOnClose: enabled },
+    });
+    return { lockOnClose: enabled };
+  }
+
   async requestPasswordReset(): Promise<void> {
     const adminUser = await this.prisma.adminUser.findFirst();
     if (!adminUser) {
@@ -397,7 +468,11 @@ export class AuthService {
       });
     }
 
-    if (session.expiresAt.getTime() <= Date.now()) {
+    // Expired, or the app was left (lock on close) and not back in time.
+    if (
+      session.expiresAt.getTime() <= Date.now() ||
+      (session.lockAt != null && session.lockAt.getTime() <= Date.now())
+    ) {
       await this.prisma.adminSession.deleteMany({
         where: {
           id: session.id,

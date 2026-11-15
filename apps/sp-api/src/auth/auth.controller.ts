@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { type AuthStatusResponse } from './auth.types';
 import { BootstrapAdminDto } from './dto/bootstrap-admin.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { LockDto, LockOnCloseDto } from './dto/lock.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Controller('api/auth')
@@ -63,6 +64,36 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthStatusResponse> {
     return this.authService.logout(request, response);
+  }
+
+  // Lock on close: the app being left, back, or found to have been closed.
+  @Post('lock')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  lock(
+    @Body() dto: LockDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    return this.authService.lock(request, response, dto.now === true);
+  }
+
+  @Post('resume')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  resume(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    return this.authService.resume(request, response);
+  }
+
+  @Post('lock-on-close')
+  @HttpCode(HttpStatus.OK)
+  setLockOnClose(
+    @Body() dto: LockOnCloseDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ lockOnClose: boolean }> {
+    return this.authService.setLockOnClose(request, response, dto.enabled);
   }
 
   @Post('change-password')

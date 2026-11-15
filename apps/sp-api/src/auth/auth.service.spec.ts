@@ -23,6 +23,7 @@ interface AdminUserRecord {
   normalizedUsername: string;
   passwordHash: string;
   sessionVersion: number;
+  lockOnClose?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +33,7 @@ interface AdminSessionRecord {
   userId: string;
   sessionVersion: number;
   expiresAt: Date;
+  lockAt?: Date | null;
   lastSeenAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -398,6 +400,71 @@ describe('AuthService', () => {
     );
   });
 
+  it('locks on close: ends the session after the grace time unless the app comes back', async () => {
+    adminUsers.push(
+      await createAdminUser('local-admin', 'correct-password-123'),
+    );
+    await service.login(
+      { username: 'local-admin', password: 'correct-password-123' },
+      createRequest(),
+      createResponse(),
+    );
+    const sessionId = adminSessions[0].id;
+    sessionCookieService.readSessionId.mockReturnValue(sessionId);
+    const signedIn = () => createRequest({ cookie: 'peeparr_session=signed' });
+
+    // Off: leaving the app changes nothing.
+    await service.lock(signedIn(), createResponse());
+    expect(adminSessions[0].lockAt ?? null).toBeNull();
+
+    await service.setLockOnClose(signedIn(), createResponse(), true);
+    await service.lock(signedIn(), createResponse());
+    expect(adminSessions[0].lockAt?.getTime()).toBeGreaterThan(Date.now());
+    await expect(
+      service.getStatus(signedIn(), createResponse()),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        authenticated: true,
+        lockOnClose: true,
+        lockPending: true,
+      }),
+    );
+
+    // Back in time: no lock.
+    await service.resume(signedIn(), createResponse());
+    expect(adminSessions[0].lockAt).toBeNull();
+
+    // Left past the grace time: signed out.
+    await service.lock(signedIn(), createResponse());
+    adminSessions[0].lockAt = new Date(Date.now() - 1000);
+    await expect(
+      service.getStatus(signedIn(), createResponse()),
+    ).resolves.toEqual(expect.objectContaining({ authenticated: false }));
+    expect(adminSessions).toHaveLength(0);
+  });
+
+  it('locks at once when the app turns out to have been closed', async () => {
+    adminUsers.push({
+      ...(await createAdminUser('local-admin', 'correct-password-123')),
+      lockOnClose: true,
+    });
+    await service.login(
+      { username: 'local-admin', password: 'correct-password-123' },
+      createRequest(),
+      createResponse(),
+    );
+    sessionCookieService.readSessionId.mockReturnValue(adminSessions[0].id);
+
+    await service.lock(
+      createRequest({ cookie: 'peeparr_session=signed' }),
+      createResponse(),
+      true,
+    );
+
+    expect(adminSessions).toHaveLength(0);
+    expect(sessionCookieService.clearSessionCookie).toHaveBeenCalled();
+  });
+
   let passkeyCount = 0;
 
   function createPrismaMock(): PrismaService {
@@ -466,6 +533,7 @@ describe('AuthService', () => {
 
           user.passwordHash = data.passwordHash ?? user.passwordHash;
           user.sessionVersion = data.sessionVersion ?? user.sessionVersion;
+          user.lockOnClose = data.lockOnClose ?? user.lockOnClose;
           user.updatedAt = new Date();
           return user;
         }),
@@ -499,6 +567,7 @@ describe('AuthService', () => {
               username: user.username,
               normalizedUsername: user.normalizedUsername,
               sessionVersion: user.sessionVersion,
+              lockOnClose: user.lockOnClose ?? false,
             },
           };
         }),
@@ -521,6 +590,9 @@ describe('AuthService', () => {
             data.sessionVersion ?? session.sessionVersion;
           session.expiresAt = data.expiresAt ?? session.expiresAt;
           session.lastSeenAt = data.lastSeenAt ?? session.lastSeenAt;
+          if ('lockAt' in data) {
+            session.lockAt = data.lockAt;
+          }
           session.updatedAt = new Date();
           return session;
         }),

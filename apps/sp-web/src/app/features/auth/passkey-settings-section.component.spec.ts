@@ -1,6 +1,8 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { AuthService } from '../../core/api/auth.service';
 import { PasskeyService } from '../../core/api/passkey.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { PasskeySettingsSectionComponent } from './passkey-settings-section.component';
@@ -25,16 +27,36 @@ describe('PasskeySettingsSectionComponent', () => {
       ...passkeys,
     };
     const notifications = { success: vi.fn(), error: vi.fn() };
+    const status = signal({
+      authenticated: true,
+      bootstrapRequired: false,
+      username: 'admin',
+      lockOnClose: false,
+    });
+    const authService = {
+      status,
+      setLockOnClose: vi.fn((enabled: boolean) => {
+        status.update((current) => ({ ...current, lockOnClose: enabled }));
+        return of({ lockOnClose: enabled });
+      }),
+    };
     await TestBed.configureTestingModule({
       imports: [PasskeySettingsSectionComponent],
       providers: [
         { provide: PasskeyService, useValue: service },
         { provide: AppNotificationsService, useValue: notifications },
+        { provide: AuthService, useValue: authService },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(PasskeySettingsSectionComponent);
     fixture.detectChanges();
-    return { fixture, service, notifications, element: fixture.nativeElement as HTMLElement };
+    return {
+      fixture,
+      service,
+      notifications,
+      authService,
+      element: fixture.nativeElement as HTMLElement,
+    };
   }
 
   it('adds a Face ID passkey on this device and lists it', async () => {
@@ -78,5 +100,18 @@ describe('PasskeySettingsSectionComponent', () => {
     const { element } = await render({ supported: () => false });
     expect(element.querySelector('[data-testid="passkey-add"]')).toBeNull();
     expect(element.textContent).toContain('over HTTPS at its domain name');
+  });
+
+  it('turns on lock when closed', async () => {
+    const { fixture, element, authService, notifications } = await render({});
+    const toggle = element.querySelector('#lock-on-close') as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
+
+    toggle.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(authService.setLockOnClose).toHaveBeenCalledWith(true);
+    expect(notifications.success).toHaveBeenCalledWith('Locks when closed', expect.any(String));
   });
 });

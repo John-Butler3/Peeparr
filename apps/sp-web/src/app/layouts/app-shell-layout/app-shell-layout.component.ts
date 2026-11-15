@@ -17,6 +17,7 @@ import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router
 import { finalize, merge, of, switchMap, timer } from 'rxjs';
 import { catchError, filter } from 'rxjs/operators';
 import { AuthService } from '../../core/api/auth.service';
+import { AppLockService } from '../../core/auth/app-lock.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { summarizeRuntimeDegradedState } from '../../core/api/runtime-health.types';
 import { SetupService } from '../../core/api/setup.service';
@@ -147,7 +148,17 @@ const MOBILE_SECONDARY_NAV_ITEMS: readonly ShellNavItem[] = [
 
 @Component({
   selector: 'app-shell-layout',
-  imports: [SwipeToCloseDirective, EdgeSwipeBackComponent, SearchSuggestComponent, PageTransitionDirective, FormsModule, RouterLink, RouterOutlet, BrandMarkComponent, AppSplashComponent],
+  imports: [
+    SwipeToCloseDirective,
+    EdgeSwipeBackComponent,
+    SearchSuggestComponent,
+    PageTransitionDirective,
+    FormsModule,
+    RouterLink,
+    RouterOutlet,
+    BrandMarkComponent,
+    AppSplashComponent,
+  ],
   templateUrl: './app-shell-layout.component.html',
   styleUrl: './app-shell-layout.component.scss',
 })
@@ -174,6 +185,7 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly notifications = inject(AppNotificationsService);
   private readonly themeService = inject(ThemeService);
+  private readonly appLock = inject(AppLockService);
   private lastScrollY = 0;
   // Where the current run of scrolling in one direction started.
   private scrollRunStartY = 0;
@@ -192,12 +204,17 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   protected readonly upcomingNavItem = UPCOMING_NAV_ITEM;
   protected readonly acquisitionNavItem = ACQUISITION_NAV_ITEM;
   /** The bar's third and fourth slots (the Library tray slides over them). */
-  protected readonly mobileMiddleItems: readonly ShellNavItem[] = [UPCOMING_NAV_ITEM, ACQUISITION_NAV_ITEM];
+  protected readonly mobileMiddleItems: readonly ShellNavItem[] = [
+    UPCOMING_NAV_ITEM,
+    ACQUISITION_NAV_ITEM,
+  ];
   protected readonly mobileLibraryGroup = MOBILE_LIBRARY_GROUP;
   protected readonly mobileSecondaryNavItems = MOBILE_SECONDARY_NAV_ITEMS;
   /** Series and Galleries slid out beside Library on the bottom bar. */
   protected readonly libraryTrayOpen = signal(false);
-  protected readonly collapsed = signal(!this.matchesMedia(AppShellLayoutComponent.WIDE_GUIDE_MEDIA_QUERY));
+  protected readonly collapsed = signal(
+    !this.matchesMedia(AppShellLayoutComponent.WIDE_GUIDE_MEDIA_QUERY),
+  );
   protected readonly accountMenuOpen = signal(false);
   protected readonly mastheadHidden = signal(false);
   // The bottom bar hides with the masthead; the miniplayer (outside the
@@ -269,7 +286,9 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
       return 0;
     }
     if (this.libraryTrayOpen()) {
-      const inTray = this.mobileLibraryGroup.findIndex((item) => this.matchesNavItem(item, currentUrl));
+      const inTray = this.mobileLibraryGroup.findIndex((item) =>
+        this.matchesNavItem(item, currentUrl),
+      );
       if (inTray >= 0) {
         return 2 + inTray;
       }
@@ -287,6 +306,7 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.appLock.start();
     this.runtimeHealthService.ensureStarted();
     this.currentUrl.set(this.normalizeUrl(this.router.url));
 
@@ -334,6 +354,7 @@ export class AppShellLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.appLock.stop();
     document.documentElement.classList.remove('shell-bars-hidden');
     this.phoneShellMediaQuery?.removeEventListener('change', this.phoneShellMediaChangeHandler);
     this.runtimeHealthService.stop();

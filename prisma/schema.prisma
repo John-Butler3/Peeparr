@@ -22,6 +22,8 @@ model AdminUser {
   normalizedUsername String         @unique
   passwordHash       String
   sessionVersion     Int            @default(1)
+  /// Sign out when the app is closed (left for longer than the grace time).
+  lockOnClose        Boolean        @default(false)
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   sessions           AdminSession[]
@@ -51,6 +53,8 @@ model AdminSession {
   userId         String
   sessionVersion Int
   expiresAt      DateTime
+  /// The app was left: the session ends at this time unless it comes back first.
+  lockAt         DateTime?
   lastSeenAt     DateTime  @default(now())
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

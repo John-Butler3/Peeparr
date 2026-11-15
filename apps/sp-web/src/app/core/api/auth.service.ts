@@ -47,6 +47,29 @@ export class AuthService {
       .pipe(tap((status) => this.authStateStore.sync(status)));
   }
 
+  /** Lock on close: the app was found to have been closed; signed out now. */
+  lockNow(): Observable<void> {
+    return this.http
+      .post<void>('/api/auth/lock', { now: true })
+      .pipe(tap(() => this.authStateStore.clear()));
+  }
+
+  /** Back in the app in time: the pending lock is called off. */
+  resume(): Observable<void> {
+    return this.http.post<void>('/api/auth/resume', {});
+  }
+
+  setLockOnClose(enabled: boolean): Observable<{ lockOnClose: boolean }> {
+    return this.http.post<{ lockOnClose: boolean }>('/api/auth/lock-on-close', { enabled }).pipe(
+      tap(({ lockOnClose }) => {
+        const status = this.authStateStore.status();
+        if (status) {
+          this.authStateStore.sync({ ...status, lockOnClose });
+        }
+      }),
+    );
+  }
+
   changePassword(payload: ChangePasswordPayload): Observable<void> {
     return this.http.post<void>('/api/auth/change-password', payload);
   }

@@ -95,3 +95,11 @@ input {
 .passkey-text .summary {
   font-size: 0.85rem;
 }
+
+.lock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}

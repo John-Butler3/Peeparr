@@ -41,6 +41,23 @@
     </ul>
   }
 
+  <label class="lock-row" for="lock-on-close">
+    <span class="passkey-text">
+      <strong>Lock when closed</strong>
+      <span class="summary">
+        Leave Peeparr for more than a few seconds, or close it, and it asks for Face ID or your
+        password next time. Not while a video plays in picture in picture or on AirPlay.
+      </span>
+    </span>
+    <p-toggleswitch
+      inputId="lock-on-close"
+      data-testid="lock-on-close"
+      [ngModel]="lockOnClose()"
+      [disabled]="savingLock()"
+      (ngModelChange)="setLockOnClose($event)"
+    />
+  </label>
+
   @if (errorMessage()) {
     <p-message severity="error" styleClass="inline-message">{{ errorMessage() }}</p-message>
   }

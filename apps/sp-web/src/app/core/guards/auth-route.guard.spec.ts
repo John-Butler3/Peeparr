@@ -6,15 +6,21 @@ import {
   bootstrapOnlyWhenRequiredGuard,
   loginOnlyWhenLoggedOutGuard,
   requireAuthenticatedGuard,
+  resetFirstAuthCheck,
 } from './auth-route.guard';
 
 describe('auth route guards', () => {
   let router: Router;
-  let authService: { refreshStatus: ReturnType<typeof vi.fn> };
+  let authService: {
+    refreshStatus: ReturnType<typeof vi.fn>;
+    lockNow: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
+    resetFirstAuthCheck();
     authService = {
       refreshStatus: vi.fn(),
+      lockNow: vi.fn().mockReturnValue(of(undefined)),
     };
 
     TestBed.configureTestingModule({
@@ -42,6 +48,26 @@ describe('auth route guards', () => {
     const result = await runGuard(requireAuthenticatedGuard);
 
     expect(router.serializeUrl(result as UrlTree)).toBe('/bootstrap');
+  });
+
+  it('locks an app opened with a lock pending (it was closed), but not later on', async () => {
+    authService.refreshStatus.mockReturnValue(
+      of({
+        bootstrapRequired: false,
+        authenticated: true,
+        username: 'admin',
+        lockOnClose: true,
+        lockPending: true,
+      }),
+    );
+
+    const opened = await runGuard(requireAuthenticatedGuard);
+    expect(authService.lockNow).toHaveBeenCalledTimes(1);
+    expect(router.serializeUrl(opened as UrlTree)).toBe('/login');
+
+    const later = await runGuard(requireAuthenticatedGuard);
+    expect(later).toBe(true);
+    expect(authService.lockNow).toHaveBeenCalledTimes(1);
   });
 
   it('routes existing installs without a session to /login', async () => {
