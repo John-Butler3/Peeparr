@@ -66,3 +66,32 @@ input {
     flex-direction: column;
   }
 }
+
+// Passkeys card.
+.passkey-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passkey-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--surface-100) 60%, transparent);
+}
+
+.passkey-text {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.passkey-text .summary {
+  font-size: 0.85rem;
+}

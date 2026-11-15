@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../core/api/auth.service';
+import { PasskeyService } from '../../core/api/passkey.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { SettingsAccountPageComponent } from './settings-account-page.component';
 
@@ -33,6 +34,14 @@ describe('SettingsAccountPageComponent', () => {
           provide: AppNotificationsService,
           useValue: notifications,
         },
+        {
+          provide: PasskeyService,
+          useValue: {
+            supported: () => true,
+            label: () => 'Face ID',
+            list: vi.fn().mockReturnValue(of([])),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -45,5 +54,6 @@ describe('SettingsAccountPageComponent', () => {
     expect(text).toContain('Account security');
     expect(text).toContain('Change admin password');
     expect(text).toContain('admin');
+    expect(text).toContain('Sign in with Face ID');
   });
 });

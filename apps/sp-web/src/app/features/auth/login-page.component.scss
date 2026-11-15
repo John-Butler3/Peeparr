@@ -41,3 +41,58 @@ button.auth-link {
   color: var(--text-muted);
   font-size: 0.8125rem;
 }
+
+// Signing in with a passkey (Face ID / Touch ID), under the form.
+.passkey-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 12px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.passkey-divider::before,
+.passkey-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle, rgb(127 127 127 / 30%));
+}
+
+.passkey-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--border-subtle, rgb(127 127 127 / 40%));
+  border-radius: 22px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.passkey-button:hover:not(:disabled) {
+  background: rgb(127 127 127 / 10%);
+}
+
+.passkey-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.passkey-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.passkey-glyph {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}

@@ -1,0 +1,69 @@
+<section class="account-card" data-testid="passkey-settings">
+  <div class="card-head">
+    <div>
+      <p class="eyebrow">Passkeys</p>
+      <h2>Sign in with Face ID</h2>
+    </div>
+  </div>
+
+  <p class="summary">
+    Add a passkey on this device and sign in with Face ID or Touch ID instead of the password. It's
+    kept in your iCloud Keychain, so your other Apple devices can use it too. Your password keeps
+    working.
+  </p>
+
+  @if (loading()) {
+    <p class="summary">Loading passkeys...</p>
+  } @else if (passkeys().length > 0) {
+    <ul class="passkey-list">
+      @for (passkey of passkeys(); track passkey.id) {
+        <li class="passkey-row">
+          <div class="passkey-text">
+            <strong>{{ passkey.name }}</strong>
+            <span class="summary">
+              Added {{ passkey.createdAt | date: 'mediumDate' }}
+              @if (passkey.lastUsedAt) {
+                · last used {{ passkey.lastUsedAt | date: 'mediumDate' }}
+              }
+            </span>
+          </div>
+          <button
+            pButton
+            type="button"
+            class="p-button-text p-button-danger"
+            [disabled]="removing() === passkey.id"
+            (click)="remove(passkey)"
+          >
+            Remove
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (errorMessage()) {
+    <p-message severity="error" styleClass="inline-message">{{ errorMessage() }}</p-message>
+  }
+
+  @if (supported) {
+    <div>
+      <button
+        pButton
+        type="button"
+        data-testid="passkey-add"
+        [disabled]="adding() || loading()"
+        (click)="add()"
+      >
+        {{
+          adding()
+            ? 'Waiting for ' + (label === 'a passkey' ? 'the passkey' : label) + '...'
+            : 'Add ' + label
+        }}
+      </button>
+    </div>
+  } @else {
+    <p-message severity="info" styleClass="inline-message">
+      Passkeys need Peeparr opened over HTTPS at its domain name, in a browser that supports them.
+    </p-message>
+  }
+</section>
