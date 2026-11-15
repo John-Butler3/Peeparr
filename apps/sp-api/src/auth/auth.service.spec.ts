@@ -155,7 +155,10 @@ describe('AuthService', () => {
   it('ignores an expired temporary password', async () => {
     adminUsers.push(await createAdminUser('local-admin', 'forgotten-123'));
 
-    await passwordResetService.issue('local-admin', Date.now() - 16 * 60 * 1000);
+    await passwordResetService.issue(
+      'local-admin',
+      Date.now() - 16 * 60 * 1000,
+    );
     const temporaryPassword = /Password: (\S+)/.exec(
       readFileSync(passwordResetService.filePath, 'utf8'),
     )?.[1] as string;
@@ -197,17 +200,26 @@ describe('AuthService', () => {
   });
 
   it('only allows creating the admin from your own network', async () => {
-    const outside = createRequest({ remoteAddress: '203.0.113.9', ip: '203.0.113.9' });
+    const outside = createRequest({
+      remoteAddress: '203.0.113.9',
+      ip: '203.0.113.9',
+    });
     // Through a proxy that isn't trusted: the proxy's LAN address proves nothing.
-    const proxied = createRequest({ remoteAddress: '172.18.0.3', forwardedFor: '203.0.113.9' });
-    const dto = { username: 'LocalAdmin', password: 'this-is-a-strong-password' };
+    const proxied = createRequest({
+      remoteAddress: '172.18.0.3',
+      forwardedFor: '203.0.113.9',
+    });
+    const dto = {
+      username: 'LocalAdmin',
+      password: 'this-is-a-strong-password',
+    };
 
-    await expect(service.bootstrapAdmin(dto, outside, createResponse())).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
-    await expect(service.bootstrapAdmin(dto, proxied, createResponse())).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.bootstrapAdmin(dto, outside, createResponse()),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.bootstrapAdmin(dto, proxied, createResponse()),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(adminUsers).toHaveLength(0);
 
     process.env.PEEPARR_ALLOW_REMOTE_SETUP = 'true';
@@ -374,11 +386,26 @@ describe('AuthService', () => {
       bootstrapRequired: false,
       authenticated: false,
       username: null,
+      passkeys: false,
     });
+
+    // Signed out with a passkey on the account: the login page can offer Face ID.
+    passkeyCount = 1;
+    await expect(
+      service.getStatus(createRequest({}), createResponse()),
+    ).resolves.toEqual(
+      expect.objectContaining({ authenticated: false, passkeys: true }),
+    );
   });
 
+  let passkeyCount = 0;
+
   function createPrismaMock(): PrismaService {
+    passkeyCount = 0;
     return {
+      adminPasskey: {
+        count: jest.fn(async () => passkeyCount),
+      },
       adminUser: {
         count: jest.fn(async () => adminUsers.length),
         create: jest.fn(async ({ data }) => {

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { AuthService } from '../../core/api/auth.service';
 import { PasskeyService } from '../../core/api/passkey.service';
 import { LoginPageComponent } from './login-page.component';
@@ -8,6 +8,7 @@ import { LoginPageComponent } from './login-page.component';
 describe('LoginPageComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
+    sessionStorage.clear();
   });
 
   async function setup(
@@ -17,14 +18,16 @@ describe('LoginPageComponent', () => {
     const passkeyService = {
       supported: () => false,
       label: () => 'Face ID',
-      signIn: vi.fn(),
+      signIn: vi.fn().mockReturnValue(NEVER),
+      autofillSupported: vi.fn().mockResolvedValue(true),
+      cancel: vi.fn(),
       ...passkeys,
     };
     await TestBed.configureTestingModule({
       imports: [LoginPageComponent],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: authService },
+        { provide: AuthService, useValue: { status: () => null, ...authService } },
         { provide: PasskeyService, useValue: passkeyService },
       ],
     }).compileComponents();
@@ -34,7 +37,7 @@ describe('LoginPageComponent', () => {
     const navigateByUrl = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     const fixture = TestBed.createComponent(LoginPageComponent);
     fixture.detectChanges();
-    return { fixture, navigate, navigateByUrl };
+    return { fixture, navigate, navigateByUrl, passkeyService };
   }
 
   it('offers forgot password instead of creating an admin account', async () => {
@@ -87,7 +90,10 @@ describe('LoginPageComponent', () => {
     const signIn = vi
       .fn()
       .mockReturnValue(of({ authenticated: true, bootstrapRequired: false, username: 'admin' }));
-    const { fixture, navigateByUrl } = await setup({}, { supported: () => true, signIn });
+    const { fixture, navigateByUrl } = await setup(
+      {},
+      { supported: () => true, signIn, autofillSupported: vi.fn().mockResolvedValue(false) },
+    );
     const button = fixture.nativeElement.querySelector(
       '[data-testid="login-passkey"]',
     ) as HTMLButtonElement;
@@ -113,5 +119,51 @@ describe('LoginPageComponent', () => {
 
     const plain = await setup({});
     expect(plain.fixture.nativeElement.querySelector('[data-testid="login-passkey"]')).toBeNull();
+  });
+
+  it('brings up Face ID as the page opens when the account has a passkey', async () => {
+    const signIn = vi
+      .fn()
+      .mockReturnValue(of({ authenticated: true, bootstrapRequired: false, username: 'admin' }));
+    const { navigateByUrl } = await setup(
+      {
+        status: () => ({
+          authenticated: false,
+          bootstrapRequired: false,
+          username: null,
+          passkeys: true,
+        }),
+      },
+      { supported: () => true, signIn },
+    );
+
+    expect(signIn).toHaveBeenCalledWith();
+    await vi.waitFor(() => expect(navigateByUrl).toHaveBeenCalledWith('/'), { timeout: 2000 });
+  });
+
+  it('cancelled, or just signed out, it waits in the username suggestions instead', async () => {
+    const cancelled = Object.assign(new Error('cancelled'), { name: 'NotAllowedError' });
+    const signedOutStatus = () => ({
+      authenticated: false,
+      bootstrapRequired: false,
+      username: null,
+      passkeys: true,
+    });
+    const signIn = vi
+      .fn()
+      .mockImplementation((options?: { autofill?: boolean }) =>
+        options?.autofill ? NEVER : throwError(() => cancelled),
+      );
+    const { fixture } = await setup({ status: signedOutStatus }, { supported: () => true, signIn });
+    await vi.waitFor(() => expect(signIn).toHaveBeenCalledWith({ autofill: true }));
+    // A cancelled automatic prompt isn't an error.
+    expect(fixture.nativeElement.querySelector('p-message')).toBeNull();
+    TestBed.resetTestingModule();
+
+    sessionStorage.setItem('peeparr.signedOut', '1');
+    const afterSignOut = vi.fn().mockReturnValue(NEVER);
+    await setup({ status: signedOutStatus }, { supported: () => true, signIn: afterSignOut });
+    await vi.waitFor(() => expect(afterSignOut).toHaveBeenCalledWith({ autofill: true }));
+    expect(afterSignOut).toHaveBeenCalledTimes(1);
   });
 });

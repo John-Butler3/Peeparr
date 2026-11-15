@@ -4,6 +4,8 @@ export interface AuthStatusResponse {
   username: string | null;
   /** Set on login when the temporary reset password was used. */
   passwordChangeRequired?: boolean;
+  /** Signed out: the account has a passkey, so Face ID can be offered at once. */
+  passkeys?: boolean;
 }
 
 export interface BootstrapAdminPayload {

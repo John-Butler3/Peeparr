@@ -1,12 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ViewChild, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Message } from 'primeng/message';
 import { BrandMarkComponent } from '../../shared/brand-mark/brand-mark.component';
 import { AuthIntroDirective } from './auth-intro.directive';
 import { setNextAppSplash } from '../../shared/app-splash/app-splash.component';
-import { AuthService } from '../../core/api/auth.service';
+import { AuthService, markSignedOut, wasSignedOut } from '../../core/api/auth.service';
 import { PasskeyService, isPasskeyCancelled } from '../../core/api/passkey.service';
 import { type AuthStatusResponse } from '../../core/api/auth.types';
 
@@ -16,7 +16,14 @@ import { type AuthStatusResponse } from '../../core/api/auth.types';
   templateUrl: './login-page.component.html',
   styleUrl: './login-page.component.scss',
 })
-export class LoginPageComponent {
+/**
+ * Signing in. Where the account has a passkey and this browser can use it,
+ * Face ID (Touch ID on a Mac) comes up as the page opens -- unless you've
+ * just signed out here. Cancelled, or not allowed without a tap, the passkey
+ * waits among the username field's suggestions and behind the button, and
+ * the password works as ever.
+ */
+export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly passkeys = inject(PasskeyService);
@@ -29,6 +36,7 @@ export class LoginPageComponent {
   /** Face ID / Touch ID, where the browser can do passkeys here. */
   protected readonly passkeySupported = this.passkeys.supported();
   protected readonly passkeyLabel = this.passkeys.label();
+  private destroyed = false;
 
   protected readonly form = new FormGroup({
     username: new FormControl('', {
@@ -41,6 +49,24 @@ export class LoginPageComponent {
     }),
   });
 
+  ngAfterViewInit(): void {
+    if (!this.passkeySupported) {
+      return;
+    }
+    if (this.authService.status()?.passkeys && !wasSignedOut()) {
+      this.signInWithPasskey(true);
+    } else {
+      this.offerPasskeyInAutofill();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.passkeySupported) {
+      this.passkeys.cancel();
+    }
+  }
+
   protected submit(): void {
     this.errorMessage.set(null);
 
@@ -50,6 +76,10 @@ export class LoginPageComponent {
     }
 
     this.submitting.set(true);
+    if (this.passkeySupported) {
+      // The waiting autofill request would hold the browser's passkey UI.
+      this.passkeys.cancel();
+    }
     this.authService.login(this.form.getRawValue()).subscribe({
       next: (status) => this.signedIn(status),
       error: (error: unknown) => {
@@ -59,7 +89,8 @@ export class LoginPageComponent {
     });
   }
 
-  protected signInWithPasskey(): void {
+  /** Face ID now: on a tap, or (`automatic`) as the page opens. */
+  protected signInWithPasskey(automatic = false): void {
     this.errorMessage.set(null);
     this.submitting.set(true);
     this.passkeys.signIn().subscribe({
@@ -67,6 +98,12 @@ export class LoginPageComponent {
       error: (error: unknown) => {
         this.submitting.set(false);
         if (isPasskeyCancelled(error)) {
+          if (automatic) {
+            // Cancelled, or the browser wanted a tap first: no fuss, the
+            // passkey stays offered in the username field and the button.
+            this.offerPasskeyInAutofill();
+            return;
+          }
           // Cancelled, or no passkey for this address on this device.
           this.errorMessage.set(
             `No ${this.passkeyLabel === 'a passkey' ? 'passkey' : this.passkeyLabel} sign-in. Sign in with your password, then add a passkey in Settings > Account.`,
@@ -82,7 +119,23 @@ export class LoginPageComponent {
     });
   }
 
+  /** The passkey among the username field's suggestions, until it's used or the page left. */
+  private offerPasskeyInAutofill(): void {
+    void this.passkeys.autofillSupported().then((supported) => {
+      if (!supported || this.destroyed) {
+        return;
+      }
+      this.passkeys.signIn({ autofill: true }).subscribe({
+        next: (status) => this.signedIn(status),
+        error: () => {
+          // Replaced by a tap on the button, or the page left: nothing to say.
+        },
+      });
+    });
+  }
+
   private signedIn(status: AuthStatusResponse): void {
+    markSignedOut(false);
     // Into the app with the zoom-and-reveal transition: the logo first
     // glides back to the middle, where the splash takes over.
     setNextAppSplash('reveal');

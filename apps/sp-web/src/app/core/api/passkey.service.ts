@@ -1,7 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
+  WebAuthnAbortService,
   browserSupportsWebAuthn,
+  browserSupportsWebAuthnAutofill,
   startAuthentication,
   startRegistration,
   type PublicKeyCredentialCreationOptionsJSON,
@@ -74,16 +76,36 @@ export class PasskeyService {
     return this.http.delete<void>(`/api/auth/passkeys/${encodeURIComponent(id)}`);
   }
 
-  /** Signs in with a passkey this device has for this address. */
-  signIn(): Observable<AuthStatusResponse> {
+  /** Whether passkeys can be offered in the username field's suggestions. */
+  autofillSupported(): Promise<boolean> {
+    return this.supported() ? browserSupportsWebAuthnAutofill() : Promise.resolve(false);
+  }
+
+  /** Stops a passkey request still waiting (e.g. the autofill one). */
+  cancel(): void {
+    WebAuthnAbortService.cancelCeremony();
+  }
+
+  /**
+   * Signs in with a passkey this device has for this address: Face ID asks
+   * straight away, or, with `autofill`, the passkey waits among the username
+   * field's suggestions (a field marked autocomplete="username webauthn").
+   */
+  signIn(options: { autofill?: boolean } = {}): Observable<AuthStatusResponse> {
+    const autofill = options.autofill ?? false;
     return this.http
       .post<{
         challengeId: string;
         options: PublicKeyCredentialRequestOptionsJSON;
       }>('/api/auth/passkeys/login/options', {})
       .pipe(
-        switchMap(({ challengeId, options }) =>
-          from(startAuthentication({ optionsJSON: options })).pipe(
+        switchMap(({ challengeId, options: optionsJSON }) =>
+          from(
+            startAuthentication({
+              optionsJSON,
+              useBrowserAutofill: autofill,
+            }),
+          ).pipe(
             switchMap((response) =>
               this.http.post<AuthStatusResponse>('/api/auth/passkeys/login', {
                 challengeId,

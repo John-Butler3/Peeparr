@@ -39,7 +39,16 @@ export class AuthService {
     request: Request,
     response: Response,
   ): Promise<AuthStatusResponse> {
-    return this.toStatus(await this.resolveRequestAuth(request, response));
+    const authContext = await this.resolveRequestAuth(request, response);
+    const status = this.toStatus(authContext);
+    if (authContext.authenticated || authContext.bootstrapRequired) {
+      return status;
+    }
+    // Signed out: whether the login page can offer Face ID straight away.
+    return {
+      ...status,
+      passkeys: (await this.prisma.adminPasskey.count()) > 0,
+    };
   }
 
   async bootstrapAdmin(
