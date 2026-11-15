@@ -35,6 +35,10 @@ describe('NowPlayingService', () => {
     TestBed.resetTestingModule();
   });
 
+  const artwork = () =>
+    (session.metadata as { artwork: Array<{ src: string; sizes: string; type?: string }> })
+      .artwork;
+
   const handlers = () =>
     new Map<string, unknown>(session.setActionHandler.mock.calls.map(([a, h]) => [a, h]));
 
@@ -51,12 +55,10 @@ describe('NowPlayingService', () => {
       artist: 'Ann, Bea',
       album: 'A Site',
     });
-    const artwork = (session.metadata as { artwork: Array<{ src: string; sizes: string }> })
-      .artwork;
-    expect(artwork.length).toBeGreaterThan(1);
-    expect(
-      artwork.every((a) => a.src === `${location.origin}/api/media/stash/scenes/7/screenshot`),
-    ).toBe(true);
+    // The logo, while the thumbnail is made square.
+    expect(artwork()).toEqual([
+      { src: `${location.origin}/icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
+    ]);
     expect(session.playbackState).toBe('playing');
     for (const action of ['play', 'pause', 'seekto', 'seekbackward', 'seekforward']) {
       expect(handlers().get(action)).toEqual(expect.any(Function));
@@ -72,7 +74,8 @@ describe('NowPlayingService', () => {
     expect(session.playbackState).toBe('paused');
 
     video.dispatchEvent(new Event('playing'));
-    expect(session.metadata).toMatchObject({ title: 'A Scene', artwork: [] });
+    expect(session.metadata).toMatchObject({ title: 'A Scene' });
+    expect(artwork()[0].src).toBe(`${location.origin}/icons/icon-512.png`);
     expect(session.playbackState).toBe('playing');
   });
 
@@ -103,5 +106,51 @@ describe('NowPlayingService', () => {
     expect(play).toHaveBeenCalled();
     expect(pause).toHaveBeenCalled();
     expect(video.currentTime).toBe(42);
+  });
+
+  it('swaps in the thumbnail, cropped square, once it has loaded', () => {
+    const images: Array<{ src: string; onload: (() => void) | null }> = [];
+    const OriginalImage = globalThis.Image;
+    globalThis.Image = class {
+      naturalWidth = 1280;
+      naturalHeight = 720;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      src = '';
+      constructor() {
+        images.push(this);
+      }
+    } as unknown as typeof Image;
+    const drawImage = vi.fn();
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+    const toDataURL = vi
+      .spyOn(HTMLCanvasElement.prototype, 'toDataURL')
+      .mockReturnValue('data:image/jpeg;base64,AAAA');
+    try {
+      const video = document.createElement('video');
+      service.show(video, { title: 'A Scene', imageUrl: '/api/media/stash/scenes/7/screenshot' });
+      expect(images).toHaveLength(1);
+      expect(images[0].src).toBe(`${location.origin}/api/media/stash/scenes/7/screenshot`);
+
+      images[0].onload?.();
+
+      // The middle of the 16:9 picture.
+      expect(drawImage).toHaveBeenCalledWith(images[0], 280, 0, 720, 720, 0, 0, 512, 512);
+      expect(artwork()).toEqual([
+        { src: 'data:image/jpeg;base64,AAAA', sizes: '512x512', type: 'image/jpeg' },
+      ]);
+      expect(session.metadata).toMatchObject({ title: 'A Scene' });
+
+      // Made once: playing again uses it straight away.
+      service.show(video, { title: 'A Scene', imageUrl: '/api/media/stash/scenes/7/screenshot' });
+      expect(images).toHaveLength(1);
+      expect(artwork()[0].src).toBe('data:image/jpeg;base64,AAAA');
+    } finally {
+      globalThis.Image = OriginalImage;
+      getContext.mockRestore();
+      toDataURL.mockRestore();
+    }
   });
 });

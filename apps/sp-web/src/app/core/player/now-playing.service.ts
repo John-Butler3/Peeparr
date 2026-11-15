@@ -18,13 +18,17 @@ type Handled = 'play' | 'pause' | 'seekto' | 'seekbackward' | 'seekforward';
  *
  * WebKit shows nothing but the page's name until the handlers are
  * registered, and goes back to it when the video starts (or restarts) --
- * so the details are put up again on every 'playing'. Artwork URLs are
- * made absolute: a relative one isn't fetched everywhere.
+ * so the details are put up again on every 'playing'.
+ *
+ * The artwork is the thumbnail, cropped square and handed over as a data
+ * URL: iOS left the Dynamic Island's picture empty when given the
+ * thumbnail's own (signed-in, 16:9) address. Until it's ready -- or if it
+ * can't be had -- the Peeparr logo stands in.
  */
 @Injectable({ providedIn: 'root' })
 export class NowPlayingService {
-  /** One image serves every size: the OS scales whichever it picks. */
-  static readonly ARTWORK_SIZES = ['96x96', '192x192', '256x256', '384x384', '512x512'];
+  /** The square the thumbnail is cropped to. */
+  static readonly ARTWORK_PX = 512;
   private static readonly ACTIONS: readonly Handled[] = [
     'play',
     'pause',
@@ -36,6 +40,9 @@ export class NowPlayingService {
   private video: HTMLVideoElement | null = null;
   private info: NowPlayingInfo | null = null;
   private listeners: AbortController | null = null;
+  /** Thumbnails made square, by their address. */
+  private readonly squares = new Map<string, string>();
+  private squaring: string | null = null;
 
   /** This video, started, is what's playing: put its details up and keep them there. */
   show(video: HTMLVideoElement, info: NowPlayingInfo): void {
@@ -99,7 +106,7 @@ export class NowPlayingService {
       title: info.title,
       artist: performers.join(', '),
       album: studio,
-      artwork: info.imageUrl ? this.artwork(info.imageUrl) : [],
+      artwork: this.artwork(info.imageUrl),
     });
     session.playbackState = state;
 
@@ -129,9 +136,77 @@ export class NowPlayingService {
     }
   }
 
-  private artwork(imageUrl: string): MediaImage[] {
-    const src = this.absolute(imageUrl);
-    return NowPlayingService.ARTWORK_SIZES.map((sizes) => ({ src, sizes }));
+  private artwork(imageUrl: string | null): MediaImage[] {
+    const square = imageUrl ? this.squares.get(imageUrl) : undefined;
+    if (square) {
+      const px = NowPlayingService.ARTWORK_PX;
+      return [{ src: square, sizes: `${px}x${px}`, type: 'image/jpeg' }];
+    }
+    if (imageUrl) {
+      this.makeSquare(imageUrl);
+    }
+    return [{ src: this.absolute(this.logo()), sizes: '512x512', type: 'image/png' }];
+  }
+
+  /** The app's logo, the discreet one when that's what the app shows. */
+  private logo(): string {
+    const touchIcon = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+    return touchIcon?.getAttribute('href')?.includes('discreet')
+      ? 'icons/icon-discreet-512.png'
+      : 'icons/icon-512.png';
+  }
+
+  /** Loads the thumbnail and crops it square; the details go up again with it. */
+  private makeSquare(imageUrl: string): void {
+    if (this.squaring === imageUrl) {
+      return;
+    }
+    this.squaring = imageUrl;
+    const image = new Image();
+    image.onload = () => {
+      if (this.squaring === imageUrl) {
+        this.squaring = null;
+      }
+      const square = this.crop(image);
+      if (!square) {
+        return;
+      }
+      this.squares.clear();
+      this.squares.set(imageUrl, square);
+      if (this.info?.imageUrl === imageUrl && this.video) {
+        this.apply(this.video.paused ? 'paused' : 'playing');
+      }
+    };
+    image.onerror = () => {
+      if (this.squaring === imageUrl) {
+        this.squaring = null;
+      }
+    };
+    image.src = this.absolute(imageUrl);
+  }
+
+  private crop(image: HTMLImageElement): string | null {
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+    if (!width || !height) {
+      return null;
+    }
+    try {
+      const px = NowPlayingService.ARTWORK_PX;
+      const canvas = document.createElement('canvas');
+      canvas.width = px;
+      canvas.height = px;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        return null;
+      }
+      const side = Math.min(width, height);
+      context.drawImage(image, (width - side) / 2, (height - side) / 2, side, side, 0, 0, px, px);
+      const data = canvas.toDataURL('image/jpeg', 0.85);
+      return data.startsWith('data:image/jpeg') ? data : null;
+    } catch {
+      return null;
+    }
   }
 
   private absolute(url: string): string {

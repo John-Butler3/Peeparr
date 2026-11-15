@@ -136,13 +136,10 @@ describe('MiniplayerComponent', () => {
       artwork: Array<{ src: string; sizes: string }>;
     };
     expect(metadata.title).toBe('A Scene');
-    expect(metadata.artwork.length).toBeGreaterThan(1);
-    expect(metadata.artwork.every((entry) => entry.src === 'http://cdn.local/a-scene.jpg')).toBe(
-      true,
-    );
-    expect(new Set(metadata.artwork.map((entry) => entry.sizes)).size).toBe(
-      metadata.artwork.length,
-    );
+    // The logo stands in while the thumbnail is made square.
+    expect(metadata.artwork).toEqual([
+      expect.objectContaining({ src: `${location.origin}/icons/icon-512.png` }),
+    ]);
     expect(mediaSessionStub.playbackState).toBe('playing');
   });
 
@@ -170,7 +167,7 @@ describe('MiniplayerComponent', () => {
     );
   });
 
-  it('omits artwork when the scene has no thumbnail', async () => {
+  it('shows the logo when the scene has no thumbnail', async () => {
     const { fixture } = await renderMiniplayer({
       title: 'A Scene',
       imageUrl: null,
@@ -186,7 +183,10 @@ describe('MiniplayerComponent', () => {
     Object.defineProperty(video, 'duration', { value: 600, configurable: true });
     video.dispatchEvent(new Event('loadedmetadata'));
 
-    expect(mediaSessionStub.metadata).toMatchObject({ title: 'A Scene', artwork: [] });
+    expect(mediaSessionStub.metadata).toMatchObject({
+      title: 'A Scene',
+      artwork: [expect.objectContaining({ src: `${location.origin}/icons/icon-512.png` })],
+    });
   });
 
   it('reflects pause/resume in the OS playback state', async () => {
