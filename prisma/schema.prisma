@@ -25,6 +25,25 @@ model AdminUser {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   sessions           AdminSession[]
+  passkeys           AdminPasskey[]
+}
+
+/// A passkey (Face ID / Touch ID / a security key) the admin signs in with.
+model AdminPasskey {
+  id           String    @id @default(cuid())
+  userId       String
+  /// The credential's id, base64url.
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      Int       @default(0)
+  transports   String[]  @default([])
+  /// Where it lives, as the admin named it (e.g. "iPhone").
+  name         String
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  user         AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model AdminSession {

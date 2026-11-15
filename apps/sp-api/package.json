@@ -31,7 +31,8 @@
     "class-validator": "^0.15.1",
     "compression": "^1.8.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "@simplewebauthn/server": "^13.3.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

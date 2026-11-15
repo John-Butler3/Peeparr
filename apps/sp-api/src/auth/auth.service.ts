@@ -187,6 +187,37 @@ export class AuthService {
       : status;
   }
 
+  /** Signed in another way (a passkey): a new session for this admin. */
+  async signIn(
+    user: {
+      id: string;
+      username: string;
+      normalizedUsername: string;
+      sessionVersion: number;
+    },
+    request: Request,
+    response: Response,
+  ): Promise<AuthStatusResponse> {
+    const sessionId = await this.startSession(
+      user.id,
+      user.sessionVersion,
+      response,
+    );
+    return this.toStatus(
+      this.writeCachedRequestAuth(request, {
+        bootstrapRequired: false,
+        authenticated: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          normalizedUsername: user.normalizedUsername,
+          sessionVersion: user.sessionVersion,
+        },
+        sessionId,
+      }),
+    );
+  }
+
   async requestPasswordReset(): Promise<void> {
     const adminUser = await this.prisma.adminUser.findFirst();
     if (!adminUser) {
