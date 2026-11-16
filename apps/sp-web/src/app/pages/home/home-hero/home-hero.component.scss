@@ -159,8 +159,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  // Room on the right for the dots.
-  padding: 16px 120px 18px 20px;
+  // Room below for the dots.
+  padding: 16px 20px 28px;
   color: #fff;
   pointer-events: none;
 }
@@ -244,11 +244,12 @@
 
 .hero-dots {
   position: absolute;
-  right: 20px;
-  bottom: 35px;
+  left: 50%;
+  bottom: 12px;
   z-index: 3;
   display: flex;
   gap: 6px;
+  transform: translateX(-50%);
 }
 
 .hero-dot {
@@ -292,7 +293,7 @@
 
   .hero-caption {
     gap: 10px;
-    padding: 12px 108px 14px 16px;
+    padding: 12px 16px 24px;
   }
 
   .hero-play {
@@ -301,8 +302,18 @@
   }
 
   .hero-dots {
-    right: 16px;
-    bottom: 30px;
+    bottom: 10px;
+    gap: 5px;
+  }
+
+  .hero-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  .hero-dot.is-active {
+    width: 18px;
   }
 }
 
