@@ -155,7 +155,7 @@ export class HomeService {
   private readonly logger = new Logger(HomeService.name);
 
   /** Scenes in the Home banner. */
-  static readonly HERO_SLIDES = 5;
+  static readonly HERO_SLIDES = 10;
   /** Random unwatched scenes fetched, to leave enough once recent ones are out. */
   static readonly HERO_UNWATCHED_CANDIDATES = 24;
   /** How long the banner's random unwatched picks are kept. */

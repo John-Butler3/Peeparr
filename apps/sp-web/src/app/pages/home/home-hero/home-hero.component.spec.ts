@@ -62,11 +62,11 @@ describe('HomeHeroComponent', () => {
     return fixture.nativeElement.querySelector('.hero-title')?.textContent?.trim();
   }
 
-  it('shows only the five most recent scenes and links to the catalog page when known', async () => {
-    const fixture = await render([1, 2, 3, 4, 5, 6, 7].map(buildItem));
+  it('shows only the first ten scenes and links to the catalog page when known', async () => {
+    const fixture = await render(Array.from({ length: 12 }, (_, i) => buildItem(i + 1)));
 
-    expect(fixture.nativeElement.querySelectorAll('.hero-slide').length).toBe(5);
-    expect(fixture.nativeElement.querySelectorAll('.hero-dot').length).toBe(5);
+    expect(fixture.nativeElement.querySelectorAll('.hero-slide').length).toBe(10);
+    expect(fixture.nativeElement.querySelectorAll('.hero-dot').length).toBe(10);
     expect(title(fixture)).toBe('Recent Scene 1');
     expect(fixture.nativeElement.querySelector('.hero-tag')?.textContent).toContain(
       'New in your library',

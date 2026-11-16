@@ -1589,17 +1589,29 @@ describe('HomeService', () => {
     it('alternates the newest scenes with older random unwatched ones, marking which is which', async () => {
       configureStash();
       libraryGetScenesPreviewMock.mockResolvedValue(
-        ['n1', 'n2', 'n3', 'n4'].map(libraryScene),
+        ['n1', 'n2', 'n3', 'n4', 'n5', 'n6'].map(libraryScene),
       );
       // n4 is unwatched but in the Recently Added row: not an unwatched pick.
       stashGetRandomUnwatchedScenesMock.mockResolvedValue(
-        ['u1', 'n4', 'u2', 'u3'].map(stashScene),
+        ['u1', 'n4', 'u2', 'u3', 'u4', 'u5', 'u6'].map(stashScene),
       );
 
       const hero = await service.getHero();
 
+      // Ten slides, the rest left out.
       expect(hero.items.map((item) => `${item.heroReason}:${item.id}`)).toEqual(
-        ['NEW:n1', 'UNWATCHED:u1', 'NEW:n2', 'UNWATCHED:u2', 'NEW:n3'],
+        [
+          'NEW:n1',
+          'UNWATCHED:u1',
+          'NEW:n2',
+          'UNWATCHED:u2',
+          'NEW:n3',
+          'UNWATCHED:u3',
+          'NEW:n4',
+          'UNWATCHED:u4',
+          'NEW:n5',
+          'UNWATCHED:u5',
+        ],
       );
       expect(stashGetRandomUnwatchedScenesMock).toHaveBeenCalledWith(
         expect.objectContaining({ baseUrl: 'http://stash.local' }),

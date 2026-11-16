@@ -46,7 +46,7 @@ import { onShowingPage } from '../../../core/navigation/page-fade.service';
   styleUrl: './home-hero.component.scss',
 })
 export class HomeHeroComponent implements OnChanges, OnDestroy {
-  static readonly SLIDES = 5;
+  static readonly SLIDES = 10;
   /** Preview time per scene before moving on. */
   static readonly PREVIEW_HOLD_MS = 8000;
   /** A preview clip plays through once, within these bounds. */
