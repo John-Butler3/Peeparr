@@ -1,3 +1,8 @@
+import {
+  BadGatewayException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { StudioFavoritesService } from '../studios/studio-favorites.service';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
@@ -104,7 +109,10 @@ describe('ScenesService', () => {
   };
 
   let service: ScenesService;
-  let librarySceneQueryService: { getLinkedByPerformerNames: jest.Mock };
+  let librarySceneQueryService: {
+    getLinkedByPerformerNames: jest.Mock;
+    findStashSceneIdForCatalogScene: jest.Mock;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -113,6 +121,7 @@ describe('ScenesService', () => {
     } as unknown as TpdbWebService;
     librarySceneQueryService = {
       getLinkedByPerformerNames: jest.fn().mockResolvedValue([]),
+      findStashSceneIdForCatalogScene: jest.fn().mockResolvedValue(null),
     };
     service = new ScenesService(
       integrationsService,
@@ -208,6 +217,44 @@ describe('ScenesService', () => {
     whisparrAdapter.buildSceneViewUrl = jest
       .fn()
       .mockReturnValue('http://whisparr.local/movie/stashdb-scene-1');
+  });
+
+  it('names the library scene when the catalog is down and has nothing stored', async () => {
+    catalogAdapter.getSceneById = jest
+      .fn()
+      .mockRejectedValue(
+        new BadGatewayException('Failed to reach TPDB provider endpoint.'),
+      );
+    librarySceneQueryService.findStashSceneIdForCatalogScene.mockResolvedValue(
+      '412',
+    );
+
+    const failure = await service
+      .getSceneById('stashdb-scene-1')
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ServiceUnavailableException);
+    expect(
+      (failure as ServiceUnavailableException).getResponse(),
+    ).toMatchObject({
+      librarySceneId: '412',
+    });
+    expect(
+      librarySceneQueryService.findStashSceneIdForCatalogScene,
+    ).toHaveBeenCalledWith('stashdb-scene-1');
+  });
+
+  it('passes the outage on for a scene not in the library, and a 404 as it is', async () => {
+    const outage = new BadGatewayException('down');
+    catalogAdapter.getSceneById = jest.fn().mockRejectedValue(outage);
+    await expect(service.getSceneById('stashdb-scene-1')).rejects.toBe(outage);
+
+    const missing = new NotFoundException('TPDB resource not found.');
+    catalogAdapter.getSceneById = jest.fn().mockRejectedValue(missing);
+    librarySceneQueryService.findStashSceneIdForCatalogScene.mockResolvedValue(
+      '412',
+    );
+    await expect(service.getSceneById('stashdb-scene-1')).rejects.toBe(missing);
   });
 
   it('enriches scene details with stash availability when stash copies exist', async () => {

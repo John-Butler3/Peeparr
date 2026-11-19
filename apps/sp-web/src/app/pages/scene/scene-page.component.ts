@@ -777,7 +777,16 @@ export class ScenePageComponent implements OnInit, OnDestroy {
           this.loadSimilarScenes(scene);
           this.loadChapters(scene);
         },
-        error: () => {
+        error: (error: { error?: { librarySceneId?: unknown } }) => {
+          // The catalog is down and has no stored copy: the library's own
+          // page for the scene needs nothing from it.
+          const librarySceneId = error?.error?.librarySceneId;
+          if (typeof librarySceneId === 'string' && librarySceneId) {
+            void this.router.navigate(['/library/scene', librarySceneId], {
+              replaceUrl: true,
+            });
+            return;
+          }
           this.error.set('Failed to load scene details from the API.');
         },
       });

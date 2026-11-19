@@ -1,7 +1,7 @@
 import { ConfirmationService } from 'primeng/api';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { Observable, of, throwError } from 'rxjs';
 import { AcquisitionService } from '../../core/api/acquisition.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
@@ -38,9 +38,9 @@ function buildScene(overrides: Partial<SceneDetails> = {}): SceneDetails {
 }
 
 describe('ScenePageComponent', () => {
-  async function renderScene(scene: SceneDetails) {
+  async function renderScene(scene: SceneDetails, details$: Observable<SceneDetails> = of(scene)) {
     const discoverService = {
-      getSceneDetails: vi.fn().mockReturnValue(of(scene)),
+      getSceneDetails: vi.fn().mockReturnValue(details$),
       getSceneStreamUrl: vi.fn().mockReturnValue(
         of({
           streamUrl: 'http://stash.local/stream?apikey=secret',
@@ -136,6 +136,30 @@ describe('ScenePageComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
+  });
+
+  it('opens the library page for the scene when the catalog is down with no stored copy', async () => {
+    const navigate = vi.spyOn(Router.prototype, 'navigate').mockResolvedValue(true);
+    try {
+      const { fixture } = await renderScene(
+        buildScene(),
+        throwError(() => ({ status: 503, error: { librarySceneId: '412' } })),
+      );
+
+      expect(navigate).toHaveBeenCalledWith(['/library/scene', '412'], { replaceUrl: true });
+      expect(fixture.nativeElement.textContent).not.toContain('Failed to load scene details');
+    } finally {
+      navigate.mockRestore();
+    }
+  });
+
+  it('says it failed when the scene is not in the library', async () => {
+    const { fixture } = await renderScene(
+      buildScene(),
+      throwError(() => ({ status: 502, error: { message: 'down' } })),
+    );
+
+    expect(fixture.nativeElement.textContent).toContain('Failed to load scene details');
   });
 
   it('links the site name to the internal studio page, not an external URL', async () => {

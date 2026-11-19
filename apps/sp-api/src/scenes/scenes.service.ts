@@ -6,9 +6,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { isCatalogOutage } from '../providers/catalog/catalog-snapshot.service';
 import { PerformerFavoritesService } from '../performers/performer-favorites.service';
 import { PerformerImagePreferenceService } from '../performers/performer-image-preference.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
@@ -608,10 +610,14 @@ export class ScenesService {
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    const scene = await catalogAdapter.getSceneById(sceneId, {
-      baseUrl: catalogProvider.baseUrl,
-      apiKey: catalogProvider.apiKey,
-    });
+    const scene = await catalogAdapter
+      .getSceneById(sceneId, {
+        baseUrl: catalogProvider.baseUrl,
+        apiKey: catalogProvider.apiKey,
+      })
+      .catch((error: unknown) =>
+        this.libraryFallbackForOutage(sceneId, catalogProvider.label, error),
+      );
     const status = await this.sceneStatusService.resolveForScene(scene.id);
     const stash = await this.resolveStashAvailability(
       scene.id,
@@ -672,6 +678,32 @@ export class ScenesService {
       stash,
       whisparr,
     };
+  }
+
+  /**
+   * The provider is down and has no stored copy of this scene: when it's in
+   * the library, the reply says which library scene, so the page can open
+   * that instead (it needs nothing from the provider).
+   */
+  private async libraryFallbackForOutage(
+    sceneId: string,
+    providerLabel: string,
+    error: unknown,
+  ): Promise<never> {
+    if (!isCatalogOutage(error)) {
+      throw error;
+    }
+    const librarySceneId = await this.librarySceneQueryService
+      .findStashSceneIdForCatalogScene(sceneId)
+      .catch(() => null);
+    if (!librarySceneId) {
+      throw error;
+    }
+    throw new ServiceUnavailableException({
+      statusCode: 503,
+      message: `${providerLabel} can't be reached; this scene is open from your library instead.`,
+      librarySceneId,
+    });
   }
 
   // "Similar" is defined narrowly as: already in the local library, and

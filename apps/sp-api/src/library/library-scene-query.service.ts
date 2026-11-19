@@ -233,6 +233,18 @@ export class LibrarySceneQueryService {
     return this.getScenesByIds(ranked);
   }
 
+  /** The library's copy of a catalog scene (its Stash scene id), if there is one. */
+  async findStashSceneIdForCatalogScene(
+    catalogSceneId: string,
+  ): Promise<string | null> {
+    const row = await this.prisma.librarySceneIndex.findFirst({
+      where: { linkedStashId: catalogSceneId },
+      select: { stashSceneId: true },
+      orderBy: { stashSceneId: 'asc' },
+    });
+    return row?.stashSceneId ?? null;
+  }
+
   // One indexed scene with its performers and tags, for the local scene page.
   async getSceneDetail(
     stashSceneId: string,
