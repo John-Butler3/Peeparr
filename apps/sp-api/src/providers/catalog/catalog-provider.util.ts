@@ -86,12 +86,7 @@ export function configuredCatalogProviderTypeFromIntegrations(
   );
   const configuredTypes = CATALOG_PROVIDER_KEYS.filter((providerType) => {
     const integration = integrationsByType.get(providerType);
-    return (
-      integration?.enabled === true &&
-      integration?.status === IntegrationStatus.CONFIGURED &&
-      !!integration.baseUrl?.trim() &&
-      !!integration.lastHealthyAt
-    );
+    return isCatalogProviderReady(integration);
   });
 
   if (configuredTypes.length === 0) {
@@ -142,6 +137,13 @@ export function instanceCatalogProviderTypeFromIntegrations(
   return pickCatalogProviderType(legacySelectedTypes, integrationsByType);
 }
 
+/**
+ * Has passed a connection test with its current settings. A later failed
+ * test (status ERROR) doesn't undo that: the provider is down, not set up
+ * wrong -- settings that changed and then failed clear lastHealthyAt. So
+ * the library keeps its catalog links, and lookups fall back to their
+ * stored copies, while the provider is unreachable.
+ */
 export function isCatalogProviderReady(
   integration:
     | {
@@ -155,7 +157,8 @@ export function isCatalogProviderReady(
 ): boolean {
   return (
     integration?.enabled === true &&
-    integration?.status === IntegrationStatus.CONFIGURED &&
+    (integration.status === IntegrationStatus.CONFIGURED ||
+      integration.status === IntegrationStatus.ERROR) &&
     !!integration.baseUrl?.trim() &&
     !!integration.lastHealthyAt
   );

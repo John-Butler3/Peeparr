@@ -136,7 +136,7 @@ export class CatalogProviderService {
         selectedType as IntegrationType,
       );
 
-      if (integration.status !== IntegrationStatus.CONFIGURED) {
+      if (!isCatalogProviderReady(integration)) {
         return null;
       }
 
@@ -172,9 +172,10 @@ export class CatalogProviderService {
     const baseUrl = integration.baseUrl?.trim();
 
     if (
-      integration.status !== IntegrationStatus.CONFIGURED ||
       !integration.enabled ||
-      !integration.lastHealthyAt
+      !integration.lastHealthyAt ||
+      (integration.status !== IntegrationStatus.CONFIGURED &&
+        integration.status !== IntegrationStatus.ERROR)
     ) {
       throw new ConflictException(
         `${label} catalog provider is not configured.`,

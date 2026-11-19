@@ -226,6 +226,36 @@ describe('CatalogProviderService', () => {
     );
   });
 
+  it('stays usable when a provider that passed with these settings fails a later test (it is down)', async () => {
+    const integration = {
+      type: IntegrationType.TPDB,
+      enabled: true,
+      status: IntegrationStatus.ERROR,
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'tpdb-token',
+      config: buildCatalogProviderSelectionConfig(),
+      lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+      lastErrorMessage: 'Failed to reach TPDB provider endpoint.',
+    };
+    integrationsService.findAll = jest.fn().mockResolvedValue([integration]);
+    integrationsService.findOne = jest.fn().mockResolvedValue(integration);
+
+    await expect(service.getConfiguredCatalogProviderType()).resolves.toBe(
+      'TPDB',
+    );
+    await expect(
+      service.getConfiguredCatalogProviderOrNull(),
+    ).resolves.toMatchObject({
+      providerKey: 'TPDB',
+      baseUrl: 'https://api.theporndb.net',
+    });
+    await expect(service.getConfiguredCatalogProvider()).resolves.toMatchObject(
+      {
+        providerKey: 'TPDB',
+      },
+    );
+  });
+
   it('dispatches to the StashdbAdapter when StashDB is the active provider', async () => {
     integrationsService.findAll = jest.fn().mockResolvedValue([
       {
