@@ -2,12 +2,18 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../../integrations/integrations.service';
 import { StashdbAdapter } from '../stashdb/stashdb.adapter';
 import { TpdbAdapter } from '../tpdb/tpdb.adapter';
+import type { StashdbAdapterBaseConfig } from '../stashdb/stashdb.adapter';
 import type { CatalogAdapter } from './catalog-adapter.interface';
+import {
+  CatalogSnapshotService,
+  type CatalogSnapshotKind,
+} from './catalog-snapshot.service';
 import {
   type CatalogProviderIntegrationType,
   type CatalogProviderKey,
@@ -25,17 +31,68 @@ export interface ConfiguredCatalogProvider {
   apiKey: string | null;
 }
 
+/** Lookups whose results are kept, so they still answer while the provider is down. */
+const SNAPSHOT_KINDS: Partial<
+  Record<keyof CatalogAdapter, CatalogSnapshotKind>
+> = {
+  getSceneById: 'SCENE',
+  getPerformerById: 'PERFORMER',
+  getStudioById: 'STUDIO',
+};
+
 @Injectable()
 export class CatalogProviderService {
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly stashdbAdapter: StashdbAdapter,
     private readonly tpdbAdapter: TpdbAdapter,
+    @Optional() private readonly snapshots?: CatalogSnapshotService,
   ) {}
 
+  /**
+   * The active provider's adapter. Scene, performer and studio lookups go
+   * through the stored copies: kept on every success, answering when the
+   * provider is down.
+   */
   async getConfiguredCatalogAdapter(): Promise<CatalogAdapter> {
     const provider = await this.getConfiguredCatalogProvider();
-    return provider.providerKey === 'TPDB' ? this.tpdbAdapter : this.stashdbAdapter;
+    const adapter = this.catalogAdapterFor(provider);
+    return this.snapshots
+      ? this.withSnapshots(adapter, provider.providerKey)
+      : adapter;
+  }
+
+  /** The provider's own adapter, straight to it: no stored copies. */
+  catalogAdapterFor(provider: ConfiguredCatalogProvider): CatalogAdapter {
+    return provider.providerKey === 'TPDB'
+      ? this.tpdbAdapter
+      : this.stashdbAdapter;
+  }
+
+  private withSnapshots(
+    adapter: CatalogAdapter,
+    providerKey: string,
+  ): CatalogAdapter {
+    const snapshots = this.snapshots as CatalogSnapshotService;
+    return new Proxy(adapter, {
+      get(target, property, receiver) {
+        const value: unknown = Reflect.get(target, property, receiver);
+        const kind =
+          typeof property === 'string'
+            ? SNAPSHOT_KINDS[property as keyof CatalogAdapter]
+            : undefined;
+        if (!kind || typeof value !== 'function') {
+          return value;
+        }
+        type Lookup = (
+          id: string,
+          config: StashdbAdapterBaseConfig,
+        ) => Promise<unknown>;
+        const lookup = (value as Lookup).bind(target) as Lookup;
+        return (id: string, config: StashdbAdapterBaseConfig) =>
+          snapshots.through(providerKey, kind, id, () => lookup(id, config));
+      },
+    });
   }
 
   async getInstanceCatalogProviderType(): Promise<CatalogProviderIntegrationType | null> {
@@ -119,7 +176,9 @@ export class CatalogProviderService {
       !integration.enabled ||
       !integration.lastHealthyAt
     ) {
-      throw new ConflictException(`${label} catalog provider is not configured.`);
+      throw new ConflictException(
+        `${label} catalog provider is not configured.`,
+      );
     }
 
     if (!baseUrl) {

@@ -177,6 +177,22 @@ model LibrarySceneIndex {
   @@index([lastSyncedAt])
 }
 
+/// A catalog record (scene, performer or studio) as last fetched from the
+/// provider (TPDB, StashDB, ...), so its pages still open while the provider
+/// is down. Kept for everything in the library (filled in the background)
+/// and for whatever else has been opened. `data` is null when the provider
+/// said the record doesn't exist.
+model CatalogSnapshot {
+  provider  String
+  kind      String
+  catalogId String
+  data      Json?
+  fetchedAt DateTime @default(now())
+
+  @@id([provider, kind, catalogId])
+  @@index([kind, fetchedAt])
+}
+
 model HomeRail {
   id          String              @id @default(cuid())
   key         HomeRailKey?        @unique

@@ -5,6 +5,7 @@ import { StashdbAdapter } from '../stashdb/stashdb.adapter';
 import { TpdbAdapter } from '../tpdb/tpdb.adapter';
 import { buildCatalogProviderSelectionConfig } from './catalog-provider.util';
 import { CatalogProviderService } from './catalog-provider.service';
+import { CatalogSnapshotService } from './catalog-snapshot.service';
 
 describe('CatalogProviderService', () => {
   const integrationsService = {
@@ -273,5 +274,76 @@ describe('CatalogProviderService', () => {
     await expect(service.getConfiguredCatalogAdapter()).resolves.toBe(
       tpdbAdapter,
     );
+  });
+
+  describe('stored copies', () => {
+    const through = jest.fn();
+    const snapshots = { through } as unknown as CatalogSnapshotService;
+    const adapter = {
+      getSceneById: jest.fn().mockResolvedValue({ id: 'scene-1' }),
+      getScenesBySort: jest.fn().mockResolvedValue({ scenes: [] }),
+    };
+
+    beforeEach(() => {
+      through.mockImplementation(
+        (
+          _provider: string,
+          _kind: string,
+          _id: string,
+          fetch: () => Promise<unknown>,
+        ) => fetch(),
+      );
+      integrationsService.findAll = jest.fn().mockResolvedValue([
+        {
+          type: IntegrationType.TPDB,
+          enabled: true,
+          status: IntegrationStatus.CONFIGURED,
+          baseUrl: 'https://api.theporndb.net',
+          config: buildCatalogProviderSelectionConfig(),
+          lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+        },
+      ]);
+      integrationsService.findOne = jest.fn().mockResolvedValue({
+        type: IntegrationType.TPDB,
+        enabled: true,
+        status: IntegrationStatus.CONFIGURED,
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+        lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+      });
+      service = new CatalogProviderService(
+        integrationsService,
+        stashdbAdapter,
+        adapter as unknown as TpdbAdapter,
+        snapshots,
+      );
+    });
+
+    it('sends scene, performer and studio lookups through the stored copies', async () => {
+      const catalog = await service.getConfiguredCatalogAdapter();
+      const config = {
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      };
+
+      await expect(catalog.getSceneById('scene-1', config)).resolves.toEqual({
+        id: 'scene-1',
+      });
+      expect(through).toHaveBeenCalledWith(
+        'TPDB',
+        'SCENE',
+        'scene-1',
+        expect.any(Function),
+      );
+      expect(adapter.getSceneById).toHaveBeenCalledWith('scene-1', config);
+    });
+
+    it('leaves feeds as they are', async () => {
+      const catalog = await service.getConfiguredCatalogAdapter();
+      await catalog.getScenesBySort({} as never);
+
+      expect(through).not.toHaveBeenCalled();
+      expect(adapter.getScenesBySort).toHaveBeenCalled();
+    });
   });
 });
