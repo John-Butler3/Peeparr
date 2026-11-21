@@ -106,11 +106,7 @@ export class TpdbAdapter implements CatalogAdapter {
     filters: { sort?: string; titleQuery?: string; studioIds?: string[] },
   ): Promise<StashdbTrendingScenesResult> {
     return this.trackRuntimeHealth(async () => {
-      const params: Record<string, string> = {
-        page: String(config.page),
-        per_page: String(config.perPage || TpdbAdapter.DEFAULT_PAGE_SIZE),
-      };
-
+      const params: Record<string, string> = {};
       if (filters.titleQuery?.trim()) {
         params.q = filters.titleQuery.trim();
       }
@@ -125,24 +121,61 @@ export class TpdbAdapter implements CatalogAdapter {
       if (!params.q) {
         params.orderBy = 'recently_released';
       }
-      // TPDB only filters scenes by a single site_id at a time; use the
-      // first requested studio if any were given.
-      const studioId = filters.studioIds?.[0]?.trim();
-      if (studioId) {
-        params.site_id = studioId;
+      const perPage = config.perPage || TpdbAdapter.DEFAULT_PAGE_SIZE;
+      const fetchPage = async (
+        siteId: string | null,
+        page: number,
+        size: number,
+      ) => {
+        const pageParams: Record<string, string> = {
+          ...params,
+          page: String(page),
+          per_page: String(size),
+        };
+        if (siteId) {
+          pageParams.site_id = siteId;
+        }
+        const payload = await this.fetchJson(
+          this.resolveUrl(config.baseUrl, 'scenes', pageParams),
+          config,
+        );
+        const { items, total } = this.extractPage(payload);
+        return {
+          total,
+          scenes: items
+            .map((entry) => this.mapSceneListEntry(entry))
+            .filter((scene): scene is StashdbScene => scene !== null),
+        };
+      };
+
+      const studioIds = [
+        ...new Set(
+          (filters.studioIds ?? []).map((id) => id.trim()).filter(Boolean),
+        ),
+      ];
+      if (studioIds.length <= 1) {
+        return fetchPage(studioIds[0] ?? null, config.page, perPage);
       }
 
-      const payload = await this.fetchJson(
-        this.resolveUrl(config.baseUrl, 'scenes', params),
-        config,
+      // Several sites (e.g. every favourite site): TPDB filters by one
+      // site_id at a time, so each site's newest scenes, enough to fill this
+      // page, merged newest first.
+      const wanted = config.page * perPage;
+      const perSite = await Promise.all(
+        studioIds.map((siteId) =>
+          this.newestSiteScenes(siteId, wanted, fetchPage),
+        ),
       );
-      const { items, total } = this.extractPage(payload);
-
+      const merged = perSite
+        .flatMap((site) => site.scenes)
+        .sort((a, b) =>
+          (b.releaseDate ?? b.date ?? '').localeCompare(
+            a.releaseDate ?? a.date ?? '',
+          ),
+        );
       return {
-        total,
-        scenes: items
-          .map((entry) => this.mapSceneListEntry(entry))
-          .filter((scene): scene is StashdbScene => scene !== null),
+        total: perSite.reduce((sum, site) => sum + site.total, 0),
+        scenes: merged.slice((config.page - 1) * perPage, wanted),
       };
     });
   }
@@ -448,7 +481,7 @@ export class TpdbAdapter implements CatalogAdapter {
       const wanted = config.page * perPage;
       const perSite = await Promise.all(
         studioIds.map((siteId) =>
-          this.newestPerformerScenes(siteId, wanted, fetchPage),
+          this.newestSiteScenes(siteId, wanted, fetchPage),
         ),
       );
       const merged = perSite
@@ -466,7 +499,7 @@ export class TpdbAdapter implements CatalogAdapter {
   }
 
   /** A site's first `wanted` scenes (newest first), up to MAX_PAGE_SIZE a request. */
-  private async newestPerformerScenes(
+  private async newestSiteScenes(
     siteId: string,
     wanted: number,
     fetchPage: (

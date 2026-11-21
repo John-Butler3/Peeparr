@@ -671,6 +671,46 @@ describe('TpdbAdapter', () => {
     expect(siteIds.sort()).toEqual(['10', '20']);
   });
 
+  it('lists scenes from several sites (every favourite site), merged newest first', async () => {
+    const scene = (id: string, date: string) => ({
+      id,
+      title: id,
+      date,
+      duration: null,
+    });
+    fetchMock.mockImplementation((url: string) => {
+      const site = new URL(url).searchParams.get('site_id');
+      const data =
+        site === '10'
+          ? [scene('a1', '2026-03-11'), scene('a2', '2026-01-01')]
+          : [scene('b1', '2026-11-19'), scene('b2', '2026-11-12')];
+      return Promise.resolve(
+        jsonResponse(200, { data, meta: { total: data.length } }),
+      );
+    });
+
+    const result = await adapter.getScenesBySort({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      page: 1,
+      perPage: 3,
+      sort: 'DATE',
+      direction: 'DESC',
+      studioIds: ['10', '20'],
+    });
+
+    expect(result.total).toBe(4);
+    expect(result.scenes.map((s) => s.id)).toEqual(['b1', 'b2', 'a1']);
+    const urls = fetchMock.mock.calls.map(([url]) => new URL(url as string));
+    expect(urls.map((u) => u.searchParams.get('site_id')).sort()).toEqual([
+      '10',
+      '20',
+    ]);
+    expect(
+      urls.every((u) => u.searchParams.get('orderBy') === 'recently_released'),
+    ).toBe(true);
+  });
+
   it('favorites a performer via the TPDB GraphQL endpoint', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, { data: { favoritePerformer: true } }),
