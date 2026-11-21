@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.11.0](https://github.com/John-Butler3/Peeparr/compare/v1.10.0...v1.11.0) (2026-11-21)
+
+
+### Features
+
+* **api:** sign in with a passkey (Face ID / Touch ID) ([b3784fd](https://github.com/John-Butler3/Peeparr/commit/b3784fd6179886d4a6564ac76f677b49964a82ce))
+* Face ID comes up by itself on the login page ([3865e28](https://github.com/John-Butler3/Peeparr/commit/3865e283d7d2b22a407891e305815bb1db07c2d4))
+* Home banner shows ten scenes instead of five ([a069c50](https://github.com/John-Butler3/Peeparr/commit/a069c50b0f4d47303dae545158585016c0111090))
+* Library pages keep working while TPDB is down -- catalog records stored ([ea914c4](https://github.com/John-Butler3/Peeparr/commit/ea914c40fda6149ce2b6c35b89b04e6363ebf203))
+* Lock when closed -- Face ID or the password every time Peeparr is opened ([3640903](https://github.com/John-Butler3/Peeparr/commit/36409038cd223d7e29f4bdaf485fc978c2a7b5f6))
+* **web:** a local scene's Up next leads with its performers' other scenes, and keeps its Stash chapters ([fe1372d](https://github.com/John-Butler3/Peeparr/commit/fe1372dea9d6163c2dc5fee309491331f6028cee))
+* **web:** Sign in with Face ID, and passkeys in Settings &gt; Account ([01f5af2](https://github.com/John-Butler3/Peeparr/commit/01f5af26ec53275169a520b51467cb147731fc03))
+
+
+### Bug Fixes
+
+* A catalog provider that's down stays in use -- library links kept ([d7e5264](https://github.com/John-Butler3/Peeparr/commit/d7e5264fc8fa32bbe3b444d65a1d2b8532810a33))
+* A library scene opens from the library while the catalog is down ([160063f](https://github.com/John-Butler3/Peeparr/commit/160063fbf5852c094a79e34a035dc44998dcd550))
+* Favourite sites feed shows every favourite site on TPDB, not just one ([da0e944](https://github.com/John-Butler3/Peeparr/commit/da0e9444b36a343540a81efe72709d8182f622e6))
+* Home banner dots in a centred row under the title ([043abb8](https://github.com/John-Butler3/Peeparr/commit/043abb863f47667b1dd913667570141a3b482926))
+* Now Playing artwork -- the thumbnail cropped square, the logo meanwhile ([1b4eb14](https://github.com/John-Butler3/Peeparr/commit/1b4eb1439fc4b6bb4be01152be7ab2366263caae))
+
 ## [1.10.0](https://github.com/John-Butler3/Peeparr/compare/v1.9.0...v1.10.0) (2026-11-15)
 
 
